@@ -20,11 +20,9 @@ export async function getCountDocument(id: string | null, callback: Calback) {
 
 
 
-export const getInClientLastTeenNovelty = async (callback: Calback): Promise<[]> => {
+export const getInClientLastTeenNovelty = async (numberPage: number, callback: Calback): Promise<[]> => {
     try {
-        console.log(`https://${IP}/user/publisher/paginate=0/items=10`);
-        const response: AxiosResponse = await axiosInstance.get(`https://${IP}/user/publisher/paginate=0/items=10`);
-        console.log(response.data)
+        const response: AxiosResponse = await axiosInstance.get(`https://${IP}/user/publisher/paginate=${numberPage}/items=10`);
         const sortedPublisher = response.data.length > 0 && response.data.sort((a: any, b: any) => {
             const dateA = new Date(a.date).getTime();
             const dateB = new Date(b.date).getTime();
@@ -39,4 +37,4 @@ export const getInClientLastTeenNovelty = async (callback: Calback): Promise<[]>
         if (typeof callback === 'function') callback(error, null);
         return [];
     }
-}
+}; 

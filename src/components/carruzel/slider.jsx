@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import changeHostNameForImg from '@/libs/changeHostName';
 import Image from 'next/image';
 
+import { useInView } from 'react-intersection-observer';
 
 
 const DynamicSlider = dynamic(
@@ -14,6 +15,9 @@ const DynamicSlider = dynamic(
 
 
 const CustomArrow = ({ onClick, direction }) => {
+
+
+
     const styles = {
         left: direction === "prev" ? 0 : 'unset',
         right: direction !== "prev" ? 0 : 'unset',
@@ -40,10 +44,10 @@ const CustomArrow = ({ onClick, direction }) => {
             style={styles}
         >
             {
-                direction === "prev" ? 
-                <Image src='/prev.png' alt='prev-ico' width={15} height={15} />
-                : 
-                <Image src='/next.png' alt='prev-ico' width={20} height={20} />
+                direction === "prev" ?
+                    <Image src='/prev.png' alt='prev-ico' width={15} height={15} />
+                    :
+                    <Image src='/next.png' alt='prev-ico' width={20} height={20} />
             }
         </button>
     )
@@ -55,6 +59,8 @@ const CustomArrow = ({ onClick, direction }) => {
 
 export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDrag }) {
 
+    const { ref, inView } = useInView();
+
 
 
     const setting = {
@@ -63,19 +69,22 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
         infinite: true,
         centerPadding: "0",
         slidesToShow: 1,
-        speed: 500,
+        speed: 800,
         adaptiveHeight: true,
-        prevArrow: <CustomArrow direction='prev' />,
-        nextArrow: <CustomArrow direction='next' />,
-        autoplay: true,    // Activa el movimiento automático
-        autoplaySpeed: 3000, // Tiempo entre slides (3 segundos)
+        prevArrow: video || imageGroup?.length > 1 ? <CustomArrow direction='prev' /> : null,
+        nextArrow: video || imageGroup?.length > 1 ? <CustomArrow direction='next' /> : null,
+        autoplay: inView,    // Activa el movimiento automático
+        autoplaySpeed: 4000, // Tiempo entre slides (3 segundos)
         pauseOnHover: true
     }
 
 
 
     return (
-        <div className='h-[500px] relative bg-black'>
+        <div
+            className='h-[500px] relative bg-black'
+            ref={ref}
+        >
             <DynamicSlider {...setting}>
                 <img className='h-[500px] object-contain' src={changeHostNameForImg(imageShare)} alt='share-image' />
                 {
@@ -86,13 +95,13 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
                         : null
                 }
                 {
-                    Array.isArray(imageGroup) && imageGroup.length > 0 ?
+                    Array.isArray(imageGroup) && imageGroup.length > 1 ?
                         <div className='h-[500px] w-full'>
                             <div className='w-full h-full flex flex-wrap direction-row justify-center items-center'>
                                 {
                                     imageGroup.map((img, index) => (
                                         <div className='h-[50%] w-[50%] relative' key={`${img.caption}-${index}`}>
-                                            
+
                                             <img className='h-full w-full' src={changeHostNameForImg(img.url)} key={index} alt='novelty-sequence' />
                                             <div className='bottom-[0] left-[0] absolute p-[.1rem_1rem] flex justify-center items-center'
                                                 style={{

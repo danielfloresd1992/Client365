@@ -1,41 +1,47 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import IP from '@/libs/dataFecth';
+import { useState, useEffect, useRef, memo } from 'react';
 import { getInClientLastTeenNovelty } from '@/libs/ajaxClient/noveltyFetching.ts';
 import { Noveltie } from '../../Publication/Noveltie';
 import { Alert } from '../../Publication/Alert';
 import LoandingData from '@/components/loandingComponent/loanding';
 import socket from '@/libs/socketIo';
-import useAxios from '@/hook/useAxios';
 
 
 
-export default function Publications({ dataPreRender }) {
+//datos dargado desdel servidor desactivado
+export default memo(function Publications({ dataPreRender }) {
+
 
     const [publisher, setPublisher] = useState(null);
     const [awaitFetch, setAwait] = useState(false);
-    const paginateRef = useRef(1);
+    const paginateRef = useRef(0);
     const boxRef = useRef(null);
 
-    const { requestAction } = useAxios();
+    const fecthBooleanCurrent = useRef(true);
 
-    console.error(dataPreRender)
 
+
+    //primera carga de datos de del cliente
     useEffect(() => {
-        getInClientLastTeenNovelty((error, data) => {
-            if (data) {
-                setPublisher(data);
-            }
-        });
+        if (fecthBooleanCurrent.current) {
+            fecthBooleanCurrent.current = false;
+            updateData(paginateRef.current);
+        }
     }, []);
 
 
+
+    //carga de datos en tiempo real
     useEffect(() => {
+
         let isSubscribed = true;
         const handleSendPublisher = data => {
             if (isSubscribed) {
                 data.isNewData = true;
-                setPublisher(prevPublisher => [data, ...prevPublisher]);
+                setPublisher(prevPublisher => {
+                    if (Array.isArray(prevPublisher)) return prevPublisher = [data, ...prevPublisher];
+                    return prevPublisher = [data];
+                });
             }
         };
         socket.on('sendPublisher', handleSendPublisher);
@@ -47,8 +53,25 @@ export default function Publications({ dataPreRender }) {
 
 
 
-    const returnTypePublisher = (data, typePublishe) => {
+    //carga de datos mediante paginación
+    const updateData = (page) => {
+        getInClientLastTeenNovelty(page, (error, data) => {
+            if (data) {
+                setPublisher(prevPublisher => {
+                    if (Array.isArray(prevPublisher)) return prevPublisher = [...prevPublisher, ...data];
+                    return prevPublisher = data;
+                });
 
+                paginateRef.current = paginateRef.current + 1;
+                setAwait(false);
+            }
+            if (error) console.log(error);
+        });
+    };
+
+
+
+    const returnTypePublisher = (data, typePublishe) => {
         if (typePublishe.noveltie) {
             return (
                 data ?
@@ -102,7 +125,7 @@ export default function Publications({ dataPreRender }) {
                                 (
                                     <button
                                         onClick={() => {
-                                            getPublic();
+                                            updateData(paginateRef.current);
                                             setAwait(true);
                                         }}
                                         className='btn-item'
@@ -139,4 +162,4 @@ export default function Publications({ dataPreRender }) {
             }
         </section>
     );
-}
+})

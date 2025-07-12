@@ -34,7 +34,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const [isVideoBooleanState, setIsVideoBooleanState] = useState(false);
     const containBtnRef = useRef(null);
     const menuRef = useRef(null);
-    const textRef = useRef(null);
+
 
     const dataDeleteForUserRef = useRef();
     const { dataSessionState } = useAuthOnServer();
@@ -110,7 +110,6 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const putValidateNoveltie = (id, dataParams) => {
-        console.log(dataParams);
         if (user.admin || user.super) {
             requestAction({ url: `https://${IP}/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
@@ -167,7 +166,6 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
                 const responseSend = await typeShareJarvis([noveltieCopi]);
 
-                console.log(responseSend);
 
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
@@ -187,14 +185,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
         }
         catch (error) {
             console.log(error);
-            dispatch(setConfigModal(
-                {
-                    modalOpen: true,
-                    title: 'Error',
-                    description: 'Error',
-                    isCallback: null,
-                    type: 'error'
-                }
+            dispatch(setConfigModal({
+                modalOpen: true,
+                title: 'Error',
+                description: 'Error',
+                isCallback: null,
+                type: 'error'
+            }
             ));
         }
     };
