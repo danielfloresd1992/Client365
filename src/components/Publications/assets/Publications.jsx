@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import IP from '@/libs/dataFecth';
+import { getInClientLastTeenNovelty } from '@/libs/ajaxClient/noveltyFetching.ts';
 import { Noveltie } from '../../Publication/Noveltie';
 import { Alert } from '../../Publication/Alert';
 import LoandingData from '@/components/loandingComponent/loanding';
@@ -11,7 +12,7 @@ import useAxios from '@/hook/useAxios';
 
 export default function Publications({ dataPreRender }) {
 
-    const [publisher, setPublisher] = useState(dataPreRender);
+    const [publisher, setPublisher] = useState(null);
     const [awaitFetch, setAwait] = useState(false);
     const paginateRef = useRef(1);
     const boxRef = useRef(null);
@@ -21,7 +22,11 @@ export default function Publications({ dataPreRender }) {
     console.error(dataPreRender)
 
     useEffect(() => {
-        //getPublic();
+        getInClientLastTeenNovelty((error, data) => {
+            if (data) {
+                setPublisher(data);
+            }
+        });
     }, []);
 
 
@@ -39,39 +44,6 @@ export default function Publications({ dataPreRender }) {
             socket.off('sendPublisher', handleSendPublisher);
         };
     }, []);
-
-
-
-    const getPublic = () => {
-
-        const url = `https://${IP}/user/publisher/paginate=${paginateRef.current}/items=10`;
-
-        requestAction({ url: url, action: 'GET' })
-            .then(response => {
-                if (response.status === 200) {
-                    if (response.data.length > 0) {
-                        const sortedPublisher = response.data.sort((a, b) => {
-                            const dateA = new Date(a.date).getTime();
-                            const dateB = new Date(b.date).getTime();
-                            return dateB - dateA;
-                        });
-                        if (Array.isArray(publisher)) {
-                            setPublisher([...publisher, ...sortedPublisher]);
-                        }
-                        else setPublisher(sortedPublisher);
-                    }
-                    else {
-                        setPublisher([...response.data]);
-                    }
-                    paginateRef.current = paginateRef.current + 1;
-                    setAwait(false);
-
-                }
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    };
 
 
 

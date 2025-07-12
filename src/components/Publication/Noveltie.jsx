@@ -57,10 +57,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             getNovelty();
         }
         else {
-            if (inView && !noveltyState) {
-                getNovelty();
-
-            }
+            if (inView && !noveltyState) getNovelty();
         }
     }, [inView]);
 
@@ -593,41 +590,32 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             returnDeleteNovetie(dataDeleteForUserRef.current)
                             :
 
-                            <div className='elemento divContentNovelties-divTitle' style={{ height: '500px' }}>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    borderRadius: '100%',
-                                    height: '80px',
-                                    width: '90px',
-                                    overflow: 'hidden',
-                                    backgroundColor: '#ddd'
-                                }}>
-                                    <div style={{ width: '50px', height: '50px', backgroundColor: '#ddd' }}>  </div>
-                                </div>
+                            <div className='elemento divContentNovelties-divTitle' style={{ height: '600px' }}>
+                                <div className='w-full h-full flex flex-col'>
+                                    <div className='w-full flex items-center gap-4'>
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            borderRadius: '100%',
+                                            height: '80px',
+                                            width: '90px',
+                                            overflow: 'hidden',
+                                            backgroundColor: '#ddd'
+                                        }}>
+                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#ddd' }}>  </div>
+                                        </div>
 
-                                <div className='divContentNovelties-textContain __width-complete'>
-                                    <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px' }} ></p>
-                                    <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px', width: '50%' }} ></p>
-                                    <div className='__align-center'>
+                                        <div className='divContentNovelties-textContain __width-complete'>
+                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px' }} ></p>
+                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px', width: '50%' }} ></p>
+                                            <div className='__align-center'>
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-
-                                <div className='contain-btnNoveltie' >
-                                    <button className='btn-circle divContentNovelties-headerOption_btn'>
-                                        <img className='icoBtnHeader headerNoveltieIco' src='ico/more_horiz/more_horiz.svg' />
-                                    </button>
-                                    <div className='divContentNovelties-headerListOption'>
-                                        <button className='divContentNovelties-headerListOptionBtn'>
-                                            Eliminar publicación
-                                            <img className='divContentNovelties-headerListOptionImg' src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAAaCAYAAACpSkzOAAAACXBIWXMAAAsTAAALEwEAmpwYAAAArklEQVR4nO2WTQrCMBBG30LcdKH38Q6CvZN6MHGteIZ6ihZGRiZQwTQTGtpNPvgWyfw8EgYS8KkFXsAAiHmwvROFdBw1j7ktAXpaszPQjPYb4GKxx1zIBuit2e5PfG+x3nLdujuuyevbFEgKexGIxGCLgYKSCQm561cDycx1VBUk9eqC6jBIHYbVhyFX4q1/W+IhG8G3Rms7T/K1wGOnP6aktgYLJ8uxnkQh2uNHHwhHEn7bB9NrAAAAAElFTkSuQmCC' />
-                                        </button>
-                                    </div>
+                                    <div className='w-full h-[500px] bg-[#ddd] mx-auto mt-4 rounded-lg' style={{ backgroundColor: '#ddd' }}></div>
                                 </div>
                             </div>
-
-
                     )
             }
         </div>
