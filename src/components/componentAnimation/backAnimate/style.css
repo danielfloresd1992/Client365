@@ -1,0 +1,145 @@
+
+
+.prensetantionContent-contentFixed {
+    position: fixed;
+    background-color: #969696;
+    z-index: -1;
+    height: 790px;
+    top: 0;
+    overflow: hidden;
+    max-width: 1750px;
+}
+
+.prensetantionContent-image{
+    position:absolute;
+    top: 0;
+    height: 100%;
+    width: 100%;
+    z-index: -1;
+    object-fit: cover;
+}
+
+.animation-wrapper {
+    margin: auto;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(33 33 33 / 74%);
+    z-index: 1;
+    position: relative;
+}
+
+
+.stagger-visualizer {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    transform-origin: left top;
+}
+
+
+.stagger-visualizer .dots-wrapper {
+    transform: translateZ(0);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    background-color: #121212;
+    align-content: center;
+}
+
+.mov-file{
+    transform: translateX(25px);
+}
+
+.stagger-visualizer .dot {
+    position: relative;
+    z-index: 1;
+    width: 50px;
+    height: 50px;
+    margin: 0 .4rem;
+    background-image: linear-gradient(180deg, #979292a6 8%, #9696969a 100%);
+    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    background-color: transparent;
+    background-image: linear-gradient(160deg, #1c1c1c 8%, #1e1e1e 100%);
+}
+
+
+.stagger-visualizer .cursor {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    width: 37px;
+    height: 37px;
+    margin: 9px;
+    background-color: currentColor;
+    border-radius: 50%;
+}
+
+
+.logo-content {
+
+    background-color: #000000;
+    position: relative;
+    /*
+    animation: logoAnimation 3s ease-in-out, box-shadow-alternate 4s ease-in;
+    */
+}
+
+
+
+@keyframes logoAnimation {
+    from {
+        transform: rotateX(90deg);
+    }
+    to {
+        transform: rotateX(0deg);
+    }
+}
+
+@keyframes box-shadow-alternate {
+    0% {
+        box-shadow: -3px 1px 20px 20px #060606b5;
+    }
+    50% {
+        box-shadow: -3px 1px 20px 20px #060606b5;
+    }
+    100% {
+        box-shadow: -3px 1px 20px 20px #060606b5;
+    }
+}
+
+
+
+.block:before, .block:after {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: -2px;
+    background: linear-gradient(45deg, #00ff2d, #818181, #00ff08, #b9b9b9, #04ff00, #939393, #28d100, #3c3c3c, #56ff00, #ffffff);
+    background-size: 400%;
+    width: calc(100% + 4px);
+    height: calc(100% + 4px);
+    z-index: -1;
+    animation: steam 40s linear infinite;
+}
+
+@keyframes steam {
+	0% {
+		background-position: 0 0;
+	}
+	50% {
+		background-position: 400% 0;
+	}
+	100% {
+		background-position: 0 0;
+	}
+}
+
+.block:after {
+	filter: blur(50px);
+}

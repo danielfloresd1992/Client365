@@ -1,0 +1,1 @@
+export type NumbeTeUser = `58${string}@c.us`;

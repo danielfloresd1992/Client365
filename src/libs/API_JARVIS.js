@@ -1,0 +1,2 @@
+export default process.env.NODE_ENV === 'development' ? '120363167230826480@g.us' : '584267371177-1593197121@g.us';
+export const JarvisGroup = process.env.NODE_ENV === 'development' ?  '120363167230826480@g.us' : '120363047824436141@g.us';
