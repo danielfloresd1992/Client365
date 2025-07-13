@@ -1,26 +1,47 @@
-import Content from './assets/Content.jsx';
+'use client';
+import { useRef } from 'react';
+import BannerConfigAlert from './assets/BannerConfig';
+import ContainForm from './assets/ContainForm/ContentForm.jsx';
 
 
 
-export default function AlertInputLive(){
+export default function AlertInputLive() {
 
-    
-    return(
+
+    const containerRef = useRef(null);
+
+
+
+    return (
         <div
-            style={{
-                position: 'fixed',
-                backgroundColor: '#fff',
-                height: '40px',
-                overflow: 'hidden',
-                top: '50px',
-                boxShadow: 'rgb(0 0 0) 0px 12px 17px 2px',
-                overflowX: 'hidden',
-                zIndex: '2000',
-                gap: '1rem'
+            className='absolute left-0 bottom-0 overflow-x-hidden h-[30px] h-[70vh] z-[1000]'
+            onMouseEnter={() => {
+                if (containerRef.current) {
+                    containerRef.current.classList.remove('h-[30px]');
+                    containerRef.current.classList.add('h-[70vh]');
+                }
             }}
-            className='smooth scrolltheme1'
+            onMouseLeave={() => {
+                if (containerRef.current) {
+                    containerRef.current.classList.remove('h-[70vh]');
+                    containerRef.current.classList.add('h-[30px]');
+                }
+            }}
+            ref={containerRef}
         >
-            <Content />
+            <div
+                style={{
+                    width: '570px',
+                    height: '100%',
+                    position: 'relative',
+                    zIndex: 1000,
+                    overflow: 'hidden',
+                }}
+            >
+
+                <ContainForm />
+                <BannerConfigAlert />
+            </div>
         </div>
     );
 }

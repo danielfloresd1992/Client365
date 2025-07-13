@@ -2,7 +2,7 @@ import dynamic from 'next/dynamic';
 import Nav from './Nav/Nav';
 
 import { ImgProvider } from '@/contexts/imgContext';
-
+import FixedBottomBar from '@/components/Footer/FixedBottomBar';
 // Importa los componentes de manera dinámica
 const PublicationsBox = dynamic(() => import('@/components/Publications/PublicationsBox.jsx'));
 const AsideInfoUser = dynamic(() => import('@/app/Lobby/AsideInfoUser/AsideInfoUser.jsx'));
@@ -34,8 +34,13 @@ export default function Lobby() {
                 <PublicationsBox />
                 <AsideInfoUser />
                 <ZoomImg />
-                <AlertInputLive />
+
                 <Config_window />
+
+                <FixedBottomBar>
+                    <AlertInputLive />
+                </FixedBottomBar>
+
             </ImgProvider>
         </div>
     );

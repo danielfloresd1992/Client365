@@ -300,18 +300,18 @@ export default function ContainForm() {
         const listOrderClient = [...clientState].sort((x, y) => {
             return x.order - y.order;
         });
-        if(listOrderClient.length < 1){
+        if (listOrderClient.length < 1) {
             getLightEstablishment({ all: null }, (error, data) => {
-                if(error) throw console.log(error);
+                if (error) throw console.log(error);
                 console.log(data);
                 const listOrderClient = data.sort((x, y) => {
                     return x.order - y.order;
                 });
-        
+
                 fetchingNewReportRequest(listOrderClient, callback)
             })
         }
-        else{
+        else {
             fetchingNewReportRequest(listOrderClient, callback)
         }
     }, [clientState]);
@@ -430,7 +430,7 @@ export default function ContainForm() {
 
     return (
         <>
-            <form style={{ height: '80vh', padding: '55px 0 0 0', display: 'relative', display: 'flex', flexDirection: 'column' }}>
+            <form className='scrolltheme1' style={{ backgroundColor: '#fff', height: 'calc(100% - 30px)', display: 'relative', display: 'flex', flexDirection: 'column', overflowX: 'hidden' }}>
                 {
                     clientState.length > 0 && typeof isDaylightSavingTimeState === 'boolean' && scheduleState.length > 0 ?
                         (
