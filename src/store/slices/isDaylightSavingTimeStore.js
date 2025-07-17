@@ -1,6 +1,6 @@
 import { createSlice } from '@reduxjs/toolkit';
 import axios from 'axios';
-import IP from '@/libs/dataFecth';
+import IP from '@/libs/ajaxClient/dataFecth';
 
 
 
@@ -11,7 +11,7 @@ export const isDaylightSavingTimeStore = createSlice({
         apdateLightSavingTime: (state, action) => {
             return action.payload;
         }
-           
+
     }
 });
 

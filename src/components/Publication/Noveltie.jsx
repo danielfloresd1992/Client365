@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef, useContext } from 'react';
-import IP from '@/libs/dataFecth';
+import IP from '@/libs/ajaxClient/dataFecth';
 
 import useAxios from "@/hook/useAxios";
 import DataFormart from '@/libs/dateFormat.js';

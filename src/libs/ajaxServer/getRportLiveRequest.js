@@ -1,8 +1,8 @@
 'useClient';
-import axiosStand from '../axios.fetch';
-import IP from '../dataFecth';
+import axiosStand from '../ajaxClient/axios.fetch';
+import IP from '../ajaxClient/dataFecth';
 
-export default function getRportLiveRequest(){
+export default function getRportLiveRequest() {
     return new Promise((resolve, reject) => {
         axiosStand.get(`https://${IP}/alertNoveltie/recordsLive`)
             .then(response => {

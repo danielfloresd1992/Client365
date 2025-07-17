@@ -26,9 +26,18 @@ type FranchiseT = 'franchise'
 
 type EstablishmentT = '/establishment' | `/establishment?AllEstablishment=${string}` | `/local/id=${string}`
 
+type NoveltyT = `/user/publisher/paginate=${number}/items=10`
+
+type FailedMonitoringT = '/failed/all';
+
+type AllRecurses = EstablishmentT | FranchiseT | NoveltyT | FailedMonitoringT;
 
 
-export function useFetch<T = unknown>(url: EstablishmentT | FranchiseT, options?: FetchOptions): FetchState<T> {
+
+
+
+
+export function useFetch<T = unknown>(url: AllRecurses, options?: FetchOptions): FetchState<T> {
 
 
     const [state, setState] = useState<FetchState<T>>({

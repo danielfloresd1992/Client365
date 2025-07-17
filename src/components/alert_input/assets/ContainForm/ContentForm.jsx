@@ -6,7 +6,7 @@ import getScheduleRequest from '@/libs/ajaxServer/getScheduleRequest';
 import getRportLiveRequest from '@/libs/ajaxServer/getRportLiveRequest';
 import socket from '@/libs/socketIo'; //app manager core
 import socket_jarvis from '@/libs/socketIo_jarvis';
-import IP from '@/libs/dataFecth';
+import IP from '@/libs/ajaxClient/dataFecth';
 import BoxClientInputs from "./BoxClientInputs";
 import LoandingData from '@/components/loandingComponent/loanding';
 import ContainerToCreateImages from '../ContainerToCreateImages';

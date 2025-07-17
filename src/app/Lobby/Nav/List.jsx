@@ -1,21 +1,21 @@
 'use client';
 import { useEffect, useState } from 'react';
-import IP from '@/libs/dataFecth';
+import IP from '@/libs/ajaxClient/dataFecth';
 import { arrayBufferToBase64 } from '@/libs/arrayTo64';
 import useAxios from '@/hook/useAxios';
 import Link from 'next/link';
 
 
 
-export default function List({ data }){
+export default function List({ data }) {
 
-    const [ locality, setLocality ] = useState(null);
+    const [locality, setLocality] = useState(null);
     const { requestAction } = useAxios();
 
     useEffect(() => {
-        requestAction({ url: `https://${ IP }/local/id=${ data._id }`, action: 'GET' })
+        requestAction({ url: `https://${IP}/local/id=${data._id}`, action: 'GET' })
             .then(response => {
-                if(response?.status === 200){
+                if (response?.status === 200) {
                     setLocality(response.data);
                 }
             })
@@ -23,19 +23,19 @@ export default function List({ data }){
                 console.log(err);
             });
     }, []);
-    
-    
-    return(
-        <li style={{order: data.order}}>
+
+
+    return (
+        <li style={{ order: data.order }}>
             <a className='listRoute-a'>
                 <div>
-                    <img 
+                    <img
                         style={{ backgroundColor: '#6f6f6f', width: '25px' }}
-                        src={ locality?.img ? arrayBufferToBase64(locality.img.data.data, 'image/png' ) : locality?.image } />
+                        src={locality?.img ? arrayBufferToBase64(locality.img.data.data, 'image/png') : locality?.image} />
                 </div>
                 <p className='__textGrayForList' >{data.name}</p>
             </a>
         </li>
-       
+
     )
 }

@@ -1,6 +1,6 @@
 import axios from 'axios';
 import https from 'https';
-import IP from '@/libs/dataFecth';
+import IP from '@/libs/ajaxClient/dataFecth';
 
 
 // Crear una instancia de CookieJar
