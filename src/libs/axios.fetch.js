@@ -1,9 +1,10 @@
 import axios from 'axios';
 import https from 'https';
-import { CookieJar } from 'tough-cookie';
+import IP from '@/libs/dataFecth';
+
 
 // Crear una instancia de CookieJar
-const jar = new CookieJar();
+
 
 // Crear un agente HTTPS que ignore la verificación de certificados
 const agent = new https.Agent({
@@ -12,7 +13,7 @@ const agent = new https.Agent({
 
 // Configurar la instancia de Axios para usar el agente HTTPS y manejar cookies manualmente
 const axiosInstance = axios.create({
-
+    baseURL: IP,
     httpsAgent: agent,
     withCredentials: true, // Asegúrate de que las cookies se envíen en las solicitudes
     headers: {
