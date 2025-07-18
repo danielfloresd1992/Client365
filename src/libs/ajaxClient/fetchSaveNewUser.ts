@@ -15,7 +15,7 @@ interface ICredentialArg {
 
 
 export default function fetchSaveNewUser(arg: ICredentialArg): Promise<unknown> {
-    const url: string = `https://${IP}/auth/singin`;
+    const url: string = `/auth/singin`;
     return new Promise((resolve, reject) => {
         axiosStand.post(url, arg)
             .then((response: AxiosResponse<unknown>) => {

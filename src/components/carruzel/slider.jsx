@@ -1,7 +1,7 @@
 'use client';
 import { memo } from 'react';
 import dynamic from 'next/dynamic';
-import changeHostNameForImg from '@/libs/changeHostName';
+import changeHostNameForImg from '@/libs/script/changeHostName';
 import Image from 'next/image';
 
 import { useInView } from 'react-intersection-observer';

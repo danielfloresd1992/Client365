@@ -1,4 +1,5 @@
-import {  useCallback, useMemo, useContext } from 'react';
+'use client';
+import { useCallback, useMemo, useContext } from 'react';
 import { setSession } from '@/store/slices/session';
 import { useRouter } from 'next/navigation';
 import { myUserContext } from '@/contexts/userContext';
@@ -15,9 +16,9 @@ import { requestLogin, closeSession } from '@/libs/ajaxClient/authFetch';
 export default function useAuthOnServer(): ReturFunc {
 
 
-    const { dataSessionState, setState,  errorState, setErrorState, }: any =  useContext(myUserContext);
+    const { dataSessionState, setState, errorState, setErrorState, }: any = useContext(myUserContext);
 
-  //  const dataSessionState: SessionState = useSelector((state: any) => state.session);
+    //  const dataSessionState: SessionState = useSelector((state: any) => state.session);
 
     const router = useRouter();
 
@@ -26,7 +27,7 @@ export default function useAuthOnServer(): ReturFunc {
 
         requestLogin(data, (error, dataRes) => {
 
-            if(error?.response) return setErrorState(error?.response?.data);
+            if (error?.response) return setErrorState(error?.response?.data);
 
 
             const setDataResult: SessionState = {
@@ -40,7 +41,7 @@ export default function useAuthOnServer(): ReturFunc {
             if (callbackUrl) router.push(callbackUrl);
 
         });
-    }, [ router ]);
+    }, [router]);
 
 
 
@@ -64,5 +65,5 @@ export default function useAuthOnServer(): ReturFunc {
         logOut,
         dataSessionState,
         errorState
-    }), [ dataSessionState, errorState ]);
+    }), [dataSessionState, errorState]);
 }

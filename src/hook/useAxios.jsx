@@ -8,6 +8,7 @@ import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import { useRouter } from 'next/navigation';
 import useAuthOnServer from '@/hook/auth';
+import IP from '@/libs/ajaxClient/dataFecth';
 
 
 const useAxios = (config) => {
@@ -26,11 +27,12 @@ const useAxios = (config) => {
         }
     };
 
-    if (config?.withCredentials === undefined || config?.withCredentials) {
-        instance.withCredentials = true;
-    }
+    if (config?.withCredentials === undefined || config?.withCredentials) instance.withCredentials = true;
+
+    instance.baseURL = IP;
 
     const axiosInstance = wrapper(axios.create(instance));
+
 
 
     if (config?.isInterceptors === undefined || config?.isInterceptors) {

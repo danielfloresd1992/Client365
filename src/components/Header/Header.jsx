@@ -2,17 +2,17 @@
 import Image from 'next/image';
 import useAuthOnServer from '@/hook/auth';
 import Link from 'next/link';
-import { useRouter, usePathname} from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-import socket from '@/libs/socketIo';
-import socket_jarvis from '@/libs/socketIo_jarvis';
+import socket from '@/libs/socket/socketIo';
+import socket_jarvis from '@/libs/socket/socketIo_jarvis';
 import { useDispatch, useSelector } from 'react-redux';
 import { setOpenWindowConfig } from '@/store/slices/configModalStore';
 import { setClient } from '@/store/slices/Client.js';
 import { setConfigModal } from '@/store/slices/globalModal';
 import getisDaylightSavingTime from '@/libs/ajaxServer/getIsDaylightSavingTime';
 import { apdateLightSavingTime } from '@/store/slices/isDaylightSavingTimeStore';
-import { getLightEstablishment } from '@/libs/ajaxClient/establishmentFetching'
+
 
 
 
@@ -21,7 +21,7 @@ import { getLightEstablishment } from '@/libs/ajaxClient/establishmentFetching'
 export default function Header() {
 
 
-    const {  logOut, dataSessionState } = useAuthOnServer();
+    const { logOut, dataSessionState } = useAuthOnServer();
     const establishmentState = useSelector(state => state.clients).length;
 
     const dispatch = useDispatch();
@@ -29,7 +29,6 @@ export default function Header() {
     const pathName = usePathname();
 
 
-    console.log(dataSessionState)
 
 
     useEffect(() => {
@@ -77,16 +76,16 @@ export default function Header() {
             socket.off('close-sessión-expire', closeSession);
             socket.off('reload-client-appmanager', reloadPage);
         }
-        
 
-    }, [ dataSessionState ]);
+
+    }, [dataSessionState]);
 
 
 
     useEffect(() => {
 
         if (dataSessionState.stateSession === 'authenticated') {
-            
+
             getisDaylightSavingTime()
                 .then(response => {
                     dispatch(apdateLightSavingTime(response.data.IsDaylightSavingTime));
@@ -94,35 +93,29 @@ export default function Header() {
                 .catch(error => {
                     console.log(error);
                 });
-            if(establishmentState < 1){
-                getLightEstablishment({ all: null }, (error, data) => {
-                    if(error) throw console.log(error);
-                    dispatch(setClient(data));
-                })
-            }
         }
 
-    }, [ dataSessionState, establishmentState ]);
+    }, [dataSessionState, establishmentState]);
 
 
 
     const redirectAuth = async () => {
         router.push('/auth');
     };
-    
-    
+
+
     const closeSession = async () => {
         logOut('/');
     };
 
-        
+
 
 
     const returnHtmlLogin = () => {
         if (dataSessionState.stateSession === 'loading') {
             return <p className='t-white' style={{ width: '50px' }}>...</p>
         }
-        else if(dataSessionState.stateSession === 'authenticated') {
+        else if (dataSessionState.stateSession === 'authenticated') {
             return (
                 <div className='header-buttonContain'>
                     <button
@@ -141,7 +134,7 @@ export default function Header() {
 
                     <button
                         onClick={() => {
-                            if (dataSessionState?.dataSession?.admin){
+                            if (dataSessionState?.dataSession?.admin) {
                                 return dispatch(setOpenWindowConfig(true));
                             }
                             dispatch(setConfigModal({
@@ -160,7 +153,7 @@ export default function Header() {
                     </button>
 
                     <button
-                        onClick={ closeSession }
+                        onClick={closeSession}
                         className='btn-item btn-item__btn-for-head btn-item__white btn-item_cancel-style'
                         title='Cerrar session'
                     >
@@ -177,14 +170,14 @@ export default function Header() {
 
 
     return (
-         <nav className='header' >
+        <nav className='header' >
             <div style={{ height: '100%', overflow: 'hidden' }}>
                 {
                     pathName !== '/' ?
                         <Link href={'/Lobby'}>
                             <Image priority={false} className='header-logo-title' alt='logo' src='/img/LOGO-SLIDER.png' width={200} height={70} style={{ position: 'relative', top: '-15px' }} />
                         </Link>
-                    :
+                        :
                         null
                 }
 

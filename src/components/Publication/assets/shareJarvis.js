@@ -1,8 +1,8 @@
-import GROUP_KEY from '@/libs/API_JARVIS.js';
-import axiosInstance from '@/libs/axios.config.js';
+import GROUP_KEY from '@/libs/ajaxClient/API_JARVIS.js';
+import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 import axios from 'axios'
-import blobToFileAndUrl from '@/libs/blobToFile'
-import changeHostNameForImg from '@/libs/changeHostName';
+import blobToFileAndUrl from '@/libs/script/blobToFile'
+import changeHostNameForImg from '@/libs/script/changeHostName';
 
 
 

@@ -1,4 +1,4 @@
-import axiosStand from '@/libs/axios.fetch';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import dataFecthServer from './dataFecthServer';
 
 

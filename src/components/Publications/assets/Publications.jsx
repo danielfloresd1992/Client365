@@ -1,10 +1,11 @@
 'use client';
 import { useState, useEffect, useRef, memo } from 'react';
-import { getInClientLastTeenNovelty } from '@/libs/ajaxClient/noveltyFetching.ts';
+//import { getInClientLastTeenNovelty } from '@/libs/ajaxClient/noveltyFetching.ts';
 import { Noveltie } from '../../Publication/Noveltie';
 import { Alert } from '../../Publication/Alert';
 import LoandingData from '@/components/loandingComponent/loanding';
-import socket from '@/libs/socketIo';
+import socket from '@/libs/socket/socketIo';
+import { useFetch } from '@/hook/ajax_hook/useFetch';
 
 
 
@@ -12,12 +13,14 @@ import socket from '@/libs/socketIo';
 export default memo(function Publications({ dataPreRender }) {
 
 
-    const [publisher, setPublisher] = useState(null);
+
+    const fecthBooleanCurrent = useRef(true);
+
     const [awaitFetch, setAwait] = useState(false);
     const paginateRef = useRef(0);
     const boxRef = useRef(null);
 
-    const fecthBooleanCurrent = useRef(true);
+    const { data, fetchData, setItem } = useFetch(`/user/publisher/paginate=${paginateRef.current}/items=10`);
 
 
 
@@ -25,9 +28,12 @@ export default memo(function Publications({ dataPreRender }) {
     useEffect(() => {
         if (fecthBooleanCurrent.current) {
             fecthBooleanCurrent.current = false;
-            updateData(paginateRef.current);
+            fetchData();
+            paginateRef.current = paginateRef.current + 1;
         }
+
     }, []);
+
 
 
 
@@ -38,10 +44,7 @@ export default memo(function Publications({ dataPreRender }) {
         const handleSendPublisher = data => {
             if (isSubscribed) {
                 data.isNewData = true;
-                setPublisher(prevPublisher => {
-                    if (Array.isArray(prevPublisher)) return prevPublisher = [data, ...prevPublisher];
-                    return prevPublisher = [data];
-                });
+                setItem(data, 'shift');
             }
         };
         socket.on('sendPublisher', handleSendPublisher);
@@ -55,18 +58,9 @@ export default memo(function Publications({ dataPreRender }) {
 
     //carga de datos mediante paginación
     const updateData = (page) => {
-        getInClientLastTeenNovelty(page, (error, data) => {
-            if (data) {
-                setPublisher(prevPublisher => {
-                    if (Array.isArray(prevPublisher)) return prevPublisher = [...prevPublisher, ...data];
-                    return prevPublisher = data;
-                });
-
-                paginateRef.current = paginateRef.current + 1;
-                setAwait(false);
-            }
-            if (error) console.log(error);
-        });
+        setAwait(false);
+        fetchData(`/user/publisher/paginate=${page}/items=10`)
+        paginateRef.current = paginateRef.current + 1;
     };
 
 
@@ -105,11 +99,11 @@ export default memo(function Publications({ dataPreRender }) {
 
 
     const printPublications = () => {
-        if (publisher?.length > 0) {
+        if (data?.length > 0) {
             return (
                 <>
                     {
-                        publisher.map(item => (
+                        data.map(item => (
                             returnTypePublisher(item, { noveltie: item.noveltie, alert: item.alert, corte: item.corte })
                         ))
                     }
@@ -125,8 +119,8 @@ export default memo(function Publications({ dataPreRender }) {
                                 (
                                     <button
                                         onClick={() => {
-                                            updateData(paginateRef.current);
                                             setAwait(true);
+                                            updateData(paginateRef.current);
                                         }}
                                         className='btn-item'
                                         style={{ width: '250px' }}
@@ -142,7 +136,7 @@ export default memo(function Publications({ dataPreRender }) {
                 </>
             )
         }
-        else if (publisher?.length === 0) {
+        else if (Array.isArray(data) && data?.length === 0) {
             return (
                 <div className='__center_center' style={{ height: '60vh', width: '100%' }}>
                     <p className='__text-center'>No hay datos para mostrar</p>

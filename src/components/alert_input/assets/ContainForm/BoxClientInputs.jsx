@@ -1,14 +1,14 @@
 'use client';
-import AppManagerConfigStorange from '@/libs/app_manager_config_DB';
+import AppManagerConfigStorange from '@/libs/script/app_manager_config_DB';
 import { useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import InputBorderBlue from "@/components/inpust/InputBorderBlue";
-import axiosStand from '@/libs/axios.fetch';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import IP from '@/libs/ajaxClient/dataFecth';
 import Img from '@/components/Img';
 import { addReportForArr } from '@/store/slices/alertLiveStore';
 import { addDateNoveltyForList } from '@/store/slices/dateNoveltyForList';
-import socket from '@/libs/socketIo';
+import socket from '@/libs/socket/socketIo';
 import useAuthOnServer from '@/hook/auth';
 
 

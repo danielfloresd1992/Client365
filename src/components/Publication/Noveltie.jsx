@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect, useRef, useContext } from 'react';
-import IP from '@/libs/ajaxClient/dataFecth';
+
 
 import useAxios from "@/hook/useAxios";
-import DataFormart from '@/libs/dateFormat.js';
+import DataFormart from '@/libs/time/dateFormat.js';
 import typeShareJarvis from './assets/shareJarvis';
 
 
@@ -11,12 +11,12 @@ import { useDispatch } from "react-redux";
 import { setConfigModal } from "@/store/slices/globalModal";
 
 import { ImgContext } from "@/contexts/imgContext";
-import socket from "@/libs/socketIo";
+import socket from "@/libs/socket/socketIo";
 import Img from './assets/Img';
 import { useInView } from 'react-intersection-observer';
-import axiosInstance from '@/libs/axios.config';
+import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 
-import changeHostNameForImg from '@/libs/changeHostName';
+import changeHostNameForImg from '@/libs/script/changeHostName';
 import useAuthOnServer from '@/hook/auth';
 
 import TextAreaAutoResize from '@/components/inpust/text_area_autoresize';
@@ -95,7 +95,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const getNovelty = () => {
-        requestAction({ url: `https://${IP}/novelties/img/id=${idNoveltie}`, action: 'GET' })
+        requestAction({ url: `/novelties/img/id=${idNoveltie}`, action: 'GET' })
             .then(response => {
                 if (response.status === 200) {
                     setNoveltyState(response.data[0]);
@@ -111,7 +111,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const putValidateNoveltie = (id, dataParams) => {
         if (user.admin || user.super) {
-            requestAction({ url: `https://${IP}/novelties/id=${id}`, body: dataParams, action: 'PUT' })
+            requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
                         setNoveltyState({ ...noveltyState, ...dataParams });
@@ -128,7 +128,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const deleteNoveltie = () => {
         if (user.admin) {
-            requestAction({ url: `https://${IP}/user/publisher/delete=${data._id}`, action: 'delete' })
+            requestAction({ url: `/user/publisher/delete=${data._id}`, action: 'delete' })
                 .then(response => {
                     if (response.status === 201) {
                         dataDeleteForUserRef.current = { idNoveltie: noveltyState._id, userSessionId: user.userSessionId, username: `${user.name} ${user.surName}`, action: 'DELETE' };

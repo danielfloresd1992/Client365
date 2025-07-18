@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 
 import IP from '@/libs/ajaxClient/dataFecth';
 import useAxios from "@/hook/useAxios.jsx";
-import { arrayBufferToBase64 } from '@/libs/arrayTo64.js';
-import DataFormart from "@/libs/dateFormat";
+import { arrayBufferToBase64 } from '@/libs/script/arrayTo64.js';
+import DataFormart from "@/libs/time/dateFormat";
 
 
 export function Alert({ data, idPublisher }) {

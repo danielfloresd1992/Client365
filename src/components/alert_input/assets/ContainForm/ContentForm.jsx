@@ -1,11 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { isMobile } from 'react-device-detect';
-import axiosStand from '@/libs/axios.fetch';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import getScheduleRequest from '@/libs/ajaxServer/getScheduleRequest';
 import getRportLiveRequest from '@/libs/ajaxServer/getRportLiveRequest';
-import socket from '@/libs/socketIo'; //app manager core
-import socket_jarvis from '@/libs/socketIo_jarvis';
+import socket from '@/libs/socket/socketIo'; //app manager core
+import socket_jarvis from '@/libs/socket/socketIo_jarvis';
 import IP from '@/libs/ajaxClient/dataFecth';
 import BoxClientInputs from "./BoxClientInputs";
 import LoandingData from '@/components/loandingComponent/loanding';
@@ -20,12 +20,12 @@ import { setVoicesDefinitive } from '@/store/slices/voiceDefinitive';
 import { setVoices } from '@/store/slices/voice';
 import { setConfigModal } from '@/store/slices/globalModal';
 import { setChangueStateIsAdmin } from '@/store/slices/boolean_admin_session';
-import AppManagerConfigStorange from '@/libs/app_manager_config_DB';
+import AppManagerConfigStorange from '@/libs/script/app_manager_config_DB';
 import sendTextJarvis from '@/libs/sendMsmJarvis';
-import getFiledDvrRequest from '@/libs/getFailedDvrRequest';
-import GROUP_KEY from '@/libs/API_JARVIS';
+//import getFiledDvrRequest from '@/libs/getFailedDvrRequest';
+import GROUP_KEY from '@/libs/ajaxClient/API_JARVIS';
 import useNotificationSound from '@/hook/useNotificationSound';
-import { getLightEstablishment } from '@/libs/ajaxClient/establishmentFetching';
+//import { getLightEstablishment } from '@/libs/ajaxClient/establishmentFetching';
 
 
 export default function ContainForm() {
@@ -55,7 +55,7 @@ export default function ContainForm() {
         if (voiceStorange) dispatch(setVoicesDefinitive(voiceStorange));
         isAdmin ? dispatch(setChangueStateIsAdmin(isAdmin)) : dispatch(setChangueStateIsAdmin(false));
 
-
+        /*
         getFiledDvrRequest()
             .then(data => {
                 setFailedState(state => state = data);
@@ -75,6 +75,7 @@ export default function ContainForm() {
 
         return () => {
         };
+        */
     }, []);
 
 
@@ -300,6 +301,7 @@ export default function ContainForm() {
         const listOrderClient = [...clientState].sort((x, y) => {
             return x.order - y.order;
         });
+        /*
         if (listOrderClient.length < 1) {
             getLightEstablishment({ all: null }, (error, data) => {
                 if (error) throw console.log(error);
@@ -314,6 +316,7 @@ export default function ContainForm() {
         else {
             fetchingNewReportRequest(listOrderClient, callback)
         }
+        */
     }, [clientState]);
 
 

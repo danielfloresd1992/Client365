@@ -1,23 +1,23 @@
 'use client';
 import { useEffect, useState } from 'react';
-import socket from '@/libs/socketIo';
+import socket from '@/libs/socket/socketIo';
 import useAuthOnServer from '@/hook/auth';
 
 
 
 
-export default function ListUserExpress(){
+export default function ListUserExpress() {
 
 
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
-    const [ userState, setUserState ] = useState([]);
-    
+    const [userState, setUserState] = useState([]);
+
 
     useEffect(() => {
         let isSubscribed = true;
         setInterval(() => {
-            if(isSubscribed){
+            if (isSubscribed) {
                 setUserState([])
                 socket.emit('update-user-repost-express', user);
             }
@@ -32,18 +32,19 @@ export default function ListUserExpress(){
         };
     }, []);
 
-    
+
 
 
     useEffect(() => {
         let isSubscribed = true;
 
         const addUser = data => {
-            if(isSubscribed){
-                const userExists = userState.findIndex(user => user.sessionId === data.sessionId );
+            if (isSubscribed) {
+                const userExists = userState.findIndex(user => user.sessionId === data.sessionId);
                 console.log(userExists);
-                if( userExists < 0 ){ ;
-                    setUserState(preState => [ ...preState, data ]);
+                if (userExists < 0) {
+                    ;
+                    setUserState(preState => [...preState, data]);
                 }
             }
         };
@@ -61,28 +62,28 @@ export default function ListUserExpress(){
 
 
 
-    return(
+    return (
         <div className='usersContain-divUsers scrolltheme1'>
             {
                 userState.length > 0 ?
-                (
-                    userState.map((user, index) => (
-                        <div className='divUSerLive'  key={ index }>
-                            <div className='divUSerLive-userContain'>
-                                <div className='divUSerLive-divLive'></div>
-                                <p className='divUSerLive-userName'>{ user.user.username }</p>
-                            </div>
+                    (
+                        userState.map((user, index) => (
+                            <div className='divUSerLive' key={index}>
+                                <div className='divUSerLive-userContain'>
+                                    <div className='divUSerLive-divLive'></div>
+                                    <p className='divUSerLive-userName'>{user.user.username}</p>
+                                </div>
                                 <div className='divUSerLive-localInfoCopntain'>
-                                <a className='divUSerLive-localName' href='*'>{ user.localInfo.localname }</a>
+                                    <a className='divUSerLive-localName' href='*'>{user.localInfo.localname}</a>
+                                </div>
                             </div>
-                        </div>
-                    ))
-                )
-                :
-                (null)
+                        ))
+                    )
+                    :
+                    (null)
             }
         </div>
-       
+
     );
 }
 

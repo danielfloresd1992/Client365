@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
 import IP from '@/libs/ajaxClient/dataFecth';
-import { arrayBufferToBase64 } from '@/libs/arrayTo64';
+import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
 import useAxios from '@/hook/useAxios';
-import Link from 'next/link';
+
 
 
 
@@ -13,7 +13,7 @@ export default function List({ data }) {
     const { requestAction } = useAxios();
 
     useEffect(() => {
-        requestAction({ url: `https://${IP}/local/id=${data._id}`, action: 'GET' })
+        requestAction({ url: `/local/id=${data._id}`, action: 'GET' })
             .then(response => {
                 if (response?.status === 200) {
                     setLocality(response.data);

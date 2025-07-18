@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import useAxios from '@/hook/useAxios';
 import IP from '@/libs/ajaxClient/dataFecth';
-import { arrayBufferToBase64 } from '@/libs/arrayTo64';
+import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
 
 
 export default function Img({ idLocal, style = null }) {
