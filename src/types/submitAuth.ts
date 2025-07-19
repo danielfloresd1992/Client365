@@ -2,49 +2,49 @@
 import { Dispatch, ReactNode, SetStateAction } from 'react';
 
 export type LegaceDataUser = {
-    admin?:boolean
+    admin?: boolean
     createdOn?: string,
     date?: string,
     inabilited?: boolean,
     number: number,
-    password: string, 
+    password: string,
     user: string,
-    name: string, 
+    name: string,
     surName: string
     _id: string
 }
- 
+
 
 
 export type DataToCreateUserBasic = {
-    email: string ,
+    email: string,
     password: string
 }
 
 
 
 export type DateToCreateComplete = {
-    email: string 
-    password?: string | undefined,  
-    newPassword?: string | undefined, 
-    phone: string, 
-    user: string, 
-    name: string, 
+    email: string
+    password?: string | undefined,
+    newPassword?: string | undefined,
+    phone: string,
+    user: string,
+    name: string,
     surName: string
 }
 
 
 
 export type DateToCreateCompleteForm = {
-    email: string, 
-    password?: string | undefined, 
-    newPassword?: string | undefined, 
+    email: string,
+    password?: string | undefined,
+    newPassword?: string | undefined,
     confirmPassword: string,
-    code_tel: string, 
-    codeConfirmTel: string, 
-    tel: string, 
+    code_tel: string,
+    codeConfirmTel: string,
+    tel: string,
     user: string,
-    name: string, 
+    name: string,
     surName: string
 }
 
@@ -74,12 +74,12 @@ export type CreateUserProps = {
     } | null
 }
 
-export interface ILegacePropsForm{
+export interface ILegacePropsForm {
     componentUpdateUser: (data: LegaceDataUser | null) => React.ReactNode;
 }
 
 
-export type HanddlerCreateUser = (error: Error | null, dataForCallback:DateToCreateComplete | null) => void 
+export type HanddlerCreateUser = (error: Error | null, dataForCallback: DateToCreateComplete | null) => void
 
 
 
@@ -108,7 +108,8 @@ export type SessionProviderProps = {
 export type ErrorAuth = {
     status: number,
     menssage: string,
-    error: 'Continue' | 'Processing' | 'Bad Request' | 'Unauthorized' | 'Forbidden' | 'Conflict' | 'Internal Server Error'
+    error: 'Continue' | 'Processing' | 'Bad Request' | 'Unauthorized' | 'Forbidden' | 'Conflict' | 'Internal Server Error' | 'Bad Gateway',
+    error_connection: boolean
 }
 
 

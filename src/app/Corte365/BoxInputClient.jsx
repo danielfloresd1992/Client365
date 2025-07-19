@@ -1,20 +1,19 @@
 'use client';
 import { useEffect, useState } from 'react';
 import useAxios from '@/hook/useAxios';
-import IP from '@/libs/dataFecth';
-import { arrayBufferToBase64 } from '@/libs/arrayTo64'; 
+import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
 
 
-export default function BoxInputClient({ data }){
+export default function BoxInputClient({ data }) {
 
     const { requestAction } = useAxios();
-    const [ localState, setLocalState ] = useState(null);
+    const [localState, setLocalState] = useState(null);
 
-    
+
     useEffect(() => {
-        requestAction({ url: `https://${IP}/local&manager/id=${ data._id }`, action: 'GET' })
+        requestAction({ url: `/local&manager/id=${data._id}`, action: 'GET' })
             .then(response => {
-                if(response.status === 200){
+                if (response.status === 200) {
                     setLocalState(response.data);
                 }
             })
@@ -24,34 +23,33 @@ export default function BoxInputClient({ data }){
             });
     }, []);
 
-    console.log(localState);
 
-    return(
-        localState && localState.typeMonitoring === 'completo' ? 
-        (
-            <div className='form-corte-inputContain' style={{ padding: '.5rem', width: '100%' }}>
-                <div className='__align-center' style={{ justifyContent: 'space-between' }}>         
-                    <p  className='divContentNovelties-pTitle __text__oneLine'>{ localState.name }</p>
-                    <img 
-                        className='divContentNovelties-img' 
-                        src={ arrayBufferToBase64( localState.img.data.data, 'image/png' ) }
-                    />
+    return (
+        localState && localState.typeMonitoring === 'completo' ?
+            (
+                <div className='form-corte-inputContain' style={{ padding: '.5rem', width: '100%' }}>
+                    <div className='__align-center' style={{ justifyContent: 'space-between' }}>
+                        <p className='divContentNovelties-pTitle __text__oneLine'>{localState.name}</p>
+                        <img
+                            className='divContentNovelties-img'
+                            src={arrayBufferToBase64(localState?.img?.data?.data, 'image/png')}
+                        />
+                    </div>
+                    <hr />
+
+                    <label classsName htmlFor='rotation'>
+                        <p>Nº de rotaciones</p>
+                        <input
+                            className='form-input'
+                            type='number'
+                            id='rotation'
+                        />
+                    </label>
                 </div>
-                <hr />
-               
-                <label classsName htmlFor='rotation'>
-                    <p>Nº de rotaciones</p>
-                    <input
-                        className='form-input'
-                        type='number'
-                        id='rotation'
-                    />
-                </label>
-            </div>
-        )
-        :
-        (
-            null
-        )        
+            )
+            :
+            (
+                null
+            )
     );
 }

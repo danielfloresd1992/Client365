@@ -2,20 +2,20 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'next/navigation';
-import { setConfigModal } from '@/store/slices/globalModal'; 
+import { setConfigModal } from '@/store/slices/globalModal';
 import BannerContain from './BannerConaint';
-import IP from '@/libs/dataFecth';
-import axiosStand from '@/libs/axios.fetch';
+
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import WindowFormLayaut from '@/layaut/windowForForm';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 import LoandingData from '@/components/loandingComponent/loanding';
-import { ScheduleBox } from  '@/components/box/ScheduleBox';
+import { ScheduleBox } from '@/components/box/ScheduleBox';
 import useAuthOnServer from '@/hook/auth';
 
 
 
 
-export default function Layautbody(){
+export default function Layautbody() {
 
 
     const { dataSessionState } = useAuthOnServer();
@@ -25,38 +25,38 @@ export default function Layautbody(){
 
     const searchParams = useSearchParams()
     const id = searchParams.get('id');
-    const [ configLocalDate, setConfigLocalDate ] = useState(null);
-    const [ openFormBoolean, setOpenForm ] = useState(false);
-    const [ openCloneWIndowBooleanState , setOpenCloneWIndowBooleanState ] = useState(false);
+    const [configLocalDate, setConfigLocalDate] = useState(null);
+    const [openFormBoolean, setOpenForm] = useState(false);
+    const [openCloneWIndowBooleanState, setOpenCloneWIndowBooleanState] = useState(false);
     const dispatch = useDispatch();
     const dayRef = useRef(null);
 
 
-    
-    useEffect(()=> {
-        axiosStand.get(`https://${IP}/schedule/idLocal=${id}`)
+
+    useEffect(() => {
+        axiosStand.get(`/schedule/idLocal=${id}`)
             .then(response => {
                 console.log(response);
-                if(response.status === 200) {
+                if (response.status === 200) {
                     setConfigLocalDate(response.data[0]);
                 }
             })
             .catch(err => {
-                if(err.response?.status === 404){
+                if (err.response?.status === 404) {
                     dispatch(setConfigModal({
                         title: 'Aviso',
                         description: 'No existe un horario para este local ¿Desea crear una configuración para el?',
                         type: 'warning',
                         modalOpen: true,
                         isCallback: () => {
-                            
+
                             const newConfig = {
                                 idLocal: id,
                                 dayMonitoring: []
                             }
-                            axiosStand.post(`https://${IP}/schedule`, newConfig)
+                            axiosStand.post(`/schedule`, newConfig)
                                 .then(response => {
-                                    if(response.status === 200){
+                                    if (response.status === 200) {
                                         setConfigLocalDate({
                                             idLocal: id,
                                             dayMonitoring: []
@@ -65,17 +65,17 @@ export default function Layautbody(){
                                 })
                                 .catch(err => {
                                     console.log(err);
-                                   
+
                                 });
                         }
-                    })) ;
+                    }));
                 }
             });
     }, []);
 
-    
+
     const validateAuthorization = useCallback(callback => {
-        if(!user.admin){
+        if (!user.admin) {
             dispatch(setConfigModal({
                 title: 'Error',
                 description: 'No tienes autorización para ejecutar esta función',
@@ -84,13 +84,13 @@ export default function Layautbody(){
                 isCallback: null
             }));
         }
-        else{
+        else {
             callback();
         }
-    }, [ dataSessionState ]);
+    }, [dataSessionState]);
 
 
-    const openFormWindow =  paramsDay => {
+    const openFormWindow = paramsDay => {
         setOpenForm(true);
         dayRef.current = paramsDay;
     };
@@ -102,7 +102,7 @@ export default function Layautbody(){
         dayRef.current = null;
     };
 
-    
+
     const openWindowClone = () => {
         dispatch(setConfigModal({
             title: 'Aviso',
@@ -130,17 +130,17 @@ export default function Layautbody(){
                 modalOpen: true,
                 isCallback: () => {
                     const newArray = configLocalDate.dayMonitoring.filter(time => time.key !== keyDay);
-                    const putObject = { ...configLocalDate, dayMonitoring: [ ...newArray ] };
-                  
-                    axiosStand.put(`https://${IP}/schedule/idLocal=${ id }`, putObject )
+                    const putObject = { ...configLocalDate, dayMonitoring: [...newArray] };
+
+                    axiosStand.put(`/schedule/idLocal=${id}`, putObject)
                         .then(response => {
                             console.log(response);
-                            if(response.status === 200){
+                            if (response.status === 200) {
                                 setConfigLocalDate(putObject);
                             }
                         })
                         .catch(err => {
-                            if(err?.response?.status === 404) console.log(err);
+                            if (err?.response?.status === 404) console.log(err);
                             console.log(err);
                         });
                 }
@@ -152,36 +152,36 @@ export default function Layautbody(){
 
     const pushDateDay = configDay => {
         validateAuthorization(() => {
-            const putObject = { ...configLocalDate, dayMonitoring: [ ...configLocalDate.dayMonitoring, configDay ] };;
-        
-            axiosStand.put(`https://${ IP }/schedule/idLocal=${ id }`, putObject )
+            const putObject = { ...configLocalDate, dayMonitoring: [...configLocalDate.dayMonitoring, configDay] };;
+
+            axiosStand.put(`/schedule/idLocal=${id}`, putObject)
                 .then(response => {
-                    if(response.status === 200){
-                        setConfigLocalDate({ ...configLocalDate, dayMonitoring: [ ...configLocalDate.dayMonitoring, configDay ] });;
+                    if (response.status === 200) {
+                        setConfigLocalDate({ ...configLocalDate, dayMonitoring: [...configLocalDate.dayMonitoring, configDay] });;
                         console.log(configLocalDate);
                         closeFormWindow();
                     }
                 })
                 .catch(err => {
-                    if(err?.response?.status === 404) console.log(err);
+                    if (err?.response?.status === 404) console.log(err);
                     console.log(err);
                 });
         });
     };
 
-    
+
 
     const cloneScheduleOfEstablishment = idClone => {
         validateAuthorization(() => {
-            axiosStand.get(`https://${IP}/schedule/idLocal=${idClone}`)
+            axiosStand.get(`/schedule/idLocal=${idClone}`)
                 .then(response => {
-                
+
                     const cloneObject = { ...configLocalDate, dayMonitoring: response.data[0].dayMonitoring };
-                
-                    axiosStand.put(`https://${ IP }/schedule/idLocal=${ id }`, cloneObject )
+
+                    axiosStand.put(`/schedule/idLocal=${id}`, cloneObject)
                         .then(res => {
                             console.log(res);
-                            if(res.status === 200){
+                            if (res.status === 200) {
                                 setConfigLocalDate(cloneObject);
                                 closeFormWindow();
                                 dispatch(setConfigModal({
@@ -194,7 +194,7 @@ export default function Layautbody(){
                             }
                         })
                         .catch(err => {
-                            if(err?.response?.status === 404) console.log(err);
+                            if (err?.response?.status === 404) console.log(err);
                             console.log(err);
                         })
                         .finally(() => {
@@ -202,7 +202,7 @@ export default function Layautbody(){
                         });
                 })
                 .catch(err => {
-                    if(err.response.status === 404){
+                    if (err.response.status === 404) {
                         closeWindowClone();
                         dispatch(setConfigModal({
                             title: 'Error',
@@ -212,7 +212,7 @@ export default function Layautbody(){
                             isCallback: null
                         }));
                     }
-                    else{
+                    else {
                         console.log(err);
                     }
                 });
@@ -229,11 +229,11 @@ export default function Layautbody(){
                 modalOpen: true,
                 isCallback: () => {
                     const cloneObject = { ...configLocalDate, dayMonitoring: [] };
-                
-                    axiosStand.put(`https://${ IP }/schedule/idLocal=${ id }`, cloneObject )
+
+                    axiosStand.put(`/schedule/idLocal=${id}`, cloneObject)
                         .then(res => {
                             console.log(res);
-                            if(res.status === 200){
+                            if (res.status === 200) {
                                 setConfigLocalDate(cloneObject);
                                 closeFormWindow();
                                 dispatch(setConfigModal({
@@ -246,7 +246,7 @@ export default function Layautbody(){
                             }
                         })
                         .catch(err => {
-                            if(err?.response?.status === 404) console.log(err);
+                            if (err?.response?.status === 404) console.log(err);
                             console.log(err);
                         })
                         .finally(() => {
@@ -256,44 +256,44 @@ export default function Layautbody(){
             }));
         });
     };
-    
 
 
-    return(
+
+    return (
         <>
-            <BannerContain openClone={ openWindowClone } reset={ resetDefault } establishment={ selectEstablishment.filter(item => item._id === id)[0] } />
+            <BannerContain openClone={openWindowClone} reset={resetDefault} establishment={selectEstablishment.filter(item => item._id === id)[0]} />
 
             {
-                configLocalDate ? 
+                configLocalDate ?
                     (
-                        <ScheduleBox 
-                            idLocal={ id } 
-                            configLocalDate={ configLocalDate.dayMonitoring } 
-                            openSetForm={ openFormWindow } 
-                            deleteHour={ deleteHourForDay } 
-                            addDataRequest={ data => { pushDateDay(data) }}
+                        <ScheduleBox
+                            idLocal={id}
+                            configLocalDate={configLocalDate.dayMonitoring}
+                            openSetForm={openFormWindow}
+                            deleteHour={deleteHourForDay}
+                            addDataRequest={data => { pushDateDay(data) }}
                         />
                     )
                     :
                     (
                         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
 
-                            <LoandingData title='Cargando horario'/>
+                            <LoandingData title='Cargando horario' />
                         </div>
                     )
             }
-                
-           
 
-            {   
+
+
+            {
                 openCloneWIndowBooleanState ?
-                    <WindowFormLayaut close={ closeWindowClone } >
+                    <WindowFormLayaut close={closeWindowClone} >
                         <form style={{ width: '50%', padding: '2rem 1rem' }} className='__margin100px form_complete_andScroll bgWhite __border-smoothed __padding1rem __flexRowFlex __oneGap'>
                             <h2>Listas de horarios segun locales</h2>
-                            <InputBorderBlue 
+                            <InputBorderBlue
                                 textLabel='Seleciones un establecimiento'
                                 type='select'
-                                childSelect={ 
+                                childSelect={
                                     selectEstablishment.map(item => {
                                         return { value: item._id, text: item.name }
                                     })
@@ -305,7 +305,7 @@ export default function Layautbody(){
                         </form>
 
                     </WindowFormLayaut>
-                :
+                    :
                     null
             }
         </>

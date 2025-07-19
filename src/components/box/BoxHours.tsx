@@ -1,4 +1,4 @@
-import calcularTotalHoras from '@/libs/calculateHours';
+import calcularTotalHoras from '@/libs/script/calculateHours';
 
 interface Hour {
     start: string;

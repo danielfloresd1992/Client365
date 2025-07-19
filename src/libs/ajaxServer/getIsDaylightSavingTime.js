@@ -4,7 +4,7 @@ import IP from '@/libs/ajaxClient/dataFecth';
 
 export default function getisDaylightSavingTime() {
     return new Promise((resolve, reject) => {
-        axiosStand.get(`https://${IP}/time`)
+        axiosStand.get(`/time`)
             .then(response => {
                 resolve(response);
             })

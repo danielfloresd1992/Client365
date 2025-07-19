@@ -8,69 +8,74 @@ import categoryArr from '../model/category.js';
 
 
 
-function ListMenu({ 
-        setMenu,
-        resetNoveltie, 
-        modal, 
-        newMENU, 
-        resetAddManuState 
-    }){
+function ListMenu({
+    setMenu,
+    resetNoveltie,
+    modal,
+    newMENU,
+    resetAddManuState
+}) {
 
-    const [ arrayMenuAll, setArrayMenuAll ] = useState([]);
-    const [ category, setCategory] = useState('all');
+    const [arrayMenuAll, setArrayMenuAll] = useState([]);
+    const [category, setCategory] = useState('all');
     const categoryRef = useRef(null);
     const dispatch = useDispatch();
 
-    useEffect(() => {
-        getMenuAll(category, (err, { menuList, categoryList } ) => {
-            categoryRef.current = categoryList;
-            setArrayMenuAll([...menuList]);
-            
-        });
-    }, [ category, newMENU ]);
+
+
 
     useEffect(() => {
-        if(Boolean(newMENU)) {
+        getMenuAll(category, (err, { menuList, categoryList }) => {
+            categoryRef.current = categoryList;
+            setArrayMenuAll([...menuList]);
+
+        });
+    }, [category, newMENU]);
+
+
+
+    useEffect(() => {
+        if (Boolean(newMENU)) {
             setArrayMenuAll([...arrayMenuAll, newMENU]);
             resetAddManuState();
         }
 
-    }, [ newMENU ])
-    
-    
+    }, [newMENU])
+
+
     const deleteMenuAllArray = id => {
-        const newArray = arrayMenuAll.filter( menu => id !== menu._id );
+        const newArray = arrayMenuAll.filter(menu => id !== menu._id);
         setArrayMenuAll(newArray);
         resetNoveltie();
     };
 
 
-    const listMenuHtml = arrayMenuAll.map((item, index)=> (
-        <div 
-            className='__flexRowFlex bdGray __border-ra-5 __width-complete __midPadding' 
-            idmenu={ item._id } 
-            key={ `${index}_${item._id}` }
+    const listMenuHtml = arrayMenuAll.map((item, index) => (
+        <div
+            className='__flexRowFlex bdGray __border-ra-5 __width-complete __midPadding'
+            idmenu={item._id}
+            key={`${index}_${item._id}`}
             style={
                 item.rulesForBonus.worth > 0 && item.rulesForBonus.amulative ?
-                {
-                    outline: '2px solid #2bcb00'
-                }
-                : 
-                {
-                    border: 'none'
-                }
+                    {
+                        outline: '2px solid #2bcb00'
+                    }
+                    :
+                    {
+                        border: 'none'
+                    }
             }
         >
-            <h4 
-                className='__width-complete __pointer' 
+            <h4
+                className='__width-complete __pointer'
                 id='selectMenu-02'
-                onClick={() => setMenu(item._id) }
+                onClick={() => setMenu(item._id)}
             >
-                { item.es }
+                {item.es}
             </h4>
-            <p className='__width-90'>{ item.en }</p>
-      
-            <button 
+            <p className='__width-90'>{item.en}</p>
+
+            <button
                 className='__center_center __pointer'
                 style={{
                     width: '30px',
@@ -85,15 +90,15 @@ function ListMenu({
                             description: '',
                             isCallback: () => {
                                 deleteMenu(item._id, (err, response) => {
-                                    if(err){
+                                    if (err) {
                                         let text;
-                                        if(err.response?.status === 401){ 
+                                        if (err.response?.status === 401) {
                                             text = 'Usuario no autenticado.';
                                         }
-                                        else if(err.response?.status === 403){
+                                        else if (err.response?.status === 403) {
                                             text = 'Usuario no autorizado.';
                                         }
-                                        else{
+                                        else {
                                             text = 'Ha ocurrido un error.';
                                         }
                                         dispatch(setConfigModal({
@@ -104,7 +109,7 @@ function ListMenu({
                                             type: 'error'
                                         }));
                                     }
-                                    else{
+                                    else {
                                         dispatch(setConfigModal({
                                             modalOpen: true,
                                             title: 'Eliminado',
@@ -121,52 +126,52 @@ function ListMenu({
                     }
                 }
             >
-                <img 
+                <img
                     className='__never-pointer'
-                    src={ `/ico/delete/delete.svg` } 
+                    src={`/ico/delete/delete.svg`}
                     style={{
                         width: '30px',
                     }}
                 />
-            </button>       
+            </button>
         </div>
     ));
 
 
 
 
-    return(
-        <>    
-            <div 
+    return (
+        <>
+            <div
                 className='border10 contentStatic __padding1rem __width-mid scrollthemeY __border-smoothed bgWhite __flexRowFlex __oneGap'
                 style={{ alignContent: 'flex-start' }}
             >
                 <div className='__flex-between __width-complete'>
                     <div className='__center_center __midGap'>
                         <p>cantidad de alertas creadas:</p>
-                        <p className='menu-length'>{ arrayMenuAll.length }</p>
+                        <p className='menu-length'>{arrayMenuAll.length}</p>
                     </div>
-                        
+
                     <label className='__label __width-mid'>
                         <p>Selecione la categoria de la alerta</p>
-                        <select 
+                        <select
                             className='__input'
-                            onChange={ e => setCategory( e.target.value ) }
+                            onChange={e => setCategory(e.target.value)}
                             defaultValue='--Selecione--'
                         >
-                            <option value='--Selecione--' disabled={ true }>--Selecione--</option>
+                            <option value='--Selecione--' disabled={true}>--Selecione--</option>
                             <option value="all">Todos</option>
                             {
                                 categoryArr.map((item, index) => (
                                     item.title === '' ?
-                                    <option value='sin categoria' key={ `${index }_item.value`}>sin categoria</option>
-                                    :
-                                    <option value={ item.value } key={ index }>{ item.text }</option>
+                                        <option value='sin categoria' key={`${index}_item.value`}>sin categoria</option>
+                                        :
+                                        <option value={item.value} key={index}>{item.text}</option>
                                 ))
                             }
                         </select>
                     </label>
-                    
+
                 </div>
                 <div className='__flexRowFlex __midGap' id='listMenu'>
                     {

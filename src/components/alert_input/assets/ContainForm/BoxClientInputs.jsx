@@ -4,7 +4,6 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import InputBorderBlue from "@/components/inpust/InputBorderBlue";
 import axiosStand from '@/libs/ajaxClient/axios.fetch';
-import IP from '@/libs/ajaxClient/dataFecth';
 import Img from '@/components/Img';
 import { addReportForArr } from '@/store/slices/alertLiveStore';
 import { addDateNoveltyForList } from '@/store/slices/dateNoveltyForList';
@@ -149,7 +148,7 @@ export default function BoxClientInputs({ dataEstablishment = null, dataForReque
                 const dvrFailedBoolean = typeof dataStablishment.failed === 'boolean' ? `&failed=${dataStablishment.failed}` : '';
                 const alert = dataStablishment.alert ? `&alert=${dataStablishment.alert}` : '';
                 const important = dataStablishment.important ? `&important=${dataStablishment.important}` : '';
-                const url = `https://${IP}/alertNoveltie/recordsLive?date=${reportDateState.date}&shift=${reportDateState.shift}&id=${dataStablishment.establishment._id}${alert}${important}${lineBelonging}${dvrFailedBoolean}${monitoring}${noSetSchedule}`;
+                const url = `/alertNoveltie/recordsLive?date=${reportDateState.date}&shift=${reportDateState.shift}&id=${dataStablishment.establishment._id}${alert}${important}${lineBelonging}${dvrFailedBoolean}${monitoring}${noSetSchedule}`;
                 const response = await axiosStand.put(url);
                 if (response.status === 200) dispatch(addReportForArr(dataStablishment));
             }
@@ -171,8 +170,7 @@ export default function BoxClientInputs({ dataEstablishment = null, dataForReque
             const date = `${(0 + '' + (new Date().getMonth() + 1)).substr(-2)}-${(0 + '' + (new Date().getDate())).substr(-2)}-${(new Date().getFullYear())}`;
             if (dataEstablishment?.franchise === 'La Francisca' && isAdmindSession) {
                 const shift = dataForRequest.shift === 'diurno' ? 'day' : dataForRequest.shift === 'noctunro' ? 'night' : null;
-                console.log(shift);
-                const response = await axiosStand(`https://${IP}/noveltie/new?establishmentName=${dataEstablishment.name}&since=${date}&shift=${shift}`);
+                const response = await axiosStand(`/noveltie/new?establishmentName=${dataEstablishment.name}&since=${date}&shift=${shift}`);
                 if (response.status === 200) dispatch(addDateNoveltyForList({ dataEstablishment: { ...dataEstablishment, idCreate: Date.now() }, data: response.data }));
             }
 

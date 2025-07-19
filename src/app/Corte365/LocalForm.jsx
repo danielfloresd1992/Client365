@@ -2,19 +2,19 @@
 import { useEffect, useState } from 'react';
 import BoxInputClient from './BoxInputClient';
 import useAxios from '@/hook/useAxios';
-import IP from '@/libs/dataFecth';
 
-export default function LocalForm({ data }){
+
+export default function LocalForm({ data }) {
 
     const { requestAction } = useAxios();
-    const [ arrayClientlient, setArrayClient ] = useState([]);
-   
+    const [arrayClientlient, setArrayClient] = useState([]);
+
 
 
     useEffect(() => {
-        requestAction({ url: `https://${ IP }/localforCort`, action: 'GET' })
+        requestAction({ url: `/localforCort`, action: 'GET' })
             .then(response => {
-                if(response.status === 200){
+                if (response.status === 200) {
                     setArrayClient(response.data);
                 }
             })
@@ -24,19 +24,19 @@ export default function LocalForm({ data }){
     }, []);
 
 
-    
 
-    return(
-        arrayClientlient.length > 0 ? 
-        (
-            arrayClientlient.map((item, index)=> (
-                <BoxInputClient data={ item } key={ index } />
-            ))
-            
-        )
-        :
-        (
-            null
-        )        
+
+    return (
+        arrayClientlient.length > 0 ?
+            (
+                arrayClientlient.map((item, index) => (
+                    <BoxInputClient data={item} key={index} />
+                ))
+
+            )
+            :
+            (
+                null
+            )
     );
 }

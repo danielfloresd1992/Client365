@@ -1,9 +1,9 @@
 'use client';
-import axiosStand from '@/libs/axios.fetch';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 
-import { JarvisGroup } from '@/libs/API_JARVIS';
+import { JarvisGroup } from '@/libs/ajaxClient/API_JARVIS';
 import { setConfigModal } from '@/store/slices/globalModal';
 import titleHeader from '../model/optionsHeader.js';
 import category from '../model/category.js';
@@ -878,16 +878,16 @@ function Form({
                                 </label>
                             </div>
 
-                            
+
                             <div className='flex columns __width-complete __oneGap'>
                                 <InputBorderBlue
                                     textLabel='Agupación de alertas en el documento de reporte'
                                     type='select'
                                     value={menu.groupingInTheReport}
                                     childSelect={[
-                                        {text: 'Individual por pagina', value:'individual' },
-                                        {text: 'Dos por paginas', value:'dual' },,
-                                        {text: '4 por páginas', value:'quadruple' }
+                                        { text: 'Individual por pagina', value: 'individual' },
+                                        { text: 'Dos por paginas', value: 'dual' }, ,
+                                        { text: '4 por páginas', value: 'quadruple' }
                                     ]}
                                     eventChengue={text => {
                                         setMenu({ ...menu, groupingInTheReport: text });

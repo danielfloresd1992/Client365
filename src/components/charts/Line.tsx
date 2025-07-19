@@ -9,7 +9,7 @@ import {
     LineChart
 } from '@mui/x-charts/LineChart';
 import { CircularProgress } from '@mui/material';
-import { getCountDocument } from '@/libs/ajaxClient/noveltyFetching'
+//import { getCountDocument } from '@/libs/ajaxClient/noveltyFetching'
 import { ChartContainer } from '@mui/x-charts/ChartContainer';
 
 
@@ -46,13 +46,14 @@ const boxChar: React.CSSProperties = {
 
 function LineChartComponent({ title, count, data, isDouble }: ILineChartProps): React.ReactNode {
 
+    return null;
 
     const [dataReload, setDataReload] = useState<any>();
     const [values, setValues] = useState<any>();
 
     useEffect(() => {
         if (Array.isArray(data)) {
-           
+
             if (isDouble) {
                 //setDataReload([{ type: 'line', data: parserNoveltyToDate(data.data).values }]);
             }
@@ -149,7 +150,7 @@ function LineChartComponent({ title, count, data, isDouble }: ILineChartProps): 
         }
     }
 
-    if(!dataReload || !values) return 'loading';
+    if (!dataReload || !values) return 'loading';
 
     return (
 
@@ -161,7 +162,7 @@ function LineChartComponent({ title, count, data, isDouble }: ILineChartProps): 
             <hr />
             <div className='w-full'>
                 <p className='text-gray-500 text-sm'>{title?.chart}</p>
-                
+
                 <LineChart
                     height={180}
                     margin={{
@@ -170,8 +171,8 @@ function LineChartComponent({ title, count, data, isDouble }: ILineChartProps): 
                         top: 25,
                         bottom: 25,
                     }}
-                    series={ dataReload }
-                    xAxis={ values }
+                    series={dataReload}
+                    xAxis={values}
                     sx={{
                         [`& .${lineElementClasses.root}`]: {
                             stroke: '#blue',

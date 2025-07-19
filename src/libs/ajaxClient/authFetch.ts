@@ -1,4 +1,3 @@
-'use client';
 import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 import { AxiosResponse } from 'axios';
 import { LegaceDataUser, DateToCreateComplete, DataToCreateUserBasic } from '@/types/submitAuth';

@@ -267,7 +267,7 @@ export default function ContainForm() {
 
 
     const getReportRequest = (callback) => {
-        axiosStand.get(`https://${IP}/alertNoveltie/recordsLive?date=${getDateNow()}&shift=${getShift()}`)
+        axiosStand.get(`/alertNoveltie/recordsLive?date=${getDateNow()}&shift=${getShift()}`)
             .then(response => {
                 if (response.status === 200) {
                     callback(response.data);
@@ -343,7 +343,7 @@ export default function ContainForm() {
 
         const goalFDay = AppManagerConfigStorange.get(`goalAlert-${new Date().getDay()}-${getShift()}`) ? `&goalDay=${AppManagerConfigStorange.get(`goalAlert-${new Date().getDay()}-${getShift()}`)}` : '';
 
-        axiosStand.post(`https://${IP}/alertNoveltie/recordsLive?date=${getDateNow()}&shift=${getShift()}${goalFDay}`, newData)
+        axiosStand.post(`/alertNoveltie/recordsLive?date=${getDateNow()}&shift=${getShift()}${goalFDay}`, newData)
             .then(res => {
                 if (res.status === 200) {
                     callback(res.data);
@@ -403,7 +403,7 @@ export default function ContainForm() {
 
 
     const getDateFailedDrv = () => {
-        axiosStand.get(`https://${IP}/failed/all`)
+        axiosStand.get(`/failed/all`)
             .then(response => {
                 if (response.status === 200) {
                     if (response.data < 1) return;

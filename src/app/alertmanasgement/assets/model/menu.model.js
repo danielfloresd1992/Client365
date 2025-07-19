@@ -1,27 +1,26 @@
-import axiosStand from '@/libs/axios.fetch';
-import IP from '@/libs/dataFecth';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 
 
 
 
 const getMenuAll = (category, callback) => {
-    axiosStand.get(`https://${IP}/menu`)
+    axiosStand.get(`/menu`)
         .then(response => {
             let menuList = [];
             const categoryList = [];
             response.data.forEach(menu => {
-                if(categoryList.indexOf(menu.category) < 0){ 
+                if (categoryList.indexOf(menu.category) < 0) {
                     categoryList.push(menu.category);
                 }
-                if(category === 'all'){
+                if (category === 'all') {
                     menuList.push(menu);
                 }
-                else if(menu.category === category){
+                else if (menu.category === category) {
                     menuList.push(menu);
                 }
             });
-            
-            callback( null, { menuList, categoryList } );
+
+            callback(null, { menuList, categoryList });
         })
         .catch(err => {
             console.log(err);
@@ -33,7 +32,7 @@ const getMenuAll = (category, callback) => {
 
 
 const getMenuById = (id, callback) => {
-    axiosStand.get(`https://${IP}/menu/id=${id}`)
+    axiosStand.get(`/menu/id=${id}`)
         .then(response => {
             callback(null, response);
         })
@@ -47,7 +46,7 @@ const getMenuById = (id, callback) => {
 
 
 const sendMenu = (body, callback) => {
-    axiosStand.post(`https://${IP}/menu`, body)
+    axiosStand.post(`/menu`, body)
         .then(response => {
             console.log()
             callback(null, response);
@@ -62,7 +61,7 @@ const sendMenu = (body, callback) => {
 
 
 const putMenu = (body, callback) => {
-    axiosStand.post(`https://${IP}/menu/put`, body)
+    axiosStand.post(`/menu/put`, body)
         .then(response => {
             callback(null, response);
         })
@@ -76,7 +75,7 @@ const putMenu = (body, callback) => {
 
 
 const deleteMenu = (id, callback) => {
-    axiosStand.delete(`https://${IP}/menu/id=${id}`)
+    axiosStand.delete(`/menu/id=${id}`)
         .then(response => {
             callback(null, response);
         })
@@ -91,10 +90,10 @@ const deleteMenu = (id, callback) => {
 
 const getLocalLigth = async callback => {
     try {
-        const listLocal = await aaxiosStand.get(`https://${IP}/localLigth`);
+        const listLocal = await axiosStand.get(`/localLigth`);
         callback(null, listLocal.data);
-    } 
-    catch(err){
+    }
+    catch (err) {
         callback(err);
     }
 }

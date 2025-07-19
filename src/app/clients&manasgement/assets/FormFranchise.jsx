@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useDispatch } from 'react-redux';
 import useAxios from '@/hook/useAxios';
-import { setConfigModal } from '@/store/slices/globalModal'; 
-import { setTypeForm } from '@/store/slices/typeForm'; 
+import { setConfigModal } from '@/store/slices/globalModal';
+import { setTypeForm } from '@/store/slices/typeForm';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
-import IP from '@/libs/dataFecth';
 
 
 
-export default function FormFranchise(){
+
+export default function FormFranchise() {
 
     const { register, watch, handleSubmit } = useForm();
     const dispatch = useDispatch();
@@ -18,9 +18,9 @@ export default function FormFranchise(){
 
 
     const sendData = data => {
-        requestAction({ url: `https://${ IP }/franchise`, body: data, action: 'POST' })
-            .then( response => {
-                if(response.status === 200){
+        requestAction({ url: `/franchise`, body: data, action: 'POST' })
+            .then(response => {
+                if (response.status === 200) {
                     dispatch(
                         setConfigModal({
                             modalOpen: true,
@@ -49,22 +49,22 @@ export default function FormFranchise(){
 
 
 
-    return(
+    return (
         <>
-            <form className='__margin-top form_complete_andScroll bgWhite __border-smoothed __padding1rem __flexRowFlex __oneGap' onSubmit={ handleSubmit(sendData) }>
+            <form className='__margin-top form_complete_andScroll bgWhite __border-smoothed __padding1rem __flexRowFlex __oneGap' onSubmit={handleSubmit(sendData)}>
                 <h2 className='text_center'>Fomulario para la nueva franquicia</h2>
 
-                <InputBorderBlue 
+                <InputBorderBlue
                     textLabel='Nombre de la franquicia'
-                    register={ register }
+                    register={register}
                     name='name'
                 />
 
 
-                <InputBorderBlue 
-                    textLabel='Direción de la franquicia' 
+                <InputBorderBlue
+                    textLabel='Direción de la franquicia'
                     type='select'
-                    register={ register }
+                    register={register}
                     name='location'
                     childSelect={[{
                         value: 'Venezuela',
@@ -85,12 +85,12 @@ export default function FormFranchise(){
                 />
 
 
-                <InputBorderBlue 
-                    textLabel='Seleccione su lenguaje de orige' 
+                <InputBorderBlue
+                    textLabel='Seleccione su lenguaje de orige'
                     type='select'
-                    register={ register }
+                    register={register}
                     name='lang'
-                    childSelect={[{value: 'es', text: 'Castellano'}, {value: 'en', text: 'Ingles'}]}
+                    childSelect={[{ value: 'es', text: 'Castellano' }, { value: 'en', text: 'Ingles' }]}
                 />
 
                 <button className='btn-item' style={{ padding: '1rem 0' }}> Guardar </button>

@@ -34,15 +34,17 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     return (
         <html lang="en">
             <Providers>
+                <Head>
+                    <meta name="google-site-verification" content="tnPQy_iWErCY9GT9NhJlLBKrQ16kuOo1SSIKyNKiWks" />
+                </Head>
                 <SessionProvider>
-                    <Head>
-                        <meta name="google-site-verification" content="tnPQy_iWErCY9GT9NhJlLBKrQ16kuOo1SSIKyNKiWks" />
-                    </Head>
                     <body className={inter.className}>
-                        <Header />
-                        {children}
-                        <Modal />
-                        <LoandingPage title='loanding...' />
+                        <LoandingPage title='loanding...'>
+                            <Header />
+                            {children}
+                            <Modal />
+
+                        </LoandingPage>
                     </body>
                 </SessionProvider>
             </Providers>

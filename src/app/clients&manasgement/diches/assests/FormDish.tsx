@@ -25,7 +25,7 @@ export default function FormDish({ establishment, pushData, close }: IFormDishPr
         dayActivate: 'all'
     });
 
-    const arrChillOption: any[] = [
+    const arrChillOption: any = [
         { value: 'drinks', text: 'bebidas' },
         { value: 'foods', text: 'aperitivos' },
     ]
@@ -38,7 +38,7 @@ export default function FormDish({ establishment, pushData, close }: IFormDishPr
 
     const setDish: (event: React.FormEvent) => void = e => {
         e.preventDefault();
-        requestAction({ url: `https://${IP}/dishes?id=${establishment._id}`, action: 'POST', body: stateData })
+        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'POST', body: stateData })
             .then((response: AxiosResponse) => {
                 if (response.status === 200) {
                     pushData(response.data);

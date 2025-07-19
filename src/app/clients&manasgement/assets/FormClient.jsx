@@ -7,25 +7,31 @@ import { setConfigModal } from '@/store/slices/globalModal';
 import { setTypeForm } from '@/store/slices/typeForm';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 import useAxios from '@/hook/useAxios';
-import IP from '@/libs/dataFecth';
+
 
 import clientDefault from './objectDefault/objectDefaultClient';
 import useAuthOnServer from '@/hook/auth';
 import moment from 'moment-timezone';
 
 
-import { getListFrancise, getEstablishmentById } from '@/libs/ajaxClient/establishmentFetching';
+import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
+
+
+//import { getListFrancise, getEstablishmentById } from '@/libs/ajaxClient/establishmentFetching';
 
 
 export default function FormClient({ id = null, action }) {
 
 
-    console.log(id);
-
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
 
-    const [listFranchiseState, setListFranchiseState] = useState([]);
+
+
+    const dataClient = useSingleFetch('/franchise')
+    const listFranchiseState = dataClient?.data ?? [];
+
+
     const [franchiseSelect, setFranchiseSelect] = useState(null);
     const [newClientState, setNewClientState] = useState([]);
     const [upDateClient, setUpdateClient] = useState(clientDefault);
@@ -37,27 +43,6 @@ export default function FormClient({ id = null, action }) {
 
 
     useEffect(() => {
-
-        if (listFranchiseState.length < 1) {
-            getListFrancise((error, data) => {
-
-                if (error) {
-                    dispatch(
-                        setConfigModal({
-                            modalOpen: true,
-                            title: 'Error',
-                            description: 'A ocurrido un error al enviar los datos',
-                            isCallback: null,
-                            type: 'error'
-                        })
-                    );
-
-                    return console.log(error);
-                }
-
-                else setListFranchiseState(data);
-            });
-        }
 
         if (id && listFranchiseState.length > 1) {
 
@@ -139,7 +124,7 @@ export default function FormClient({ id = null, action }) {
     const handlerRequest = useCallback(async body => {
         try {
             if (!upDateClient._id) {
-                const res = await requestAction({ url: `https://${IP}/local`, action: 'post', body: body });
+                const res = await requestAction({ url: `/local`, action: 'post', body: body });
                 console.log(res);
                 dispatch(addNewEstablishment(res.data));
                 dispatch(addClient(res.data));
@@ -155,7 +140,7 @@ export default function FormClient({ id = null, action }) {
             }
             else {
                 delete body._id;
-                const res = await requestAction({ url: `https://${IP}/local/${upDateClient._id}`, action: 'put', body: body });
+                const res = await requestAction({ url: `/local/${upDateClient._id}`, action: 'put', body: body });
                 setUpdateClient(null);
 
 
@@ -194,7 +179,7 @@ export default function FormClient({ id = null, action }) {
         return <div>Cargando...</div>; // Se muestra mientras los datos se están cargando
     }
 
-    console.log('hola')
+
 
 
     return (
@@ -548,7 +533,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'extended', text: 'menú extendido' }
                 ]}
                 eventChengue={text => {
-                    setUpdateClient({...upDateClient, alertLength: text });
+                    setUpdateClient({ ...upDateClient, alertLength: text });
                 }}
             />
 
