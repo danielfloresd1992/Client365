@@ -1,14 +1,12 @@
 import dynamic from 'next/dynamic';
 import Nav from './Nav/Nav';
-
+const ZoomImg = dynamic(() => import('@/components/zoomImage/ZoomImg'));
 import { ImgProvider } from '@/contexts/imgContext';
-import FixedBottomBar from '@/components/Footer/FixedBottomBar';
+
 // Importa los componentes de manera dinámica
-const PublicationsBox = dynamic(() => import('@/components/Publications/PublicationsBox.jsx'));
-const AsideInfoUser = dynamic(() => import('@/app/Lobby/AsideInfoUser/AsideInfoUser.jsx'));
-const ZoomImg = dynamic(() => import('@/components/zoomImage/ZoomImg.jsx'));
-const AlertInputLive = dynamic(() => import('@/components/alert_input/AlertIput'));
-const Config_window = dynamic(() => import('@/components/config_window/Config_window'));
+const PublicationsBox = dynamic(() => import('@/components/Publications/PublicationsBox'));
+const AsideInfoUser = dynamic(() => import('@/app/Lobby/AsideInfoUser/AsideInfoUser'));
+
 
 
 
@@ -21,11 +19,10 @@ export default function Lobby() {
                 alignContent: 'flex-start',
                 flexWrap: 'wrap',
                 width: '100%',
-                height: '100vh',
+                height: '100%',
                 justifyContent: 'center',
                 position: 'relative',
                 gap: '.5rem',
-                position: 'fixed',
                 maxWidth: '1750px'
             }}
         >
@@ -34,13 +31,6 @@ export default function Lobby() {
                 <PublicationsBox />
                 <AsideInfoUser />
                 <ZoomImg />
-
-                <Config_window />
-
-                <FixedBottomBar>
-                    <AlertInputLive />
-                </FixedBottomBar>
-
             </ImgProvider>
         </div>
     );

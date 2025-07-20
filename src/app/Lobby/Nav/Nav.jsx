@@ -7,7 +7,7 @@ export default function Nav(){
     
 
     return(
-        <nav className='listRoute border10 contentStatic'>
+        <nav className='listRoute border10'>
             <div className='aside-contents'>
                 <div className='listRoute-a-menuTitle'>
                     <div className='__width-complete __center_center __border-sub __midGap __midPadding'>

@@ -32,7 +32,7 @@ export default memo(function TextAreaAutoResize({ value, changeEvent, disabled, 
 
 
     return (
-        <div className='w-full p-[1rem_0] h-[fit-content] border border-custom-gray rounded-md'>
+        <div className='w-full p-[1rem_0] h-[fit-content] border border-custom-gray rounded-md bg-[#d3d3d3]'>
             <div className='w-full p-[.1rem_.5rem_.5rem_.5rem] flex justify-between items-center'>
                 <p>Texto para el cliente</p>
                 {

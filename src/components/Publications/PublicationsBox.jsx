@@ -8,7 +8,7 @@ export default function PublicationsBox() {
     //const dataFetchingNovelty = await getLastTeenNovelty();  // This is the server-side fetching
 
     return (
-        <main className='main-contain' style={{ height: '100vh' }}>
+        <main className='main-contain'>
             <Publications dataPreRender={null} />
         </main>
     );
