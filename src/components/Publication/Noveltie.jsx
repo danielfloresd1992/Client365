@@ -598,19 +598,19 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             height: '80px',
                                             width: '90px',
                                             overflow: 'hidden',
-                                            backgroundColor: '#ddd'
+                                            backgroundColor: 'rgb(183 183 183)'
                                         }}>
-                                            <div style={{ width: '50px', height: '50px', backgroundColor: '#ddd' }}>  </div>
+                                            <div style={{ width: '50px', height: '50px', backgroundColor: 'rgb(183 183 183)' }}>  </div>
                                         </div>
 
                                         <div className='divContentNovelties-textContain __width-complete'>
-                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px' }} ></p>
-                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: '#f5f3f3', height: '15px', width: '50%' }} ></p>
+                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: 'rgb(183 183 183)', height: '15px' }} ></p>
+                                            <p style={{ color: '#000', fontSize: '1.1rem', backgroundColor: 'rgb(183 183 183)', height: '15px', width: '50%' }} ></p>
                                             <div className='__align-center'>
                                             </div>
                                         </div>
                                     </div>
-                                    <div className='w-full h-[500px] bg-[#ddd] mx-auto mt-4 rounded-lg' style={{ backgroundColor: '#ddd' }}></div>
+                                    <div className='w-full h-[500px] bg-[#ddd] mx-auto mt-4 rounded-lg' style={{ backgroundColor: 'rgb(183 183 183)' }}></div>
                                 </div>
                             </div>
                     )
