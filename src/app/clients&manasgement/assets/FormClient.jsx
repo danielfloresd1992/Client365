@@ -13,11 +13,10 @@ import clientDefault from './objectDefault/objectDefaultClient';
 import useAuthOnServer from '@/hook/auth';
 import moment from 'moment-timezone';
 
-
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 
 
-//import { getListFrancise, getEstablishmentById } from '@/libs/ajaxClient/establishmentFetching';
+
 
 
 export default function FormClient({ id = null, action }) {
@@ -26,15 +25,14 @@ export default function FormClient({ id = null, action }) {
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
 
+    const dataFranchise = useSingleFetch({ resource: '/franchise', method: 'get' }, true);
+    const listFranchiseState = dataFranchise?.data ?? [];
 
-
-    const dataClient = useSingleFetch('/franchise')
-    const listFranchiseState = dataClient?.data ?? [];
-
-
+    const { data: upDateClient, error, fetchData, resetDataFetch, setChangeData } = useSingleFetch({ resource: '/establishment', method: 'get' }, false);
     const [franchiseSelect, setFranchiseSelect] = useState(null);
-    const [newClientState, setNewClientState] = useState([]);
-    const [upDateClient, setUpdateClient] = useState(clientDefault);
+
+
+
     const dispatch = useDispatch();
     const { requestAction } = useAxios();
     const listZoneTime = moment.tz.names().map(item => { return { value: item, text: item } });
@@ -43,40 +41,34 @@ export default function FormClient({ id = null, action }) {
 
 
     useEffect(() => {
-
-        if (id && listFranchiseState.length > 1) {
-
-            getEstablishmentById(id, (error, data) => {
-
-                if (error) {
-                    dispatch(
-                        setConfigModal({
-                            modalOpen: true,
-                            title: 'Error',
-                            description: 'A ocurrido un error al recibir los datos',
-                            isCallback: null,
-                            type: 'error'
-                        })
-                    );
-                    return conosle.log(error);
-                }
-                if (!data?.DST) {
-                    data.DST = {
+        if (id && upDateClient) {
+            if (!upDateClient?.DST) {
+                setChangeData({
+                    ...upDateClient, DST: {
                         isActive: false,
                         TimeZone: 'America/Caracas'
                     }
-                }
-                setUpdateClient(data);
-                const selected = listFranchiseState.filter(item => item._id === data.idLocal);
-                setFranchiseSelect(selected);
-            });
+                });
+            }
+            const selected = listFranchiseState.filter(item => item._id === upDateClient.idLocal);
+            setFranchiseSelect(selected);
         }
+        else if (!id && !upDateClient) {
+            setChangeData(clientDefault)
+        }
+    }, [upDateClient]);
 
+
+    useEffect(() => {
+
+    }, []);
+
+
+    useEffect(() => {
+        if (id && listFranchiseState.length > 1) fetchData(`/local/id=${id}`)
         return () => {
-            //setUpdateClient(null);
+            resetDataFetch();
         }
-
-
     }, [listFranchiseState]);
 
 
@@ -125,7 +117,7 @@ export default function FormClient({ id = null, action }) {
         try {
             if (!upDateClient._id) {
                 const res = await requestAction({ url: `/local`, action: 'post', body: body });
-                console.log(res);
+
                 dispatch(addNewEstablishment(res.data));
                 dispatch(addClient(res.data));
                 dispatch(
@@ -141,10 +133,9 @@ export default function FormClient({ id = null, action }) {
             else {
                 delete body._id;
                 const res = await requestAction({ url: `/local/${upDateClient._id}`, action: 'put', body: body });
-                setUpdateClient(null);
+                resetDataFetch();
 
-
-                //  dispatch(addClient(res.data));
+                dispatch(addClient(res.data));
                 dispatch(
                     setConfigModal({
                         modalOpen: true,
@@ -184,7 +175,7 @@ export default function FormClient({ id = null, action }) {
 
     return (
         <form className='__margin100px form_complete_andScroll bgWhite __border-smoothed __padding1rem __flexRowFlex __oneGap' onSubmit={onSubmitubmit}>
-            <h2 className='text_center'>{upDateClient ? 'Actualizar datos del cliente' : 'Formulario para el nuevo cliente'}</h2>
+            <h2 className='text_center'>{id ? 'Actualizar datos del cliente' : 'Formulario para el nuevo cliente'}</h2>
 
             <div className='contentDoubleLabelFlex'>
                 <InputBorderBlue
@@ -206,8 +197,7 @@ export default function FormClient({ id = null, action }) {
                             idLocal: selected._id
                         }
                         selected.name === 'Nacionales' ? objectValue.location = 'confidential' : '';
-                        console.log(objectValue)
-                        setUpdateClient(objectValue);
+                        setChangeData(objectValue);
                     }
                     }
                 />
@@ -216,7 +206,7 @@ export default function FormClient({ id = null, action }) {
                     textLabel='Nombre del local'
                     name='nameLocal'
                     value={upDateClient.name}
-                    eventChengue={text => setUpdateClient({ ...upDateClient, name: text })}
+                    eventChengue={text => setChangeData({ ...upDateClient, name: text })}
                 />
             </div>
 
@@ -230,7 +220,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'perimeter', text: 'Perimetral' },
                     { value: 'analytical and perimeter', text: 'Analítico y Perimetral' }
                 ]}
-                eventChengue={text => setUpdateClient({ ...upDateClient, typeMonitoring: text })}
+                eventChengue={text => setChangeData({ ...upDateClient, typeMonitoring: text })}
             />
 
             <div
@@ -241,7 +231,7 @@ export default function FormClient({ id = null, action }) {
                     type='number'
                     value={String(upDateClient.order)}
                     name='order'
-                    eventChengue={text => setUpdateClient({ ...upDateClient, order: Number(text) })}
+                    eventChengue={text => setChangeData({ ...upDateClient, order: Number(text) })}
                 />
 
                 <InputBorderBlue
@@ -253,7 +243,7 @@ export default function FormClient({ id = null, action }) {
                         { value: 'es', text: 'Castellano' },
                         { value: 'en', text: 'Ingles' },
                     ]}
-                    eventChengue={text => setUpdateClient({ ...upDateClient, lang: text })}
+                    eventChengue={text => setChangeData({ ...upDateClient, lang: text })}
                 />
             </div>
 
@@ -263,7 +253,7 @@ export default function FormClient({ id = null, action }) {
                 important={false}
                 value={upDateClient.franchiseReference?.name_franchise === 'Nacionales' ? 'Confidencial' : upDateClient.location}
                 disable={upDateClient.franchiseReference?.name_franchise === 'Nacionales' ? true : false}
-                eventChengue={text => setUpdateClient({ ...upDateClient, location: text })}
+                eventChengue={text => setChangeData({ ...upDateClient, location: text })}
             />
 
             <hr />
@@ -276,7 +266,7 @@ export default function FormClient({ id = null, action }) {
                     value={upDateClient ? String(upDateClient.touchs.totalManager) : null}
                     type='number'
                     eventChengue={text => {
-                        setUpdateClient({
+                        setChangeData({
                             ...upDateClient,
                             touchs: {
                                 ...upDateClient.touchs,
@@ -291,7 +281,7 @@ export default function FormClient({ id = null, action }) {
                     value={upDateClient ? String(upDateClient.touchs.totalAttendee) : null}
                     type='number'
                     eventChengue={text => {
-                        setUpdateClient({
+                        setChangeData({
                             ...upDateClient,
                             touchs: {
                                 ...upDateClient.touchs,
@@ -312,7 +302,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'simple', text: 'simple' },
                 ]}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         touchs: {
                             ...upDateClient.touchs,
@@ -330,7 +320,7 @@ export default function FormClient({ id = null, action }) {
                 type='checkbox'
                 important={false}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         touchs: {
                             ...upDateClient.touchs,
@@ -347,7 +337,7 @@ export default function FormClient({ id = null, action }) {
                 type='checkbox'
                 important={false}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         touchs: {
                             ...upDateClient.touchs,
@@ -367,7 +357,7 @@ export default function FormClient({ id = null, action }) {
                     value={upDateClient ? upDateClient.dishMenu.appetizer : null}
                     important={true}
                     eventChengue={text => {
-                        setUpdateClient({
+                        setChangeData({
                             ...upDateClient,
                             dishMenu: {
                                 ...upDateClient.dishMenu,
@@ -382,7 +372,7 @@ export default function FormClient({ id = null, action }) {
                     value={upDateClient ? upDateClient.dishMenu.mainDish : null}
                     important={true}
                     eventChengue={text => {
-                        setUpdateClient({
+                        setChangeData({
                             ...upDateClient,
                             dishMenu: {
                                 ...upDateClient.dishMenu,
@@ -399,7 +389,7 @@ export default function FormClient({ id = null, action }) {
                 value={upDateClient ? upDateClient.dishMenu.dessert : null}
                 important={true}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         dishMenu: {
                             ...upDateClient.dishMenu,
@@ -419,7 +409,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'simple', text: 'simple' },
                 ]}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         dishMenu: {
                             ...upDateClient.dishMenu,
@@ -437,7 +427,7 @@ export default function FormClient({ id = null, action }) {
                 type='checkbox'
                 important={false}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         dishMenu: {
                             ...upDateClient.dishMenu,
@@ -453,7 +443,7 @@ export default function FormClient({ id = null, action }) {
                 type='checkbox'
                 important={false}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         dishMenu: {
                             ...upDateClient.dishMenu,
@@ -475,7 +465,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'inactivo', text: 'inactivo' },
                 ]}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         status: text
                     });
@@ -489,7 +479,7 @@ export default function FormClient({ id = null, action }) {
                 value={upDateClient ? upDateClient.DST?.TimeZone : 'America/Caracas'}
                 childSelect={listZoneTime}
                 eventChengue={text => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         DST: {
                             ...upDateClient.DST,
@@ -505,7 +495,7 @@ export default function FormClient({ id = null, action }) {
                 type='checkbox'
                 important={false}
                 eventChengue={value => {
-                    setUpdateClient({
+                    setChangeData({
                         ...upDateClient,
                         DST: {
                             ...upDateClient.DST,
@@ -533,7 +523,7 @@ export default function FormClient({ id = null, action }) {
                     { value: 'extended', text: 'menú extendido' }
                 ]}
                 eventChengue={text => {
-                    setUpdateClient({ ...upDateClient, alertLength: text });
+                    setChangeData({ ...upDateClient, alertLength: text });
                 }}
             />
 

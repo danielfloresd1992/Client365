@@ -23,7 +23,7 @@ type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish;
 
 
 
-export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: () => void } {
+export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: (url: string) => void, resetDataFetch: any, setChangeData: any } {
 
     const [state, setState] = useState<FetchState>({
         data: null,
@@ -32,21 +32,25 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
         ok: false,
     });
 
+
+
     useEffect(() => {
-        if (!state.data && endpoint.method === 'get' && initFetch) fetchData();
+        if (!state.data && endpoint.method === 'get' && initFetch) fetchData(null);
     }, []);
 
-    const fetchData = async () => {
+
+
+
+    const fetchData = async (url: string | undefined | null): Promise<void> => {
         try {
             let response;
-            if (endpoint.method === 'post') response = await axiosInstance.post(endpoint.resource, endpoint?.body);
-            else if (endpoint.method === 'delete') response = await axiosInstance.delete(endpoint.resource);
-            else if (endpoint.method === 'put') response = await axiosInstance.delete(endpoint.resource, endpoint?.body);
-            else response = await axiosInstance.get(endpoint.resource);
-
+            console.log(endpoint)
+            if (endpoint.method === 'post') response = await axiosInstance.post(url ?? endpoint.resource, endpoint?.body);
+            else if (endpoint.method === 'delete') response = await axiosInstance.delete(url ?? endpoint.resource);
+            else if (endpoint.method === 'put') response = await axiosInstance.delete(url ?? endpoint.resource, endpoint?.body);
+            else response = await axiosInstance.get(url ?? endpoint.resource);
+            console.log(response);
             setState({ data: response.data, loading: false, error: null, ok: true });
-            console.log('hola')
-
         }
         catch (err) {
             console.log(err);
@@ -54,7 +58,24 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
         }
     };
 
-    return { ...state, fetchData };
+
+
+
+    const setChangeData = (data: unknown) => {
+        setState({ ...state, data: data });
+    };
+
+
+
+
+    const resetDataFetch = () => {
+        setState({ ...state, data: null });
+    };
+
+
+
+
+    return { ...state, fetchData, resetDataFetch, setChangeData };
 }
 
 
