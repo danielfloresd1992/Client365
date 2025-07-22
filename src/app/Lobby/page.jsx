@@ -1,11 +1,11 @@
-import dynamic from 'next/dynamic';
+
 import Nav from './Nav/Nav';
-const ZoomImg = dynamic(() => import('@/components/zoomImage/ZoomImg'));
+import ZoomImg from '@/components/zoomImage/ZoomImg';
 import { ImgProvider } from '@/contexts/imgContext';
 
 // Importa los componentes de manera dinámica
-const PublicationsBox = dynamic(() => import('@/components/Publications/PublicationsBox'));
-const AsideInfoUser = dynamic(() => import('@/app/Lobby/AsideInfoUser/AsideInfoUser'));
+import PublicationsBox from '@/components/Publications/PublicationsBox';
+import AsideInfoUser from '@/app/Lobby/AsideInfoUser/AsideInfoUser';
 
 
 

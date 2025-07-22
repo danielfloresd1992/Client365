@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = ".next/standalone" # Usar si configuraste output: "standalone"
+  # O si no usas standalone:
+  # publish = ".next/server/pages"
+
+[[plugins]]
+
+package = "@netlify/plugin-nextjs"
