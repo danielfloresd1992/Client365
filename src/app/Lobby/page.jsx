@@ -6,7 +6,7 @@ import { ImgProvider } from '@/contexts/imgContext';
 // Importa los componentes de manera dinámica
 import PublicationsBox from '@/components/Publications/PublicationsBox';
 import AsideInfoUser from '@/app/Lobby/AsideInfoUser/AsideInfoUser';
-
+import AlertLiveJarvis from '@/components/alertSpeackComponent';
 
 
 
@@ -32,6 +32,7 @@ export default function Lobby() {
                 <AsideInfoUser />
                 <ZoomImg />
             </ImgProvider>
+            <AlertLiveJarvis />
         </div>
     );
 }

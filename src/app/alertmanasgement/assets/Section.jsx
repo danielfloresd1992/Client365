@@ -19,9 +19,9 @@ import { sendMenu, putMenu } from './model/menu.model.js';
 
 export default function Section() {
 
+
     const [menuIndividual, setMenuIndividual] = useState(null);
     const [addManuState, setAddManuState] = useState(null);
-
     const [locals, setLocals] = useState(null);
 
     const { dataSessionState } = useAuthOnServer();
