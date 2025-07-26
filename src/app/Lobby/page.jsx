@@ -8,6 +8,8 @@ import PublicationsBox from '@/components/Publications/PublicationsBox';
 import AsideInfoUser from '@/app/Lobby/AsideInfoUser/AsideInfoUser';
 import AlertLiveJarvis from '@/components/alertSpeackComponent';
 
+import AsideAlertCount from '@/components/aside_alert_count/AsideAlertCount';
+
 
 
 export default function Lobby() {
@@ -30,6 +32,7 @@ export default function Lobby() {
                 <Nav />
                 <PublicationsBox />
                 <AsideInfoUser />
+                <AsideAlertCount position='l' />
                 <ZoomImg />
             </ImgProvider>
             <AlertLiveJarvis />

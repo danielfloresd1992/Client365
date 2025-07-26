@@ -5,26 +5,26 @@ import { useState, useEffect } from 'react';
 
 export default function useSpeckAlert() {
 
-    const [ voices, setVoices ] = useState([]);
-    const [ voiceDefault, setVoiceDefault ] = useState(null);
-    const [ volumeState, setVolumeState ] = useState(1);
-    
+    const [voices, setVoices] = useState([]);
+    const [voiceDefault, setVoiceDefault] = useState(null);
+    const [volumeState, setVolumeState] = useState(1);
+
 
     useEffect(() => {
-        if(window !== undefined){
-            if(voices.length < 1){
+        if (window !== undefined) {
+            if (voices.length < 1) {
                 const serializableVoices = speechSynthesis.getVoices().map(voice => ({
                     name: voice.name,
-                  }));
+                }));
                 setVoices(serializableVoices);
             }
         }
-    }, [ voices ]);
+    }, [voices]);
 
 
 
-  
-    const speak = (text='') => {
+
+    const speak = (text = '') => {
         const machine = window.speechSynthesis;
         const utterThis = new SpeechSynthesisUtterance(text);
         const matchingVoice = speechSynthesis.getVoices().find((voice) => voice.name === voiceDefault);
@@ -36,13 +36,13 @@ export default function useSpeckAlert() {
 
 
     const changueVolume = number => {
-        if(typeof number !== 'number') throw new Error('The parameter must be of type number');
+        if (typeof number !== 'number') throw new Error('The parameter must be of type number');
         return setVolumeState(number);
     };
 
     const changeVoice = (voiceName, errorCallback) => {
         return setVoiceDefault(state => state = voiceName);
     };
-    
+
     return { speak, changeVoice, changueVolume, voices, voiceDefault };
 }
