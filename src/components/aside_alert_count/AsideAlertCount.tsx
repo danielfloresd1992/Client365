@@ -11,7 +11,7 @@ export default function AsideAlertCount({ position }: Prop) {
 
     const styleInit: any = {};
 
-    const refElement = useRef(null);
+    const refElement = useRef<HTMLDivElement>(null);
 
 
 
