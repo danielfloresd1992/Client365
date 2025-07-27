@@ -1,6 +1,16 @@
 'use client';
-import { useRef, ReactNode } from 'react'
+import { useState, useRef, ReactNode, useCallback } from 'react'
+import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+
+
+
+type T_Alert = {
+    title: string
+    description: string,
+    id: string
+}
+
 
 
 
@@ -9,13 +19,17 @@ type Prop = {
     title: string,
     urlIco: string | undefined | null
     eyelash: 0 | 1 | 2 | 3
-    children: ReactNode
+    open: true | undefined
+    children: ReactNode | ((addAlert: any) => ReactNode);
 }
 
 
 
 
-export default function Aside_Eyelash({ position, title, urlIco, eyelash, children }: Prop) {
+export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, children }: Prop) {
+
+
+    const [alertState, setAlertState] = useState<T_Alert[]>([]);
 
 
     const styleInit: any = {};
@@ -31,6 +45,15 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, childr
         styleInit.transform = 'translateX(-100%)';
     }
 
+    if (open) styleInit.transform = 'translateX(0)';
+
+
+
+    const addAlert = (alert: T_Alert) => {
+        setAlertState(prev => [...prev, { ...alert, id: uuidv4() }]);
+    };
+
+
 
 
     const handdlerOnMouseEnter = () => {
@@ -39,6 +62,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, childr
             refElement.current.style.zIndex = '101';
         }
     };
+
 
 
 
@@ -52,17 +76,20 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, childr
             }
             refElement.current.style.zIndex = '100';
         }
+        setAlertState([]);
     };
 
 
 
-    const seletColor = (colorSelect: number) => {
+
+    const seletColor = (colorSelect: number): { color: string, position: `${number}%` } => {
         if (colorSelect === 0) return { color: '#db6b36', position: '0%' }
         if (colorSelect === 1) return { color: '#2ad424ff', position: '25%' }
         if (colorSelect === 2) return { color: '#810ac5ff', position: '50%' }
         if (colorSelect === 3) return { color: '#c50a0aff', position: '75%' }
-        return { color: '#6e6e6eff', position: 0 }
+        return { color: '#6e6e6eff', position: '0%' }
     };
+
 
 
     const returnImage = () => {
@@ -76,6 +103,48 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, childr
             :
             null
     };
+
+
+
+
+
+    const printNotifications = useCallback(() => {
+        return (
+            <div className='w-full h-full  absolute flex items-start justify-between top-[10px] p-[0.2rem]'>
+                {
+                    alertState.map((item, count) => (
+                        <>
+                            <div className='relative'>
+                                <div className='w-[20px] h-[20px] bg-[#ff0000;] border border-solid border-red-500 flex justify-center items-center rounded-[50%]'>
+                                    <div style={{
+                                        filter: 'invert(1)',
+                                    }}>
+                                        <Image src={'/ico/icons8-campana-25.png'} width={15} height={15} alt='ico-alert' />
+                                    </div>
+
+                                </div>
+                                <b className='absolute top-[10px] right-[-5px] text-white'>{count + 1}</b>
+                            </div>
+
+                            <div className='relative'>
+                                <div className='w-[20px] h-[20px] bg-[#ff0000] flex justify-center items-center rounded-[50%]'>
+                                    <div style={{
+                                        filter: 'invert(1)',
+                                    }}>
+                                        <Image src={'/ico/icons8-campana-25.png'} width={18} height={18} alt='ico-alert' />
+                                    </div>
+
+                                </div>
+                                <b className='absolute top-[6px] right-[-3px] text-white'>{count + 1}</b>
+                            </div>
+                        </>
+                    ))
+                }
+            </div>
+        );
+    }, [alertState]);
+
+
 
 
     return (
@@ -93,22 +162,26 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, childr
                     backgroundColor: seletColor(eyelash).color,
                 }}
             >
-                <div className='w-full h-full flex justify-between items-center '>
+                <div className='relative w-full h-full flex justify-between items-center '>
+
                     <div className='flex gap-[0.5rem] flex flex-col justify-center items-center'>
                         {returnImage()}
                         <h2 className='text-white [writing-mode:vertical-rl] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(16px, 3vw, 24px)] '>{title}</h2>
                     </div>
+
+                    {printNotifications()}
+
                     <div className='flex gap-[0.5rem] flex flex-col justify-center items-center'>
                         {returnImage()}
                         <h2 className='text-white [writing-mode:sideways-lr] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(16px, 3vw, 24px)]'>{title}</h2>
-
                     </div>
+
                 </div>
             </div>
 
             <div className='w-full h-full bg-white z-[200] flex justify-center items-center p-[40px_0px_30px_0] '>
                 <div className='w-full h-full overflow-y-scroll flex justify-center items-center'>
-                    {children}
+                    {typeof children === 'function' ? children(addAlert) : children}
                 </div>
             </div>
         </aside >

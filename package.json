@@ -28,7 +28,6 @@
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "html-to-image": "^1.11.11",
-    "js-cookie": "^3.0.5",
     "moment-timezone": "^0.5.45",
     "next": "14.2.4",
     "next-auth": "^4.24.7",
@@ -46,7 +45,8 @@
     "slick-carousel": "^1.8.1",
     "socket.io-client": "^4.7.5",
     "styled-components": "^6.1.12",
-    "tough-cookie": "^4.1.4"
+    "tough-cookie": "^4.1.4",
+    "uuid": "^11.1.0"
   },
   "devDependencies": {
     "@types/node": "^20",
