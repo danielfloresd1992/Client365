@@ -32,9 +32,18 @@ export default function Lobby() {
                 <Nav />
                 <PublicationsBox />
                 <AsideInfoUser />
-                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}></Aside_Eyelash>
-                <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}></Aside_Eyelash>
-                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}></Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
+                    <h2>coming soong...</h2>
+                </Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
+                    <h2>coming soong...</h2>
+                </Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
+                    <h2>coming soong...</h2>
+                </Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
+                    <h2>coming soong...</h2>
+                </Aside_Eyelash>
                 <ZoomImg />
             </ImgProvider>
             <AlertLiveJarvis />
