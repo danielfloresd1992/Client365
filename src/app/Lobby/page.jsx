@@ -8,7 +8,7 @@ import PublicationsBox from '@/components/Publications/PublicationsBox';
 import AsideInfoUser from '@/app/Lobby/AsideInfoUser/AsideInfoUser';
 import AlertLiveJarvis from '@/components/alertSpeackComponent';
 
-import AsideAlertCount from '@/components/aside_alert_count/AsideAlertCount';
+import Aside_Eyelash from '@/components/aside/aside_establishment/Aside_Eyelash';
 
 
 
@@ -32,7 +32,9 @@ export default function Lobby() {
                 <Nav />
                 <PublicationsBox />
                 <AsideInfoUser />
-                <AsideAlertCount position='l' />
+                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}></Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}></Aside_Eyelash>
+                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}></Aside_Eyelash>
                 <ZoomImg />
             </ImgProvider>
             <AlertLiveJarvis />

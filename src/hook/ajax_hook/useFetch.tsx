@@ -44,12 +44,10 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
     const fetchData = async (url: string | undefined | null): Promise<void> => {
         try {
             let response;
-            console.log(endpoint)
             if (endpoint.method === 'post') response = await axiosInstance.post(url ?? endpoint.resource, endpoint?.body);
             else if (endpoint.method === 'delete') response = await axiosInstance.delete(url ?? endpoint.resource);
             else if (endpoint.method === 'put') response = await axiosInstance.delete(url ?? endpoint.resource, endpoint?.body);
             else response = await axiosInstance.get(url ?? endpoint.resource);
-            console.log(response);
             setState({ data: response.data, loading: false, error: null, ok: true });
         }
         catch (err) {
