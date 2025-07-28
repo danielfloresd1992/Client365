@@ -1,5 +1,5 @@
 'use client';
-import { useState, useRef, ReactNode, useCallback } from 'react'
+import { useState, useRef, ReactNode, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
 
@@ -21,12 +21,13 @@ type Prop = {
     eyelash: 0 | 1 | 2 | 3
     open: true | undefined
     children: ReactNode | ((addAlert: any) => ReactNode);
+    scrollY: Boolean
 }
 
 
 
 
-export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, children }: Prop) {
+export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, scrollY, children }: Prop) {
 
 
     const [alertState, setAlertState] = useState<T_Alert[]>([]);
@@ -34,6 +35,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
     const styleInit: any = {};
     const refElement = useRef<HTMLDivElement>(null);
+    const elementContentChildren = useRef<HTMLDivElement>(null);
 
 
     if (position === 'r' || position === undefined) {
@@ -46,6 +48,16 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
     }
 
     if (open) styleInit.transform = 'translateX(0)';
+
+
+
+    useEffect(() => {
+        if (elementContentChildren.current) {
+            if (scrollY) elementContentChildren.current.classList.add('scrolltheme1');
+            elementContentChildren.current.style.overflowX = 'hidden';
+        }
+    }, []);
+
 
 
 
@@ -66,7 +78,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
 
-    const handdlerOnMouseLeave = () => {
+    const handdlerOnMouseLeave = (): void | null => {
+        if (open) return null;
         if (refElement.current) {
             if (position === 'r') {
                 refElement.current.style.transform = 'translateX(100%)';
@@ -180,7 +193,9 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
             </div>
 
             <div className='w-full h-full bg-white z-[200] flex justify-center items-center p-[40px_0px_30px_0] '>
-                <div className='w-full h-full overflow-y-scroll flex justify-center items-center'>
+                <div className='w-full h-full flex justify-center items-center'
+                    ref={elementContentChildren}
+                >
                     {typeof children === 'function' ? children(addAlert) : children}
                 </div>
             </div>
