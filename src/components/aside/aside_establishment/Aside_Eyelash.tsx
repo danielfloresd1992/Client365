@@ -115,8 +115,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
                     alertState.map((item, count) => (
                         <>
                             <div className='relative'>
-                                <div className='w-[20px] h-[20px] bg-[#ff0000;] border border-solid border-red-500 flex justify-center items-center rounded-[50%]'>
-                                    <div style={{
+                                <div className='w-[20px] h-[20px] bg-[#ff0000;] border border-solid border-red-500 flex justify-center items-center rounded-[50%] wobble-hor-top'>
+                                    <div className='wobble-hor-bottom' style={{
                                         filter: 'invert(1)',
                                     }}>
                                         <Image src={'/ico/icons8-campana-25.png'} width={15} height={15} alt='ico-alert' />
@@ -127,7 +127,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
                             </div>
 
                             <div className='relative'>
-                                <div className='w-[20px] h-[20px] bg-[#ff0000] flex justify-center items-center rounded-[50%]'>
+                                <div className='w-[20px] h-[20px] bg-[#ff0000] flex justify-center items-center rounded-[50%] wobble-hor-top'>
                                     <div style={{
                                         filter: 'invert(1)',
                                     }}>
