@@ -45,7 +45,7 @@ export default function Lobby() {
                     <h2>coming soong...</h2>
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}  >
+                <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3} open={true}>
                     {(addAlert) => (
                         <>
                             <ChatGeneral365  {...{ addAlert }} />
