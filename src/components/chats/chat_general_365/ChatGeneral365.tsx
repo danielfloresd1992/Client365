@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import DataFormart from '@/libs/time/dateFormat.js';
 import twemoji from 'twemoji';
+import emojis from '@/libs/data/emojis';
+
 
 
 type T_User = {
@@ -34,63 +36,6 @@ type T_Props = {
 export default function ChatGeneral365({ addAlert }: T_Props) {
 
 
-    const emojis = [
-        // Caritas y emociones
-        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇",
-        "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚",
-        "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🥸",
-        "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️",
-        "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡",
-        "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓",
-        "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄",
-        "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵",
-
-        // Manos y gestos
-        "👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤏", "✌️", "🤞", "🤟",
-        "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇", "☝️", "👍", "👎",
-        "✊", "👊", "🤛", "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏",
-
-        // Corazones
-        "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔",
-        "❤️‍🔥", "❤️‍🩹", "💘", "💝", "💖", "💗", "💓", "💞", "💕", "💟",
-
-        // Objetos y símbolos
-        "🔥", "💯", "✨", "🌟", "💫", "⭐", "🌠", "💥", "💦", "💨",
-        "💣", "💬", "👁️‍🗨️", "🗨️", "🗯️", "💭", "💤", "🎉", "🎊", "🎈",
-        "🎁", "🔮", "🧿", "🪄", "🪅", "🪆", "🎎", "🎐", "🎀", "🎗️",
-
-        // Animales y naturaleza
-        "🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯",
-        "🦁", "🐮", "🐷", "🐽", "🐸", "🐵", "🙈", "🙉", "🙊", "🐒",
-        "🐔", "🐧", "🐦", "🐤", "🐣", "🐥", "🦆", "🦅", "🦉", "🦇",
-        "🐺", "🐗", "🐴", "🦄", "🐝", "🪱", "🐛", "🦋", "🐌", "🐞",
-        "🐜", "🪰", "🪲", "🪳", "🦟", "🦗", "🕷️", "🦂", "🐢", "🐍",
-        "🦎", "🦖", "🦕", "🐙", "🦑", "🦐", "🦞", "🦀", "🐡", "🐠",
-        "🐟", "🐬", "🐳", "🐋", "🦈", "🐊", "🐅", "🐆", "🦓", "🦍",
-        "🦧", "🦣", "🐘", "🦛", "🦏", "🐪", "🐫", "🦒", "🦘", "🦬",
-        "🐃", "🐂", "🐄", "🐎", "🐖", "🐏", "🐑", "🦙", "🐐", "🦌",
-        "🐕", "🐩", "🦮", "🐕‍🦺", "🐈", "🐈‍⬛", "🪶", "🐓", "🦃", "🦤",
-        "🦚", "🦜", "🦢", "🦩", "🕊️", "🐇", "🦝", "🦨", "🦡", "🦫",
-        "🦦", "🦥", "🐁", "🐀", "🐿️", "🦔", "🌵", "🎄", "🌲", "🌳",
-        "🌴", "🪵", "🌱", "🌿", "☘️", "🍀", "🎍", "🪴", "🎋", "🍃",
-        "🍂", "🍁", "🍄", "🐚", "🪨", "🌾", "💐", "🌸", "💮", "🏵️",
-        "🌹", "🥀", "🌺", "🌻", "🌼", "🌷", "🌱", "🪴", "🌲", "🌳",
-
-        // Comida y bebida
-        "🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐",
-        "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑",
-        "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅",
-        "🥔", "🍠", "🫘", "🥐", "🥖", "🫓", "🥨", "🥯", "🥞", "🧇",
-        "🧀", "🍖", "🍗", "🥩", "🥓", "🍔", "🍟", "🍕", "🌭", "🥪",
-        "🌮", "🌯", "🫔", "🥙", "🧆", "🥚", "🍳", "🥘", "🍲", "🫕",
-        "🥣", "🥗", "🍿", "🧈", "🧂", "🥫", "🍱", "🍘", "🍙", "🍚",
-        "🍛", "🍜", "🍝", "🍠", "🍢", "🍣", "🍤", "🍥", "🥮", "🍡",
-        "🥟", "🥠", "🥡", "🦀", "🦞", "🦐", "🦑", "🦪", "🍦", "🍧",
-        "🍨", "🍩", "🍪", "🎂", "🍰", "🧁", "🥧", "🍫", "🍬", "🍭",
-        "🍮", "🍯", "🍼", "🥛", "☕", "🫖", "🍵", "🍶", "🍾", "🍷",
-        "🍸", "🍹", "🍺", "🍻", "🥂", "🥃", "🫗", "🥤", "🧋", "🧃",
-        "🧉", "🧊", "🥢", "🍽️", "🍴", "🥄", "🔪", "🫙", "🏺"
-    ];
 
     const { data, error, fetchData, setChangeData } = useSingleFetch({ resource: `/chat?page=${0}&limit=${10}`, method: 'get' }, true);
     const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
@@ -103,9 +48,7 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
 
 
 
-
-
-    /*
+    /*  ///  EXAPLE FOR POST DATA
     export const setMessageForChat = (body) => {
     return new Promise((resolve, reject) => {
         console.log(body)
@@ -195,8 +138,23 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
 
     return (
         <div className='w-full h-full'>
-            <div className='w-full h-[calc(100%_-_100px)] bg-[rgb(245_245_245)]'>
-                <div className='w-full h-full flex p-2 flex flex-col-reverse gap-[.2rem]'
+            <header className='h-[80px] w-full bg-[#037303] p-[.5rem]'>
+                <div className='w-full h-full flex flex-row justify-start items-center gap-4'>
+                    <div>
+                        <div className='w-[50px] h-[50px] rounded-[50%] bg-white'>
+                            <Image width={50} height={50} src='/logo-page-removebg.png' alt='co-chatt' />
+                        </div>
+                    </div>
+                    <div>
+                        <div>
+                            <h2 className='text-white'>Chat General</h2>
+                            <p className='text-white'>en linea</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div className='w-full h-[calc(100%_-_180px)] bg-[rgb(245_245_245)]'>
+                <div className='w-full h-full flex p-2 flex flex-col-reverse gap-[.4rem]'
                     style={{
                         overflowY: 'scroll',
                         overflowX: 'hidden',
@@ -208,14 +166,26 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
                             <div className='w-full flex flex-col gap-[.2rem]' key={index}>
                                 {
                                     group.map((item: Tmsm, indexMsm: number) => (
-                                        <div className='bg-[#ffffff] p-[0rem_.5rem] rounded-[5px] w-[80%]' key={item._id}>
+                                        <div className='shadow-[1px_1px_6px_0px_#cfcece] bg-[#ffffff] p-[0rem_.5rem] rounded-[5px] w-[80%]' key={item._id}>
                                             <div className='w-full h-full flex gap-2 flex-col' >
-                                                {
-                                                    indexMsm === 0 ?
-                                                        <b className='font-semibold font-[sans-serif_monospace] text-[0.8rem] text-[#089300]'>{item.submittedByUser.name}</b>
-                                                        :
-                                                        null
-                                                }
+                                                <div className='w-full flex justify-between'>
+                                                    {
+                                                        indexMsm === 0 ?
+
+                                                            <b className='font-semibold font-[sans-serif_monospace] text-[0.8rem] text-[#089300]'>{item.submittedByUser.name}</b>
+                                                            :
+                                                            <div></div>
+                                                    }
+                                                    <div
+                                                        className='cursor-pointer'
+                                                        style={{
+                                                            filter: 'opacity(0.5);'
+                                                        }}
+                                                    >
+                                                        <Image src='/ico/icons8-flecha-ampliar-50.png' width={15} height={15} alt='arrow-down-ico' />
+                                                    </div>
+                                                </div>
+
                                                 <div>
                                                     <p>{item.message}</p>
                                                 </div>
@@ -241,7 +211,7 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
                 ></textarea>
                 <div className='w-[20%] h-full flex flex-col flex-wrap justify-start gap-[.2rem]'>
 
-                    <button className='w-[48%] h-[48%] bg-[rgb(78_217_40)] flex items-center justify-center  rounded-[10px]'>
+                    <button className='w-[48%] h-[48%] bg-[rgb(78_217_40)] flex items-center justify-center rounded-[10px]'>
                         <div style={{
                             filter: 'invert(1)'
                         }}>
@@ -256,7 +226,13 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
                             ref={containEmojisRef}
                             className="absolute w-full h-[200px] bottom-[100px] left-0 bg-white p-3 border-t flex flex-wrap gap-2 overflow-y-scroll"
                             onBlur={(e) => {
-                                if (e.target?.parentNode && e.target?.parentNode?.id !== 'contain-emojis') setShowEmojiPicker(false);
+                                // Verificar que el elemento es un HTMLElement antes de acceder a .id
+                                const target = e.target as HTMLElement;
+                                const parent = target.parentNode as HTMLElement | null;
+
+                                if (parent && parent.id !== 'contain-emojis') {
+                                    setShowEmojiPicker(false);
+                                }
                             }}
                             tabIndex={-1}
                             id='contain-emojis'

@@ -38,8 +38,10 @@ export type NoveltyT =
 export type Dish =
     | { resource: `/dishes?id=${string}`, method: 'post', body: any }
     | { resource: `/dishes?id=${string}`, method: 'delete', body: any };
+//
 
 
+export type Chat = { resource: `/chat?page=${number}&limit=${number}`, method: 'get' }
 
 
 

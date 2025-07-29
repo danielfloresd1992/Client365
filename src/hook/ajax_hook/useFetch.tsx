@@ -4,7 +4,7 @@ import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 
 
 
-import { FetchOptions, FranchiseT, EstablishmentT, MenuT, NoveltyT, Dish, FailedMonitoringT } from '@/types/recourseData';
+import { FetchOptions, FranchiseT, EstablishmentT, MenuT, NoveltyT, Dish, FailedMonitoringT, Chat } from '@/types/recourseData';
 
 
 type FetchState = {
@@ -15,7 +15,7 @@ type FetchState = {
 };
 
 
-type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish;
+type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish | Chat;
 
 
 
