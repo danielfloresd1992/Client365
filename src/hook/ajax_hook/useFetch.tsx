@@ -23,7 +23,7 @@ type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish | Chat;
 
 
 
-export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: (url: string) => void, resetDataFetch: any, setChangeData: any } {
+export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: (url: string | null, method: string | null) => void, resetDataFetch: any, setChangeData: any } {
 
     const [state, setState] = useState<FetchState>({
         data: null,
@@ -35,18 +35,19 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
 
 
     useEffect(() => {
-        if (!state.data && endpoint.method === 'get' && initFetch) fetchData(null);
+        if (!state.data && endpoint.method === 'get' && initFetch) fetchData(null, null);
     }, []);
 
 
 
 
-    const fetchData = async (url: string | undefined | null): Promise<void> => {
+    const fetchData = async (url: string | undefined | null, method: string | undefined | null): Promise<void> => {
         try {
             let response;
-            if (endpoint.method === 'post') response = await axiosInstance.post(url ?? endpoint.resource, endpoint?.body);
-            else if (endpoint.method === 'delete') response = await axiosInstance.delete(url ?? endpoint.resource);
-            else if (endpoint.method === 'put') response = await axiosInstance.delete(url ?? endpoint.resource, endpoint?.body);
+
+            if (method ?? endpoint.method === 'post') response = await axiosInstance.post(url ?? endpoint.resource, endpoint?.body);
+            else if (method ?? endpoint.method === 'delete') response = await axiosInstance.delete(url ?? endpoint.resource);
+            else if (method ?? endpoint.method === 'put') response = await axiosInstance.delete(url ?? endpoint.resource, endpoint?.body);
             else response = await axiosInstance.get(url ?? endpoint.resource);
             setState({ data: response.data, loading: false, error: null, ok: true });
         }
