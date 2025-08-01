@@ -12,11 +12,8 @@ interface ILoandingProps {
 
 export default function LoandingPage({ title, children }: ILoandingProps): JSX.Element | null {
 
-    //const { dataSessionState, errorState } = useAuthOnServer();
-    const dataSessionState = {}
-    //   console.warn(dataSessionState)
-
-    //  if (errorState?.error_connection) return <h1>Error de conexión con el servidor</h1>
+    const { dataSessionState, errorState } = useAuthOnServer();
+    if (errorState?.error_connection) return <h1>Error de conexión con el servidor</h1>
 
 
     if (dataSessionState?.stateSession === 'loading') {
