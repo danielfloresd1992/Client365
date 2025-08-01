@@ -131,7 +131,6 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
 
 
     const geLastMsm = useCallback(() => {
-        alert(pageRef.current)
         fetchData({
             url: `/chat?page=${pageRef.current}&limit=${10 * pageRef.current}`,
             method: 'get',
@@ -175,12 +174,12 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
     if (!userContext) return <div>Loading...</div>;
 
 
-    console.log(message);
+
 
 
     return (
         <div className='w-full h-full'>
-            <header className='h-[80px] w-full bg-[rgb(223_223_223)] p-[.5rem]'>
+            <header className='h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem]'>
                 <div className='w-full h-full flex flex-row justify-start items-center gap-4'>
                     <div>
                         <div className='w-[50px] h-[50px] rounded-[50%] bg-white'>
