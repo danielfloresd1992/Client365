@@ -21,6 +21,7 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
     const [errorState, setErrorState] = useState<ErrorAuth | null>(null);
 
 
+
     return (
         <myUserContext.Provider value={{ dataSessionState, setState, errorState, setErrorState }} >
             {children}

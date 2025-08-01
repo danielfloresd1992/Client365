@@ -41,7 +41,6 @@ export default function useAuthOnServer(): ReturFunc {
                     if (pathName !== '/') router.replace('/');
                 }
                 else {
-                    if (pathName === '/') router.replace('/Lobby');
                     setDataResult.stateSession = 'authenticated';
                     setDataResult.dataSession = dataSession;
 

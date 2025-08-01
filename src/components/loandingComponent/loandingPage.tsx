@@ -12,13 +12,14 @@ interface ILoandingProps {
 
 export default function LoandingPage({ title, children }: ILoandingProps): JSX.Element | null {
 
-    const { dataSessionState, errorState } = useAuthOnServer();
+    //const { dataSessionState, errorState } = useAuthOnServer();
+    const dataSessionState = {}
+    //   console.warn(dataSessionState)
+
+    //  if (errorState?.error_connection) return <h1>Error de conexión con el servidor</h1>
 
 
-    if (errorState?.error_connection) return <h1>Error de conexión con el servidor</h1>
-
-
-    if (dataSessionState.stateSession === 'loading') {
+    if (dataSessionState?.stateSession === 'loading') {
         return (
             <div className='__width-complete __center_center' style={{ height: '100%', width: '100%', top: '0', position: 'fixed', backgroundColor: '#fff', zIndex: 1000 }}>
                 <div className='__center_center columns' style={{ gap: '1rem' }}>

@@ -1,10 +1,7 @@
-
-import { useEffect, useState, useRef } from 'react';
+'use client';
+import { useRef, useCallback } from 'react';
 import Image from 'next/image';
 import DataFormart from '@/libs/time/dateFormat';
-
-
-
 
 
 
@@ -14,8 +11,7 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
 
     const boxRef = useRef<HTMLDivElement>(null);
     const buttonOptionsRef = useRef<HTMLDivElement>(null);
-    const MY_MESSAGES: boolean = item.submittedByUser.userId === user._id;
-
+    const MY_MESSAGES: boolean = item?.submittedByUser?.userId === user?._id;
 
 
 
@@ -31,6 +27,9 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
             buttonOptionsRef.current.style.visibility = 'hidden';
         }
     }
+
+
+
 
 
 
@@ -68,8 +67,10 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
                         </div>
                     </div>
 
-                    <div className='w-full'>
-                        <p className='text-[0.9rem] text-black system-ui'>{item.message}</p>
+                    <div className='w-full'
+
+                    >
+                        <p className='text-[0.9rem] text-black system-ui' >{item.message}</p>
                     </div>
                     <p className='text-right text-[0.6rem] text-[#5d5d5d]'>{DataFormart.formatDateApp(item.date)}</p>
                 </div>

@@ -42,6 +42,7 @@ export type Dish =
 
 
 export type Chat = { resource: `/chat?page=${number}&limit=${number}`, method: 'get' }
+    | { resource: '/chat', method: 'post', body: any }
 
 
 

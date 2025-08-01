@@ -1,13 +1,13 @@
 'use client';
-import { useState, useRef, useCallback, useEffect, useContext } from 'react';
-import socket_jarvis from '@/libs/socket/socketIo_jarvis';
+import { useState, useRef, useCallback, useEffect, useContext, FormEvent } from 'react';
+import socket from '@/libs/socket/socketIo';
 import { myUserContext } from '@/contexts/userContext';
 import Image from 'next/image';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 
-import twemoji from 'twemoji';
 import emojis from '@/libs/data/emojis';
 import BoxMsm from './assets/box_msm';
+
 
 
 
@@ -38,22 +38,32 @@ type T_Props = {
 export default function ChatGeneral365({ addAlert }: T_Props) {
 
 
-    const { data, error, fetchData, setChangeData } = useSingleFetch({ resource: `/chat?page=${0}&limit=${10}`, method: 'get' }, false);
 
 
     const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
     const [message, setMessage] = useState<string>('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const containEmojisRef = useRef<HTMLDivElement>(null);
-
+    const pageRef = useRef(1);
     const userContext = useContext(myUserContext);
     const user = userContext?.dataSessionState?.dataSession;
 
+    const { data, error, fetchData, setChangeData } = useSingleFetch({ resource: `/chat?page=${pageRef.current}&limit=${10}`, method: 'get', body: { message: message, establishment: null } }, false);
+
+
 
     useEffect(() => {
-        addAlert({ title: 'Bienvenida', description: 'Chat365  grupo general' })
-        if (userContext?.dataSessionState?.stateSession === 'authenticated') fetchData(`/chat?page=${0}&limit=${10}`, null);
+        if (userContext?.dataSessionState?.stateSession === 'authenticated') {
+            fetchData({
+                url: `/chat?page=${pageRef.current}&limit=${10 * pageRef.current}`,
+                callback: null,
+                method: 'get',
+                autoGetData: true
+            });
+            pageRef.current = pageRef.current + 1;
+        }
     }, [userContext]);
+
 
 
 
@@ -61,45 +71,18 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
         let key = true;
         const recibeData = (message: Tmsm) => {
             if (key) {
-                setChangeData(message);
+                setChangeData({ result: [message, ...data.result] });
                 addAlert({ title: 'Chat365', description: 'Este es el chat' })
             }
         };
-        socket_jarvis.on('receive_message', recibeData)
-
+        socket.on('receive_message', recibeData)
         return () => {
-            socket_jarvis.off('receive_message', recibeData);
+            socket.off('receive_message', recibeData);
             key = false;
         }
-    }, []);
+    }, [data]);
 
 
-
-    /*  ///  EXAPLE FOR POST DATA
-    export const setMessageForChat = (body) => {
-    return new Promise((resolve, reject) => {
-        console.log(body)
-        axiosInstance.post(`${IP}/chat`, body)
-            .then(response => resolve(response))
-            .catch(error => reject(error));
-    });
-};
-     */
-
-
-
-    console.log('data', data);
-    console.log('error', error);
-
-
-    const parseEmojis = useCallback((text: string) => {
-        return twemoji.parse(text, {
-            folder: 'svg',
-            ext: '.svg',
-            className: 'twemoji',
-            base: 'https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/'
-        });
-    }, []);
 
 
 
@@ -125,7 +108,6 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
             const timeDiff = prevMsg ?
                 (new Date(msg.date).getTime() - new Date(prevMsg.date).getTime()) / (1000 * 60) :
                 null;
-
             // Agrupar si mismo usuario y tiempo menor a 5 minutos
             if (msg.submittedByUser.userId === currentUser &&
                 timeDiff !== null && timeDiff < 5) {
@@ -139,17 +121,61 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
             }
         }
 
-        // Añadir el último grupo
         if (currentGroup.length > 0) {
             grouped.push([...currentGroup]);
         }
-
         return grouped;
     }, []);
 
 
 
+
+    const geLastMsm = useCallback(() => {
+        alert(pageRef.current)
+        fetchData({
+            url: `/chat?page=${pageRef.current}&limit=${10 * pageRef.current}`,
+            method: 'get',
+            callback: (dataResponse: any) => {
+                setChangeData({ result: [...data.result, ...dataResponse.data.result,] });
+                pageRef.current = pageRef.current + 1;
+            },
+            autoGetData: false
+        });
+
+    }, [data, pageRef.current]);
+
+
+
+
+    const sendMsm = useCallback(() => {
+        if (message.trim() !== '') {
+            fetchData({
+                url: '/chat',
+                method: 'post',
+                callback: () => {
+                    setMessage('');
+                    setShowEmojiPicker(false);
+                },
+                body: {
+                    message: message
+                },
+                autoGetData: false
+            });
+        }
+    }, [data, message]);
+
+
+
+    const onHanddlerSubmit = (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        sendMsm();
+    };
+
+
     if (!userContext) return <div>Loading...</div>;
+
+
+    console.log(message);
 
 
     return (
@@ -171,27 +197,20 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
             </header>
 
             <div className='w-full h-[calc(100%_-_180px)] bg-[rgb(245_245_245)]'>
-                <div className='w-full h-full p-2'
+                <div className='w-full h-full flex flex-col-reverse p-2'
                     style={{
                         overflowY: 'scroll',
                         overflowX: 'hidden',
                         WebkitOverflowScrolling: 'touch'
                     }}
                 >
-                    <div className='w-full flex items-center justify-center p-[.5rem]'>
-                        <button>
-                            <div>
-                                <span className='text-center text-[0.7rem] text-[rgb(99_97_97)]'>Cargar mas mensajes</span>
-                            </div>
-                        </button>
 
-                    </div>
                     <div className='w-full flex flex-col-reverse gap-[.4rem]'>
                         {
                             data?.result && groupConsecutiveMessages(data?.result).map((group, index) => (
                                 <div className='w-full flex flex-col gap-[.2rem]' key={index}>
                                     {
-                                        group.map((item: Tmsm, indexMsm: number) => (
+                                        group.toReversed().map((item: Tmsm, indexMsm: number) => (
                                             <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} />
                                         ))
                                     }
@@ -199,24 +218,55 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
                             ))
                         }
                     </div>
+                    <div className='w-full flex items-center justify-center p-[.5rem]'>
+                        <button onClick={geLastMsm} type='button'>
+                            <div>
+                                <span className='text-center text-[0.7rem] text-[rgb(99_97_97)]'>Cargar mas mensajes</span>
+                            </div>
+                        </button>
+                    </div>
                 </div>
             </div>
 
 
             <div className=' relative w-full h-[100px] bg-[#cdcdcd] flex items-center justify-center gap-2 p-2'>
-                <form className='w-[80%] h-full ' action="">
+                <form className='w-[80%] h-full ' action="" onSubmit={onHanddlerSubmit}>
                     <textarea
                         value={message}
-                        onChange={(e) => setMessage(e.target.value)}
                         className='w-full h-full resize-none bg-white rounded-[10px] p-[.5rem] text-black focus:outline-none active:outline-none'
                         placeholder='Escribe un mensaje...'
                         ref={textareaRef}
+                        onClick={() => {
+                            setShowEmojiPicker(false);
+                        }}
+                        onChange={(e) => {
+                            setMessage(e.target.value);
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+
+
+                                e.preventDefault();
+                                if (e.shiftKey) {
+                                    setMessage((message: string): any => {
+                                        return message + '\n'
+                                    });
+                                }
+                                // Evita que se añada un salto de línea
+                                if (message !== '') sendMsm();
+                                // Aquí puedes agregar la lógica para enviar el formulario, si es necesario.
+                                // Por ejemplo, si tienes una función para enviar el mensaje:
+                                // handleSendMessage();
+                            }
+                        }}
                     />
                 </form>
 
                 <div className='w-[20%] h-full flex flex-col flex-wrap justify-start gap-[.2rem]'>
 
-                    <button className='w-[48%] h-[48%] bg-[rgb(78_217_40)] flex items-center justify-center rounded-[10px]'>
+                    <button className='w-[48%] h-[48%] bg-[rgb(78_217_40)] flex items-center justify-center rounded-[10px]'
+                        onClick={sendMsm}
+                    >
                         <div style={{
                             filter: 'invert(1)'
                         }}>
@@ -268,7 +318,7 @@ export default function ChatGeneral365({ addAlert }: T_Props) {
 
 
 
-                    <button className='w-[48%] h-[48%] bg-[rgb(147_147_147)] flex items-center justify-center  rounded-[10px]'
+                    <button className='w-[48%] h-[48%] bg-[rgb(147_147_147)] flex items-center justify-center rounded-[10px]'
 
                     >
                         <div style={{

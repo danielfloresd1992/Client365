@@ -5,6 +5,7 @@ import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 
 
 import { FetchOptions, FranchiseT, EstablishmentT, MenuT, NoveltyT, Dish, FailedMonitoringT, Chat } from '@/types/recourseData';
+import axios from 'axios';
 
 
 type FetchState = {
@@ -15,6 +16,17 @@ type FetchState = {
 };
 
 
+
+type TFetchData = {
+    url: string | undefined | null,
+    method: string | undefined | null,
+    autoGetData: boolean,
+    callback: any,
+    body?: any
+}
+
+
+
 type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish | Chat;
 
 
@@ -23,7 +35,7 @@ type ApiEndpoint = FranchiseT | EstablishmentT | MenuT | NoveltyT | Dish | Chat;
 
 
 
-export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: (url: string | null, method: string | null) => void, resetDataFetch: any, setChangeData: any } {
+export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: boolean | undefined): FetchState & { fetchData: any, resetDataFetch: any, setChangeData: any } {
 
     const [state, setState] = useState<FetchState>({
         data: null,
@@ -35,34 +47,37 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
 
 
     useEffect(() => {
-        if (!state.data && endpoint.method === 'get' && initFetch) fetchData(null, null);
+        if (!state.data && endpoint.method === 'get' && initFetch) fetchData({ url: null, method: null, autoGetData: true, callback: null });
     }, []);
 
 
 
 
-    const fetchData = async (url: string | undefined | null, method: string | undefined | null): Promise<void> => {
+    const fetchData = useCallback(async ({ url, method, autoGetData = true, callback, body }: TFetchData): Promise<void> => {
         try {
-            let response;
+            const objectRequest: any = { method: method ?? endpoint.method, url: url ?? endpoint.resource }
+            if (body) objectRequest.data = body;
+            let response = await axiosInstance(objectRequest);
 
-            if (method ?? endpoint.method === 'post') response = await axiosInstance.post(url ?? endpoint.resource, endpoint?.body);
-            else if (method ?? endpoint.method === 'delete') response = await axiosInstance.delete(url ?? endpoint.resource);
-            else if (method ?? endpoint.method === 'put') response = await axiosInstance.delete(url ?? endpoint.resource, endpoint?.body);
-            else response = await axiosInstance.get(url ?? endpoint.resource);
-            setState({ data: response.data, loading: false, error: null, ok: true });
+            if (typeof callback === 'function') {
+                callback(response);
+            }
+            else {
+                if (autoGetData) setState({ data: response.data, loading: false, error: null, ok: true });
+            }
         }
         catch (err) {
             console.log(err);
             setState({ data: null, loading: false, error: err, ok: false });
         }
-    };
+    }, [state, endpoint]);
 
 
 
 
-    const setChangeData = (data: unknown) => {
+    const setChangeData = useCallback((data: any) => {
         setState({ ...state, data: data });
-    };
+    }, [state]);
 
 
 
