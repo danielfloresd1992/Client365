@@ -61,7 +61,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
 
-    const addAlert = (alert: T_Alert) => {
+    const addAlert = (alert: T_Alert): void => {
         setAlertState(prev => [...prev, { ...alert, id: uuidv4() }]);
     };
 
@@ -69,10 +69,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
     const handdlerOnMouseEnter = () => {
-        if (refElement.current) {
-            refElement.current.style.transform = 'translateX(0%)';
-            refElement.current.style.zIndex = '101';
-        }
+        openAside();
     };
 
 
@@ -80,16 +77,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
     const handdlerOnMouseLeave = (): void | null => {
         if (open) return null;
-        if (refElement.current) {
-            if (position === 'r') {
-                refElement.current.style.transform = 'translateX(100%)';
-            }
-            else {
-                refElement.current.style.transform = 'translateX(-100%)';
-            }
-            refElement.current.style.zIndex = '100';
-        }
-        setAlertState([]);
+        closeAside();
+        if (alertState.length > 0) setAlertState([]);
     };
 
 
@@ -117,6 +106,28 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
             null
     };
 
+
+
+    const openAside = (): void => {
+        if (refElement.current) {
+            refElement.current.style.transform = 'translateX(0%)';
+            refElement.current.style.zIndex = '101';
+        }
+    };
+
+
+
+    const closeAside = (): void => {
+        if (refElement.current) {
+            if (position === 'r') {
+                refElement.current.style.transform = 'translateX(100%)';
+            }
+            else {
+                refElement.current.style.transform = 'translateX(-100%)';
+            }
+            refElement.current.style.zIndex = '100';
+        }
+    };
 
 
 
@@ -196,7 +207,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
                 <div className='w-full h-full flex justify-center items-center'
                     ref={elementContentChildren}
                 >
-                    {typeof children === 'function' ? children(addAlert) : children}
+                    {typeof children === 'function' ? children({ addAlert, openAside }) : children}
                 </div>
             </div>
         </aside >

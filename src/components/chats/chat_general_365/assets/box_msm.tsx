@@ -13,7 +13,8 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
     const buttonOptionsRef = useRef<HTMLDivElement>(null);
     const MY_MESSAGES: boolean = item?.submittedByUser?.userId === user?._id;
     const FIRST = indexMsm === 0;
-    const message_from_others_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:left-[-10px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-white"
+    const message_from_others_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:left-[-10px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-white";
+    const my_message_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:right-[-5px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-[#98fb98]"
 
     const handleMouseEnter = () => {
         if (buttonOptionsRef.current) {
@@ -39,7 +40,7 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
                 justifyContent: MY_MESSAGES ? 'flex-end' : 'flex-start',
             }}
         >
-            <div className={`shadow-[1px_1px_6px_0px_#cfcece] bg-[#ffffff] p-[0rem_.5rem] rounded-[5px] w-[80%] relative ${!MY_MESSAGES && FIRST ? message_from_others_cacho_styles : ''}`}
+            <div className={`shadow-[1px_1px_6px_0px_#cfcece] bg-[#ffffff] p-[0rem_.5rem] rounded-[5px] w-[80%] relative ${!MY_MESSAGES && FIRST ? message_from_others_cacho_styles : (MY_MESSAGES && FIRST ? my_message_cacho_styles : null)}`}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
                 style={{

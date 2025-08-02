@@ -12,6 +12,7 @@ import Aside_Eyelash from '@/components/aside/aside_establishment/Aside_Eyelash'
 import ChatGeneral365 from '@/components/chats/chat_general_365/ChatGeneral365';
 
 
+
 export default function Lobby() {
     return (
         <div
@@ -46,9 +47,9 @@ export default function Lobby() {
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
-                    {(addAlert) => (
+                    {(methods) => (
                         <>
-                            <ChatGeneral365  {...{ addAlert }} />
+                            <ChatGeneral365  {...methods} />
                         </>
                     )}
                 </Aside_Eyelash>
