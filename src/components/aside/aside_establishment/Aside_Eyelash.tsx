@@ -51,6 +51,65 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
 
+
+
+    useEffect(() => {
+
+        if (!refElement.current) return;
+
+        refElement.current.addEventListener('mouseenter', (e) => {
+            e.preventDefault();
+            openAside();
+        });
+
+
+        refElement.current.addEventListener('mouseleave', (e) => {
+            e.preventDefault();
+            //e.stopPropagation();
+            if (open) return;
+            closeAside();
+        }, true);
+
+
+
+        refElement.current.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+        }, true);
+
+
+        refElement.current.addEventListener('dragenter', (e) => {
+            e.preventDefault();
+
+            openAside();
+        }, true);
+
+        refElement.current.addEventListener('dragover', (e) => {
+            e.preventDefault();
+        }, true);
+
+
+        refElement.current.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+        }, true);
+
+
+        refElement.current.addEventListener('drop', (e) => {
+            e.preventDefault();
+
+        }, true);
+
+
+        return () => {
+
+        }
+    }, [open, alertState.length]);
+
+
+
+
+
     useEffect(() => {
         if (elementContentChildren.current) {
             if (scrollY) elementContentChildren.current.classList.add('scrolltheme1');
@@ -76,9 +135,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
     const handdlerOnMouseLeave = (): void | null => {
-        if (open) return null;
-        closeAside();
-        if (alertState.length > 0) setAlertState([]);
+
     };
 
 
@@ -176,8 +233,6 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
             className='fixed w-[400px] h-full top-0 left-[1200] z-[100] shadow-[1px_10px_20px_7px_#00000094] bg-white flex justify-center items-center transition duration-300 ease-in-out hover:scale-105'
             style={styleInit}
             ref={refElement}
-            onMouseEnter={handdlerOnMouseEnter}
-            onMouseLeave={handdlerOnMouseLeave}
         >
             <div className='absolute w-[120%] h-[80%] bg-[#db6b36] rounded-[30px] shadow-[1px_10px_20px_7px_#00000094] p-[.4rem]'
                 style={{
