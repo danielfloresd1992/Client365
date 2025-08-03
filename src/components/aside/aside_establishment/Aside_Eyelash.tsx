@@ -21,13 +21,14 @@ type Prop = {
     eyelash: 0 | 1 | 2 | 3
     open: true | undefined
     children: ReactNode | ((addAlert: any) => ReactNode);
-    scrollY: Boolean
+    scrollY: Boolean,
+    isDrag: boolean,
 }
 
 
 
 
-export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, scrollY, children }: Prop) {
+export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, scrollY, children, isDrag = false }: Prop) {
 
 
     const [alertState, setAlertState] = useState<T_Alert[]>([]);
@@ -58,6 +59,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         if (!refElement.current) return;
 
 
+
+        //event hover
         const handdlerMouseenter = (e: MouseEvent) => {
             e.preventDefault();
             if (!open) openAside();
@@ -73,37 +76,63 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         refElement.current.addEventListener('mouseleave', handdlerMouseleave);
 
 
-        refElement.current.addEventListener('mousedown', (e) => {
-
-        });
 
 
+        //event drag and drop for file
+        const handdlerMouseDown = (e: MouseEvent) => {
 
-        refElement.current.addEventListener('dragenter', (e) => {
+        };
+
+        const handdlerDragEnter = (e: MouseEvent) => {
             e.preventDefault();
             openAside();
-        }, true);
+        };
 
-        refElement.current.addEventListener('dragover', (e) => {
+        const handdlerDragover = (e: MouseEvent) => {
             e.preventDefault();
-        }, true);
+        };
 
-
-        refElement.current.addEventListener('dragleave', (e) => {
+        const handdlerLeave = (e: MouseEvent) => {
             e.preventDefault();
-        }, true);
+            e.stopPropagation();
+            console.log(refElement.current && !refElement.current.contains(e.target as Node))
 
+            if (refElement.current && !refElement.current.contains(e.target as Node)) {
+                closeAside();
+            }
+        };
 
-        refElement.current.addEventListener('drop', (e) => {
+        const handdlerDrop = (e: MouseEvent) => {
             e.preventDefault();
+        };
 
-        }, true);
+        isDrag && refElement.current.addEventListener('mousedown', handdlerMouseDown);
+
+        isDrag && refElement.current.addEventListener('dragenter', handdlerDragEnter);
+
+        isDrag && refElement.current.addEventListener('dragover', handdlerDragover);
+
+        isDrag && document.addEventListener('dragleave', handdlerLeave);
+
+        isDrag && refElement.current.addEventListener('drop', handdlerDrop);
+
 
 
         return () => {
+            //remove event open aside for hover
             refElement.current?.removeEventListener('mouseenter', handdlerMouseenter);
             refElement.current?.removeEventListener('mouseleave', handdlerMouseleave);
 
+            //remove event open aside for drag and drop
+            isDrag && refElement.current?.removeEventListener('mousedown', handdlerMouseDown);
+
+            isDrag && refElement.current?.removeEventListener('dragenter', handdlerDragEnter);
+
+            isDrag && refElement.current?.removeEventListener('dragover', handdlerDragover);
+
+            isDrag && document?.removeEventListener('dragleave', handdlerLeave);
+
+            isDrag && refElement.current?.removeEventListener('drop', handdlerDrop);
         }
     }, [open, alertState.length]);
 

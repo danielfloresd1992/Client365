@@ -42,7 +42,7 @@ export default function Lobby() {
                     <h2>coming soong...</h2>
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
+                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2} open={true}>
                     <h2>coming soong...</h2>
                 </Aside_Eyelash>
 
