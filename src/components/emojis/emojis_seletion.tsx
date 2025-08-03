@@ -11,12 +11,19 @@ type Tprops = {
 const RECENT_EMOJIS_KEY: string = 'recentEmojis';
 const MAX_RECENT_EMOJIS: number = 10;
 
+
+
+
 export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }: Tprops) {
+
     const [recentEmojis, setRecentEmojis] = useState<string[]>([]);
     const [lastUsedEmoji, setLastUsedEmoji] = useState<string | null>(null);
     const [showEmojiPicker, setShowEmojiPicker] = useState<boolean>(false);
     const containEmojisRef = useRef<HTMLDivElement>(null);
     const cursorPositionRef = useRef<{ start: number, end: number } | null>(null);
+
+
+
 
     // Guardar posición del cursor antes de abrir el emoji picker
     const saveCursorPosition = () => {
@@ -26,6 +33,8 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
             end: elementTexttHtml.selectionEnd || 0
         };
     };
+
+
 
     // Restaurar posición del cursor
     const restoreCursorPosition = () => {
@@ -37,6 +46,8 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
             elementTexttHtml.focus();
         }, 0);
     };
+
+
 
     // Cargar emojis recientes al inicio
     useEffect(() => {
@@ -54,12 +65,19 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
         }
     }, []);
 
+
+
+
+
     // Guardar emojis recientes en localStorage
     useEffect(() => {
         if (recentEmojis.length > 0) {
             localStorage.setItem(RECENT_EMOJIS_KEY, JSON.stringify(recentEmojis));
         }
     }, [recentEmojis]);
+
+
+
 
     // Manejar clics fuera del contenedor y en el botón de emojis
     useEffect(() => {
@@ -70,16 +88,15 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
             }
         };
 
-        document.addEventListener('mousedown', handleOutsideClick);
+        document.addEventListener('mousedown', handleOutsideClick, false);
 
-        const handlerClick = () => {
+        const handlerClick = (e: MouseEvent) => {
             saveCursorPosition(); // Guardar posición antes de mostrar
             setShowEmojiPicker(prev => !prev);
         };
 
-        if (buttonRef) {
-            buttonRef.addEventListener('click', handlerClick);
-        }
+        if (buttonRef) buttonRef.addEventListener('click', handlerClick);
+
 
         return () => {
             if (buttonRef) {
@@ -89,12 +106,17 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
         };
     }, [buttonRef, showEmojiPicker]);
 
+
+
     // Restaurar posición cuando se muestra el picker
     useEffect(() => {
         if (showEmojiPicker) {
             restoreCursorPosition();
         }
     }, [showEmojiPicker]);
+
+
+
 
     // Actualizar lista de emojis recientes
     const updateRecentEmojis = (emoji: string) => {
@@ -105,6 +127,9 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
         });
         setLastUsedEmoji(emoji);
     };
+
+
+
 
     // Insertar emoji en la posición correcta
     const insertEmoji = (emoji: string) => {
@@ -141,7 +166,11 @@ export default function EmojiContainer({ getEmoji, buttonRef, elementTexttHtml }
             elementTexttHtml.selectionEnd = newCursorPos;
         }, 0);
     };
-    
+
+
+
+
+
 
     return showEmojiPicker ? (
         <div

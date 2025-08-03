@@ -57,31 +57,30 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
         if (!refElement.current) return;
 
-        refElement.current.addEventListener('mouseenter', (e) => {
+
+        const handdlerMouseenter = (e: MouseEvent) => {
             e.preventDefault();
-            openAside();
-        });
+            if (!open) openAside();
+        };
 
-
-        refElement.current.addEventListener('mouseleave', (e) => {
+        const handdlerMouseleave = (e: MouseEvent) => {
             e.preventDefault();
-            //e.stopPropagation();
-            if (open) return;
-            closeAside();
-        }, true);
+            e.stopPropagation();
+            if (!open) closeAside();
+        };
 
+        refElement.current.addEventListener('mouseenter', handdlerMouseenter);
+        refElement.current.addEventListener('mouseleave', handdlerMouseleave);
 
 
         refElement.current.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
 
-        }, true);
+        });
+
 
 
         refElement.current.addEventListener('dragenter', (e) => {
             e.preventDefault();
-
             openAside();
         }, true);
 
@@ -102,6 +101,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
         return () => {
+            refElement.current?.removeEventListener('mouseenter', handdlerMouseenter);
+            refElement.current?.removeEventListener('mouseleave', handdlerMouseleave);
 
         }
     }, [open, alertState.length]);
@@ -127,19 +128,6 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
 
-    const handdlerOnMouseEnter = () => {
-        openAside();
-    };
-
-
-
-
-    const handdlerOnMouseLeave = (): void | null => {
-
-    };
-
-
-
 
     const seletColor = (colorSelect: number): { color: string, position: `${number}%` } => {
         if (colorSelect === 0) return { color: '#db6b36', position: '0%' }
@@ -148,6 +136,8 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         if (colorSelect === 3) return { color: '#c50a0aff', position: '75%' }
         return { color: '#6e6e6eff', position: '0%' }
     };
+
+
 
 
 

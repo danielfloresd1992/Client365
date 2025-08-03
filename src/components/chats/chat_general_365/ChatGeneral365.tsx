@@ -70,6 +70,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
 
+
     useEffect(() => {
         let key = true;
         const recibeData = (message: Tmsm) => {
@@ -129,6 +130,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
 
+
     const geLastMsm = useCallback(() => {
         fetchData({
             url: `/chat?page=${pageRef.current}&limit=${10}`,
@@ -141,6 +143,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
         });
 
     }, [data, pageRef.current]);
+
 
 
 
@@ -162,6 +165,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
             });
         }
     }, [data, message]);
+
 
 
 
@@ -195,6 +199,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 </div>
             </header>
 
+
             <div className='w-full h-[calc(100%_-_180px)] bg-[rgb(245_245_245)]'>
                 <div className='w-full h-full flex flex-col-reverse p-2'
                     style={{
@@ -203,7 +208,6 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                         WebkitOverflowScrolling: 'touch'
                     }}
                 >
-
                     <div className='w-full flex flex-col-reverse gap-[.4rem]'>
                         {
                             data?.result && groupConsecutiveMessages(data?.result).map((group, index) => (
@@ -228,22 +232,22 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
             </div>
 
 
-            <div className='relative w-full bottom-[0]'>
-                <EmojiContainer
-                    getEmoji={(emoji) => {
-                        setMessage(emoji)
-                    }}
-                    buttonRef={buttonOpenEmojiRef.current}
-                    elementTexttHtml={textareaRef.current}
-                />
-            </div>
-
-
-
-
 
             <div className=' relative w-full h-[100px] bg-[#cdcdcd] flex items-center justify-center gap-2 p-2'>
+
                 <form className='w-[80%] h-full ' action="" onSubmit={onHanddlerSubmit}>
+
+
+                    <div className='relative w-full h-auto bottom-[0]'>
+                        <EmojiContainer
+                            getEmoji={(emoji) => {
+                                setMessage(emoji)
+                            }}
+                            buttonRef={buttonOpenEmojiRef.current}
+                            elementTexttHtml={textareaRef.current}
+                        />
+                    </div>
+
                     <textarea
                         value={message}
                         className='w-full h-full resize-none bg-white rounded-[10px] p-[.5rem] text-black focus:outline-none active:outline-none'
@@ -300,9 +304,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
 
-                    <button className='w-[48%] h-[48%] bg-[rgb(147_147_147)] flex items-center justify-center rounded-[10px]'
-
-                    >
+                    <button className='w-[48%] h-[48%] bg-[rgb(147_147_147)] flex items-center justify-center rounded-[10px]'>
                         <div style={{
                             filter: 'invert(1)'
                         }}>
