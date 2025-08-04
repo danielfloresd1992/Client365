@@ -10,6 +10,7 @@ import AlertLiveJarvis from '@/components/alertSpeackComponent';
 
 import Aside_Eyelash from '@/components/aside/aside_establishment/Aside_Eyelash';
 import ChatGeneral365 from '@/components/chats/chat_general_365/ChatGeneral365';
+import FilterNoveltyForLobby from '@/components/filter_data_for_lobby/FilterComponent.jsx';
 
 
 
@@ -39,18 +40,20 @@ export default function Lobby() {
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
-                    <h2>coming soong...</h2>
+                    {
+                        (methods) => (
+                            <FilterNoveltyForLobby {...methods} />
+                        )
+                    }
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2} open={true}>
+                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
                     <h2>coming soong...</h2>
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
                     {(methods) => (
-                        <>
-                            <ChatGeneral365  {...methods} />
-                        </>
+                        <ChatGeneral365  {...methods} />
                     )}
                 </Aside_Eyelash>
 

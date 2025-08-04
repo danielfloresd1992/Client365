@@ -4,7 +4,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const clients = createSlice({
     name: 'globalClient',
-    initialState:[],
+    initialState: [],
     reducers: {
 
         setClient: (state, action) => {
@@ -12,10 +12,9 @@ const clients = createSlice({
         },
 
         addClient: (state, action) => {
-            console.log(action.payload)
             return [...state, action.payload];
         },
-        
+
     }
 });
 

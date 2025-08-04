@@ -48,7 +48,10 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         styleInit.transform = 'translateX(-100%)';
     }
 
-    if (open) styleInit.transform = 'translateX(0)';
+    if (open) {
+        styleInit.transform = 'translateX(0)';
+        styleInit.zIndex = 101
+    }
 
 
 
