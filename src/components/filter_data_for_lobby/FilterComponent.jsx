@@ -2,6 +2,8 @@
 import { useSelector } from 'react-redux';
 import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
+import { arrGroup } from '@/libs/data/group';
+
 
 
 export default function FilterNoveltyForLobby({ }) {
@@ -11,32 +13,44 @@ export default function FilterNoveltyForLobby({ }) {
 
 
 
-
-
+    if (!clientsStore || clientsStore.length === 0) {
+        return <div className='w-full h-full flex items-center justify-center'>No hay datos disponibles</div>;
+    }
 
 
 
     return (
         <div className='w-full h-full'>
-            <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem]'>
+
+            <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
                 <div className='h-full flex justify-start items-center flex- gap-[.5rem]'>
-                    <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} />
+                    <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} alt='icoFILTRO' />
                     <h2 className='text-black'>filtro de alertas</h2>
                 </div>
 
+                <div className=''>
+                    <p>{clientsStore?.length ?? 0}</p>
+                </div>
             </header>
 
-            <div className='w-full h-[calc(100%_-_100px)]'>
-                <div className='w-full h-full overflow-y-scroll flex flex-col'>
+            <div className='w-full h-[calc(100%_-_380px)]'>
+                <div className='w-full h-full overflow-y-scroll flex flex-col gap-[.5rem]'>
                     {Object.entries(groupByFranchiseComprehensive(clientsStore)).map(([franchiseName, franchiseRestaurants]) => (
                         <div key={franchiseName} className="p-[.5rem]">
-                            <h3 className='text-center'>{franchiseName}</h3>
-                            <div className="restaurant-grid">
+                            <div className='w-full flex items-center justify-between mb-[.5rem]'>
+                                <h3 className='font-medium text-sm text-justify'>{franchiseName}</h3>
+                                <div className='flex items-center gap-[.5rem]'>
+                                    <label className='text-sm text-justify' for={`input-${franchiseName}`} >Todos</label>
+                                    <input className='cursor-pointer' type='checkbox' name={franchiseName} id={`input-${franchiseName}`} />
+                                </div>
+
+                            </div>
+
+                            <div className="grid gap-[.5rem] grid-cols-1">
                                 {franchiseRestaurants.map(restaurant => (
-                                    <div key={restaurant._id} className="restaurant-card">
-                                        <h3>{restaurant.name}</h3>
-                                       
-                                    
+                                    <div key={restaurant._id} className='flex items-center justify-between'>
+                                        <label className='text-[0.8rem] text-[#595959] font-normal cursor-pointer' for={`input-${restaurant.name}`} >{restaurant.name}</label>
+                                        <input className='cursor-pointer' type='checkbox' name={restaurant.name} id={`input-${restaurant.name}`} />
                                     </div>
                                 ))}
                             </div>
@@ -44,6 +58,30 @@ export default function FilterNoveltyForLobby({ }) {
                     ))}
                 </div>
 
+            </div>
+
+            <div className='w-full h-[300px] bg-[rgb(237_237_237)] p-[1rem] flex gap-[1rem] flex-col'>
+                <div className='w-full'>
+                    <p className='text-black'>Lista de grupo de Whatsapp</p>
+                    <p className='text-[0.7rem]'>Selecione un grupo para el envio de alertas</p>
+                    <hr />
+                </div>
+                <div className='w-full flex flex-col gap-[.4rem]'>
+                    {
+                        arrGroup.map((group, index) => (
+                            <div key={index} className='flex items-center justify-between mb-[.5rem]'>
+                                <div className='flex justify-center items-center flex-row gap-[.5rem]'>
+                                    <div className='w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center'>
+                                        <Image src={group.ico} width={30} height={30} alt='ico-group-whatsapp' />
+                                    </div>
+                                    <label className='text-[0.8rem] text-[#595959] font-normal' for={`input-${group.name}`}>{group.name}</label>
+                                </div>
+
+                                <input className='cursor-pointer' type='checkbox' name={group.name} id={`input-${group.name}`} />
+                            </div>
+                        ))
+                    }
+                </div>
             </div>
         </div>
     )
