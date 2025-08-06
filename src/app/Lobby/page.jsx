@@ -11,6 +11,7 @@ import AlertLiveJarvis from '@/components/alertSpeackComponent';
 import Aside_Eyelash from '@/components/aside/aside_establishment/Aside_Eyelash';
 import ChatGeneral365 from '@/components/chats/chat_general_365/ChatGeneral365';
 import FilterNoveltyForLobby from '@/components/filter_data_for_lobby/FilterComponent.jsx';
+import AlertInputLive from '@/components/alert_input/AlertIput.jsx';
 
 
 
@@ -35,8 +36,12 @@ export default function Lobby() {
                 <PublicationsBox />
                 <AsideInfoUser />
 
-                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
-                    <h2>coming soong...</h2>
+
+                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0} >
+                    {(methods) => (
+                        <AlertInputLive {...methods} />
+                    )}
+
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
