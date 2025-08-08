@@ -1,7 +1,18 @@
 'use client';
-import { createContext, useState } from 'react';
-import { SessionState, SessionContextProps, SessionProviderProps, ErrorAuth } from '@/types/submitAuth';
 
+
+
+
+
+import { useEffect, useCallback, useMemo, useContext, createContext, useState } from 'react';
+
+
+//types 
+import { DataToCreateUserBasic, SessionState, SessionProviderProps, SessionContextProps, ReturFunc, ErrorAuth } from '@/types/submitAuth';
+
+
+// fetchins
+import { requestLogin, closeSession } from '@/libs/ajaxClient/authFetch';
 
 
 
@@ -14,16 +25,16 @@ export const SessionProvider = ({ children }: SessionProviderProps) => {
 
     const [dataSessionState, setState] = useState<SessionState>({
         stateSession: 'loading',
-        dataSession: null
+        dataSession: null,
+        error: null
     });
+   
 
-
-    const [errorState, setErrorState] = useState<ErrorAuth | null>(null);
 
 
 
     return (
-        <myUserContext.Provider value={{ dataSessionState, setState, errorState, setErrorState }} >
+        <myUserContext.Provider value={{ dataSessionState, setState }} >
             {children}
         </myUserContext.Provider>
     );

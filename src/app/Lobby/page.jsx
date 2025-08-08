@@ -41,7 +41,6 @@ export default function Lobby() {
                     {(methods) => (
                         <AlertInputLive {...methods} />
                     )}
-
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>

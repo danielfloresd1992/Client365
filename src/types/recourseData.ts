@@ -13,6 +13,7 @@ export type FranchiseT =
     | { resource: `/franchise/${string}`, method: 'delete', body: any };
 
 export type EstablishmentT =
+    | { resource: `/localforCort`, method: 'get' }
     | { resource: '/localLigth', method: 'get' }
     | { resource: '/establishment', method: 'get' }
     | { resource: `/establishment?AllEstablishment=${string}`, method: 'get' }

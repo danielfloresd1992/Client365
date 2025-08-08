@@ -232,12 +232,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    borderRadius: '100%',
                                     height: '80x',
                                     width: '80px',
-                                    overflow: 'hidden'
                                 }}>
-                                    <Img idLocal={noveltyState.local.idLocal} />
+                                    <Img idLocal={noveltyState.local.idLocal}  />
                                 </div>
 
                                 <div className='divContentNovelties-textContain'>

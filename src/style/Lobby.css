@@ -1109,7 +1109,6 @@ footer a {
     font-family: Roboto;
     font-size: 1rem;
     line-height: normal;
-    font-style: ;
 }
 
 
@@ -1862,5 +1861,22 @@ footer a {
 
     50% {
         transform: translateX(100%);
+    }
+}
+
+
+
+.rotateAlert {
+    animation: rotateAlert 1s ease;
+}
+
+
+@keyframes rotateAlert {
+    from {
+        transform: rotate3d(1, 0, 0, 90deg);
+    }
+
+    to {
+        transform: rotate3d(1, 0, 0, 0deg);
     }
 }

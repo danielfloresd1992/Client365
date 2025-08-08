@@ -69,15 +69,17 @@ export default function FilterNoveltyForLobby({ }) {
                 <div className='w-full flex flex-col gap-[.4rem]'>
                     {
                         arrGroup.map((group, index) => (
-                            <div key={index} className='flex items-center justify-between mb-[.5rem]'>
-                                <div className='flex justify-center items-center flex-row gap-[.5rem]'>
-                                    <div className='w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center'>
-                                        <Image src={group.ico} width={30} height={30} alt='ico-group-whatsapp' />
+                            <div className='w-full' key={group.name}>
+                                <div key={index} className='flex items-center justify-between mb-[.5rem]'>
+                                    <div className='flex justify-center items-center flex-row gap-[.5rem]'>
+                                        <div className='w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center'>
+                                            <Image src={group.ico} width={30} height={30} alt='ico-group-whatsapp' />
+                                        </div>
+                                        <label className='text-[0.8rem] text-[#595959] font-normal' for={`input-${group.name}`}>{group.name}</label>
                                     </div>
-                                    <label className='text-[0.8rem] text-[#595959] font-normal' for={`input-${group.name}`}>{group.name}</label>
-                                </div>
 
-                                <input className='cursor-pointer' type='checkbox' name={group.name} id={`input-${group.name}`} />
+                                    <input className='cursor-pointer' type='checkbox' name={group.name} id={`input-${group.name}`} />
+                                </div>
                             </div>
                         ))
                     }

@@ -17,7 +17,7 @@ import { requestLogin, closeSession } from '@/libs/ajaxClient/authFetch';
 export default function useAuthOnServer(): ReturFunc {
 
 
-    const { dataSessionState, setState, errorState, setErrorState, }: any = useContext(myUserContext);
+    const { dataSessionState, setState }: any = useContext(myUserContext);
     const router = useRouter();
     const pathName: string = usePathname();
 
@@ -25,29 +25,7 @@ export default function useAuthOnServer(): ReturFunc {
 
     useEffect(() => {
 
-        if (dataSessionState.stateSession === 'loading' && typeof window !== 'undefined') {
-            checkIfSessionExists((error, dataSession) => {
-                const setDataResult: SessionState = {
-                    stateSession: 'loading',
-                    dataSession: null
-                }
-                if (error?.code === 'ERR_NETWORk') setErrorState({ status: 503, menssage: 'Sin conexión al servidor', error: 'Bad Gateway', error_connection: true })
 
-                if (error?.response) {
-                    setDataResult.stateSession = 'unauthenticated';
-                    setDataResult.dataSession = null;
-                    setErrorState({ ...error.response.data, error_connection: false });
-                    setState(setDataResult);
-                    if (pathName !== '/') router.replace('/');
-                }
-                else {
-                    setDataResult.stateSession = 'authenticated';
-                    setDataResult.dataSession = dataSession;
-
-                }
-                setState(setDataResult);
-            });
-        }
     }, []);
 
 
@@ -56,11 +34,12 @@ export default function useAuthOnServer(): ReturFunc {
     const signIn = useCallback((data: DataToCreateUserBasic, callbackUrl: string | undefined): void => {
         requestLogin(data, (error, dataRes) => {
 
-            if (error?.response) return setErrorState(error?.response?.data);
+            //if (error?.response) return setErrorState(error?.response?.data);
 
             const setDataResult: SessionState = {
                 stateSession: 'loading',
-                dataSession: null
+                dataSession: null,
+                error: null
             };
 
             setDataResult.stateSession = 'authenticated';
@@ -79,7 +58,8 @@ export default function useAuthOnServer(): ReturFunc {
 
             const setDataResult: SessionState = {
                 stateSession: 'unauthenticated',
-                dataSession: null
+                dataSession: null,
+                error: null
             }
             setState(setDataResult);
             if (callbackUrl) router.push(callbackUrl);
@@ -93,6 +73,5 @@ export default function useAuthOnServer(): ReturFunc {
         signIn,
         logOut,
         dataSessionState,
-        errorState
-    }), [dataSessionState, errorState]);
+    }), [dataSessionState]);
 }

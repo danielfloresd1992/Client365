@@ -7,6 +7,8 @@ import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 
 
+
+
 export default function AlertInputLive() {
 
 
@@ -36,7 +38,7 @@ export default function AlertInputLive() {
             <div className='w-full h-[calc(100%_-_80px)] overflow-y-scroll'>
                 {
                     Object.entries(groupByFranchiseComprehensive(clients)).map(([franchiseName, franchiseRestaurants]) => (
-                        <div key={franchiseName} className="p-[.5rem]">
+                        <div key={franchiseName} className='p-[.5rem] flex flex-col gap-[1rem]'>
                             <div className='w-full flex items-center justify-between mb-[.5rem]'>
                                 <h3 className='font-medium text-sm text-justify'>{franchiseName}</h3>
                                 <div className='flex items-center gap-[.5rem]'>
@@ -49,23 +51,25 @@ export default function AlertInputLive() {
                                 {franchiseRestaurants.map(restaurant => (
                                     <div key={restaurant._id} className='w-full flex items-center justify-between'>
                                         <div className='flex justify-center items-center gap-[.5rem]'>
-                                            {
-                                                console.log(restaurant)
-                                            }
-                                            <div className='w-[20px] h-[20px] rounded-full overflow-hidden bg-[#dddddd]'>
-
+                                            <div className='w-[30px] h-[30px] overflow-hidden bg-[#dddddd] flex justify-center items-center'>
+                                                <img src={restaurant?.image ?? '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'} alt='ico-restaurastnr' />
                                             </div>
-                                            <label className='text-[0.8rem] text-[#595959] font-normal cursor-pointer' htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
+                                            <label className='text-[0.8rem] text-[rgb(51_48_48)] font-normal cursor-pointer' htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
                                         </div>
 
                                         <div className='flex flex-row gap-[.5rem]'>
-                                            <input className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
-                                            <input className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
+                                            <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
+                                            <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
                                         </div>
 
                                     </div>
                                 ))}
                             </div>
+                            <div className='w-full flex items-center gap-[.5rem] flex justify-between'>
+                                <p className='font-medium text-sm text-justify text-black'>Locales caidos:</p>
+                                <input className='w-[50px] p-[0_1rem_0_0] text-center' type='text' value={0} readOnly />
+                            </div>
+                            <hr style={{ color: '#000' }} />
                         </div>
                     ))
                 }

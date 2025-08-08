@@ -12,6 +12,7 @@ import { Inter } from 'next/font/google';
 import Head from 'next/head';
 import Header from '@/components/Header/Header';
 import LoandingPage from '@/components/loandingComponent/loandingPage';
+import ErrorServerAlert from '@/components/error/Error_Server'
 
 
 const AlertInputLive = dynamic(() => import('@/components/alert_input/AlertIput'));
@@ -38,27 +39,31 @@ export const metadata = {
 
 
 export default function RootLayout({ children, }: Readonly<{ children: React.ReactNode }>) {
+
+
+
+
     return (
         <html lang="en">
-            <Providers>
-                <Head>
-                    <meta name="google-site-verification" content="tnPQy_iWErCY9GT9NhJlLBKrQ16kuOo1SSIKyNKiWks" />
-                </Head>
+            <Head>
+                <meta name="google-site-verification" content="tnPQy_iWErCY9GT9NhJlLBKrQ16kuOo1SSIKyNKiWks" />
+            </Head>
+            <body className={`${inter.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
                 <SessionProvider>
-                    <body className={`${inter.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
+                    <Providers>
                         <LoandingPage title='loanding...'>
                             <Header />
                             {children}
                             <Modal />
-
+                            <Config_window />
+                            <FixedBottomBar />
+                               
                         </LoandingPage>
-                        <Config_window />
-                        <FixedBottomBar>
-                            {/*<AlertInputLive /> */}
-                        </FixedBottomBar>
-                    </body>
-                </SessionProvider>
-            </Providers>
+                    </Providers>
+                    <ErrorServerAlert />
+                </SessionProvider >
+            </body>
+
         </html>
     );
 }

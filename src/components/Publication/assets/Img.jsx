@@ -1,31 +1,25 @@
 'use client';
-import { useState, useEffect } from 'react';
-import useAxios from '@/hook/useAxios';
+import { useSelector } from 'react-redux';
 
-import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
+
 
 
 export default function Img({ idLocal }) {
 
-    const [imgLogo, setImgLogo] = useState(null);
-    const { requestAction } = useAxios();
 
-    useEffect(() => {
-        requestAction({ url: `/local/id=${idLocal}`, action: 'GET' })
-            .then(res => {
-                if (res.status === 200) {
-                    setImgLogo(arrayBufferToBase64(res?.data?.img?.data?.data, 'image/png'));
-                }
-            })
-            .catch(err => {
-                console.log(err);
-            });
-    }, []);
+
+    const client = useSelector(store => {
+        console.log(store);
+        return store.clients.filter(client => client._id === idLocal);
+    });
+
+
+    console.log(client);
 
     return (
         <img
-            className='divContentNovelties-img'
-            src={imgLogo}
+            className=''
+            src={client[0] && client[0].image ? client[0].image : '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'}
             onClick={() => {
                 // setImg( localImgLogoReg.current.src );
             }}

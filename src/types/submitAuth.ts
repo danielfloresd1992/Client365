@@ -88,14 +88,13 @@ export type HanddlerCreateUser = (error: Error | null, dataForCallback: DateToCr
 export type SessionState = {
     stateSession: 'loading' | 'authenticated' | 'unauthenticated';
     dataSession: any;
+    error: any
 }
 
 
 
 export type SessionContextProps = {
     dataSessionState: any;
-    errorState: ErrorAuth | null,
-    setErrorState: Dispatch<ErrorAuth | null>;
     setState: Dispatch<SetStateAction<SessionState>>;
 }
 
@@ -117,5 +116,4 @@ export type ReturFunc = {
     signIn: any,
     logOut: any,
     dataSessionState: any,
-    errorState: any
 }

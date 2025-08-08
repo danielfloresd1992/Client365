@@ -1,5 +1,3 @@
-
-
 import Footer from '../components/Footer/Footer.jsx';
 import Image from 'next/image.js';
 import BackAnimate from '@/components/componentAnimation/backAnimate/BackAnimate';

@@ -61,7 +61,7 @@ export async function requestLogin(data: DataToCreateUserBasic, callback: (error
 
 
 
-export async function checkIfSessionExists(callback: (error: any, dataResponse: any) => void) {
+export async function checkIfSessionExists(callback: ((error: any, dataResponse: any) => void)) {
     try {
         const response: AxiosResponse = await axiosInstance.get(`/auth/isAuth`);
         callback(null, response.data);

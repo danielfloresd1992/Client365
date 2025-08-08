@@ -65,7 +65,7 @@ export default function FormClient({ id = null, action }) {
 
 
     useEffect(() => {
-        if (id && listFranchiseState.length > 1) fetchData(`/local/id=${id}`)
+        if (id && listFranchiseState.length > 1) fetchData({ url: `/local/id=${id}`, autoGetData: true, method: 'get' })
         return () => {
             resetDataFetch();
         }
@@ -166,6 +166,26 @@ export default function FormClient({ id = null, action }) {
 
 
 
+
+    const handdlerChangeInputFile = e => {
+        console.log(e);
+        const file = e.target.files[0];
+        const formData = new FormData();
+        formData.append('img', file)
+        fetchData({ url: '/multimedia', method: 'post', autoGetData: false, callback: changeImageCallback, body: formData })
+    };
+
+
+
+    const changeImageCallback = useCallback((response) => {
+        setChangeData({
+            ...upDateClient,
+            image: response.data.url
+        });
+    }, [upDateClient])
+
+
+
     if (!upDateClient) {
         return <div>Cargando...</div>; // Se muestra mientras los datos se están cargando
     }
@@ -263,7 +283,7 @@ export default function FormClient({ id = null, action }) {
                 <InputBorderBlue
                     textLabel='Cantidad de gerentes en el local'
                     name='totalManager'
-                    value={upDateClient ? String(upDateClient.touchs.totalManager) : null}
+                    value={upDateClient ? String(upDateClient?.touchs?.totalManager) : null}
                     type='number'
                     eventChengue={text => {
                         setChangeData({
@@ -278,7 +298,7 @@ export default function FormClient({ id = null, action }) {
                 <InputBorderBlue
                     textLabel='Cantidad de asistentes en el local'
                     name='totalAttendee'
-                    value={upDateClient ? String(upDateClient.touchs.totalAttendee) : null}
+                    value={upDateClient ? String(upDateClient.touchs?.totalAttendee) : null}
                     type='number'
                     eventChengue={text => {
                         setChangeData({
@@ -295,7 +315,7 @@ export default function FormClient({ id = null, action }) {
             <InputBorderBlue
                 textLabel='Tipo de evaluación'
                 name='typeEvaluationTouch'
-                value={upDateClient ? upDateClient.touchs.typeEvaluationTouch : null}
+                value={upDateClient ? upDateClient?.touchs?.typeEvaluationTouch : null}
                 type='select'
                 childSelect={[
                     { value: 'completo', text: 'completo' },
@@ -527,6 +547,24 @@ export default function FormClient({ id = null, action }) {
                 }}
             />
 
+            <div className='w-full flex justify-center items-center flex flex-col'>
+                {
+                    upDateClient.image === 'https://72.68.60.201:3006/local/image=default.jpg'
+                        || upDateClient.image === 'https://72.68.60.119:443/local/image=default.jpg'
+                        || upDateClient.image === 'https://72.68.60.120:443/local/image=default.jpg' ?
+                        null
+                        :
+                        <div className='w-[400ox]'>
+                            <img className='w-[400px] h-[400px]' src={upDateClient.image ?? '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'} alt='ico-logo' />
+                        </div>
+                }
+
+                <input
+                    onChange={handdlerChangeInputFile}
+                    type='file'
+                    accept='image/jpeg,image/png,image/webp'
+                />
+            </div>
 
             <br />
             <button

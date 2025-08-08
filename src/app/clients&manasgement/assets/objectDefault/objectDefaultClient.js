@@ -42,9 +42,10 @@ const clientDefault = {
     },
 
 
-    alertLength: 'extended'
+    alertLength: 'extended',
 
-
+    
+    image: ''
 };
 
 export default clientDefault;
