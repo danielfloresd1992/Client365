@@ -7,14 +7,10 @@ import { useSelector } from 'react-redux';
 export default function Img({ idLocal }) {
 
 
-
     const client = useSelector(store => {
-        console.log(store);
         return store.clients.filter(client => client._id === idLocal);
     });
 
-
-    console.log(client);
 
     return (
         <img

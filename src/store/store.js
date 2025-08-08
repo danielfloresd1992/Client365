@@ -1,5 +1,4 @@
-import { configureStore } from '@reduxjs/toolkit';
-import thunk from 'redux-thunk';
+import { configureStore } from '@reduxjs/toolkit';;
 import modal from './slices/globalModal';
 import clients from './slices/Client';
 import typeForm from './slices/typeForm';
@@ -15,11 +14,13 @@ import isDaylightSavingTime from './slices/isDaylightSavingTimeStore';
 import dateNoveltyForListStore from './slices/dateNoveltyForList';
 import newEstablishmentStore from './slices/newEstablishment';
 import sessionStore from '@/store/slices/session'
+import filterClientReducer from '@/store/slices/filterAlert';
+
 
 
 const store = configureStore({
     reducer: {
-        modal, modal,
+        modal, 
         configModal: configModalStore,
         clients: clients, 
         typeForm: typeForm,
@@ -33,7 +34,8 @@ const store = configureStore({
         reportLiveForImg: reportLiveForImg,
         dateNoveltyForList: dateNoveltyForListStore,
         newEstablishment: newEstablishmentStore,
-        session: sessionStore
+        session: sessionStore,
+        filterClientList: filterClientReducer
     }
 });
 

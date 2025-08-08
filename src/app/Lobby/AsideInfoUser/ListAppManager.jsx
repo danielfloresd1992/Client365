@@ -83,7 +83,7 @@ export default function ListUser() {
                         <>
                             {
                                 userState.map(userClient => (
-                                    <div className='divUSerLive' key={userClient.userSessionId}>
+                                    <div className='divUSerLive' key={userClient._id}>
                                         <div className='divUSerLive-userContain'>
                                             <div className='divUSerLive-divLive'>
                                             </div>

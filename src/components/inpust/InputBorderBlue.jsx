@@ -1,101 +1,117 @@
 'use client';
 import { useState, useEffect } from 'react';
 
-export default function InputBorderBlue({ 
-    textLabel='', 
-    type= 'text', 
-    register = null, 
-    name, 
-    childSelect = [], 
+
+
+export default function InputBorderBlue({
+    textLabel = '',
+    type = 'text',
+    register = null,
+    name,
+    childSelect = [],
     important = true,
     eventChengue = null,
-    disable = false, 
+    disable = false,
     value = null,
     min = 0,
     max = 100,
-    step = 0.1
-}){
+    step = 0.1,
+    disableLabelText = false
+}) {
 
-    const [ valueState, setValueState ] = useState();
+    const [valueState, setValueState] = useState();
 
     useEffect(() => {
         setValueState(value ? value : null);
-    }, [ value ]);
+    }, [value]);
 
 
     const printInput = () => {
-        if(type === 'select'){
-            return(
-                <select 
-                    required={ important ? true : true }
+        if (type === 'select') {
+            return (
+                <select
+                    required={important ? true : true}
                     className='__input'
-                    { ...(register ? register(name) : {}) }
-                    defaultValue={  '' }
-                    value={ valueState }
-                    disabled={ disable }
-                    onChange={ e => {
+                    {...(register ? register(name) : {})}
+                    defaultValue={''}
+                    value={valueState}
+                    disabled={disable}
+                    onChange={e => {
                         setValueState(e.target.value);
                         eventChengue ? eventChengue(e.target.value) : null;
                     }}
                 >
-                        <option value='' disabled={ true }>--Selecione--</option>
-                        {
-                            Array.isArray(childSelect) && childSelect.length > 0 ?
-                                childSelect.map((option, index)=> (
-                                    <option value={ option.value } key={ index }>{ option.text || option.value }</option>
-                                ))
-                            : 
+                    <option value='' disabled={true}>--Selecione--</option>
+                    {
+                        Array.isArray(childSelect) && childSelect.length > 0 ?
+                            childSelect.map((option, index) => (
+                                <option value={option.value} key={index}>{option.text || option.value}</option>
+                            ))
+                            :
                             null
-                        }
+                    }
                 </select>
             );
-           
+
         }
-        if(type === 'range'){
-            return(
-                <input 
-                    type={ type }
+        if (type === 'range') {
+            return (
+                <input
+                    type={type}
                     className='__input'
-                    value={  valueState ?  valueState : false }
-                    disabled={ disable }
+                    value={valueState ? valueState : false}
+                    disabled={disable}
                     min={min}
                     max={max}
                     step={step}
-                    { ...(register ?  register(name) : {}) }
-                    onChange={ e => {
+                    {...(register ? register(name) : {})}
+                    onChange={e => {
                         setValueState(e.target.value);
                         eventChengue ? eventChengue(e.target.value) : null;
                     }}
                 />
             )
         }
-        if(type === 'checkbox'){
-            return(
-                <input 
-                    type={ type }
+        if (type === 'checkbox') {
+            return (
+                <input
+                    type={type}
                     className='__input'
-                    checked={  valueState ?  valueState : false }
-                    disabled={ disable }
-                    { ...(register ?  register(name) : {}) }
-                    onChange={ e => {
+                    checked={valueState ? valueState : false}
+                    disabled={disable}
+                    {...(register ? register(name) : {})}
+                    onChange={e => {
                         setValueState(e.target.checked);
                         eventChengue ? eventChengue(e.target.checked) : null;
                     }}
                 />
             )
         }
-        else{
-            return(
-                <input 
-                    type={ type }
-                    required={ important ? true : true }
+        if (type === 'toogle') {
+            return (
+                <div className='relative bg-white w-10 h-5 rounded-full cursor-pointer flex items-center'
+                    onClick={() => {
+                        eventChengue(!valueState);
+                    }}
+                >
+                    <div className={`absolute w-[22px] h-[22px] rounded-full bg-[#0a2657] ${valueState ? 'right-[0]' : 'left-[0]'}`}>
+
+                    </div>
+                </div>
+            )
+        }
+        else {
+            return (
+                <input
+                    type={type}
+                    required={important ? true : true}
                     className='__input'
-                    value={ valueState ?  valueState : ''}
-                    disabled={ disable }
-                    { ...(register ?  register(name) : {}) }
+                    value={valueState ? valueState : ''}
+                    disabled={disable}
+                    {...(register ? register(name) : {})}
                     min={min}
                     max={max}
-                    onChange={ e => {
+                    onChange={e => {
                         setValueState(e.target.value);
                         eventChengue ? eventChengue(e.target.value) : null;
                     }}
@@ -104,18 +120,22 @@ export default function InputBorderBlue({
         }
     }
 
-    return(
+    return (
         <label className='__width-complete __label'
             style={{ outline: 'none' }}
         >
-            <p 
-                className='form-label-p'
-                style={ type === 'checkbox' ? { textAlign: 'center' } : null }
-            >{ textLabel } { important ? <b style={{ color: 'red' }}>*</b> : null }</p>
+            {
+                disableLabelText ?
+                    null
+                    :
+                    <p
+                        className='form-label-p'
+                        style={type === 'checkbox' ? { textAlign: 'center' } : null}
+                    >{textLabel} {important ? <b style={{ color: 'red' }}>*</b> : null}</p>
+            }
             {
                 printInput()
             }
-    
         </label>
     );
 }

@@ -14,7 +14,7 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
     const MY_MESSAGES: boolean = item?.submittedByUser?.userId === user?._id;
     const FIRST = indexMsm === 0;
     const message_from_others_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:left-[-10px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-white";
-    const my_message_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:right-[-5px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-[#98fb98]"
+    const my_message_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:right-[-5px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-[#98fb98]";
 
     const handleMouseEnter = () => {
         if (buttonOptionsRef.current) {
@@ -59,7 +59,7 @@ export default function BoxMsm({ item, indexMsm, user }: any) {
                         <div
                             className='cursor-pointer'
                             style={{
-                                filter: 'opacity(0.5);',
+                                filter: 'opacity(0.5)',
                                 visibility: 'hidden',
                             }}
                             ref={buttonOptionsRef}

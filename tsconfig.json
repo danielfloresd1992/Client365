@@ -21,6 +21,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/hook/useAxios.jsx", "middleware.tse.ts"],
+  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts", "src/hook/useAxios.jsx", "middleware.tse.ts", "src/store/slices/filterAlert.ts"],
   "exclude": ["node_modules"]
 }

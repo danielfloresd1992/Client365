@@ -1,16 +1,21 @@
 'use client';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import { arrGroup } from '@/libs/data/group';
+import { addClientFilterList, removeClientFilterList, clearClientFilters, toogleActivateFilter, addRankByFranchise, removeRankByFranchise } from '@/store/slices/filterAlert';
+import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 
 
 
-export default function FilterNoveltyForLobby({ }) {
+
+
+export default function FilterNoveltyForLobby({ addAlert, openAside }) {
 
 
     const clientsStore = useSelector((store) => store.clients);
-
+    const filterClient = useSelector((store) => store.filterClientList);
+    const dispatch = useDispatch();
 
 
     if (!clientsStore || clientsStore.length === 0) {
@@ -19,17 +24,57 @@ export default function FilterNoveltyForLobby({ }) {
 
 
 
+    const handdlerOnChange = (e, id) => {
+        const activator = e.target.checked;
+        if (activator) {
+            dispatch(addClientFilterList(id));
+        }
+        else {
+            dispatch(removeClientFilterList(id));
+        }
+    };
+
+
+
+    const checkActivate = (list, list2) => {
+        const newArray = [];
+        list.forEach(item => {
+            const result = list2.indexOf(item);
+            if (result > -1) newArray.push(item);
+        });
+
+        return list2.length === newArray.length;
+    }
+
+
+
     return (
         <div className='w-full h-full'>
 
             <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
-                <div className='h-full flex justify-start items-center flex- gap-[.5rem]'>
-                    <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} alt='icoFILTRO' />
-                    <h2 className='text-black'>filtro de alertas</h2>
+                <div className='h-full flex justify-start items-center flex-col gap-[.5rem]'>
+                    <div className='h-full flex justify-start items-center flex- gap-[.5rem]'>
+                        <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} alt='icoFILTRO' />
+                        <h2 className='text-black'>filtro de alertas</h2>
+                    </div>
+                    <div className='w-full flex items-center justify-center flex-row gap-[.5rem]'>
+                        <div>
+                            <InputBorderBlue
+                                type='toogle'
+                                disableLabelText={true}
+                                value={filterClient.isActivated}
+                                eventChengue={value => {
+                                    dispatch(toogleActivateFilter(value));
+                                }}
+                            />
+                        </div>
+                        <p style={{ color: filterClient.isActivated ? 'green' : 'red' }} className='block text-[0.8rem]'>{filterClient.isActivated ? 'filtro activado' : 'filtro apagado'}</p>
+                    </div>
+
                 </div>
 
-                <div className=''>
-                    <p>{clientsStore?.length ?? 0}</p>
+                <div>
+                    <p>{filterClient.isActivated ? filterClient.clientList.length : 0}</p>
                 </div>
             </header>
 
@@ -40,8 +85,25 @@ export default function FilterNoveltyForLobby({ }) {
                             <div className='w-full flex items-center justify-between mb-[.5rem]'>
                                 <h3 className='font-medium text-sm text-justify'>{franchiseName}</h3>
                                 <div className='flex items-center gap-[.5rem]'>
-                                    <label className='text-sm text-justify' for={`input-${franchiseName}`} >Todos</label>
-                                    <input className='cursor-pointer' type='checkbox' name={franchiseName} id={`input-${franchiseName}`} />
+                                    <label className='text-sm text-justify' htmlFor={`input-${franchiseName}`} >Todos</label>
+                                    <input
+                                        className='cursor-pointer'
+                                        type='checkbox'
+                                        name={franchiseName}
+                                        id={`input-${franchiseName}`}
+                                        disabled={!filterClient.isActivated}
+                                   //*     checked={checkActivate(filterClient.clientList, franchiseRestaurants.map(item => item._id))}
+                                        onChange={e => {
+                                            const checked = e.target.checked;
+                                            const listFranchise = franchiseRestaurants.map(item => item._id);
+                                            if (checked) {
+                                                dispatch(addRankByFranchise(listFranchise));
+                                            }
+                                            else {
+                                                dispatch(removeRankByFranchise(listFranchise));
+                                            }
+                                        }}
+                                    />
                                 </div>
 
                             </div>
@@ -49,8 +111,20 @@ export default function FilterNoveltyForLobby({ }) {
                             <div className="grid gap-[.5rem] grid-cols-1">
                                 {franchiseRestaurants.map(restaurant => (
                                     <div key={restaurant._id} className='flex items-center justify-between'>
-                                        <label className='text-[0.8rem] text-[#595959] font-normal cursor-pointer' for={`input-${restaurant.name}`} >{restaurant.name}</label>
-                                        <input className='cursor-pointer' type='checkbox' name={restaurant.name} id={`input-${restaurant.name}`} />
+                                        <label
+                                            className='text-[0.8rem] text-[#595959] font-normal cursor-pointer'
+                                            htmlFor={`input-${restaurant.name}`}>{restaurant.name}</label>
+                                        <input
+                                            className='cursor-pointer'
+                                            type='checkbox'
+                                            name={restaurant.name}
+                                            id={`input-${restaurant.name}`}
+                                            checked={filterClient.clientList.indexOf(restaurant._id) > -1 ? true : false}
+                                            onChange={(e) => {
+                                                handdlerOnChange(e, restaurant._id);
+                                            }}
+                                            disabled={!filterClient.isActivated}
+                                        />
                                     </div>
                                 ))}
                             </div>
@@ -75,7 +149,7 @@ export default function FilterNoveltyForLobby({ }) {
                                         <div className='w-[30px] h-[30px] rounded-full overflow-hidden flex items-center justify-center'>
                                             <Image src={group.ico} width={30} height={30} alt='ico-group-whatsapp' />
                                         </div>
-                                        <label className='text-[0.8rem] text-[#595959] font-normal' for={`input-${group.name}`}>{group.name}</label>
+                                        <label className='text-[0.8rem] text-[#595959] font-normal' htmlFor={`input-${group.name}`}>{group.name}</label>
                                     </div>
 
                                     <input className='cursor-pointer' type='checkbox' name={group.name} id={`input-${group.name}`} />
@@ -86,5 +160,5 @@ export default function FilterNoveltyForLobby({ }) {
                 </div>
             </div>
         </div>
-    )
+    );
 }
