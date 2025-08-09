@@ -70,6 +70,7 @@ const filterClientSlice = createSlice({
 
         loadLocalStorage: (state, action) => {
             if (typeof window !== 'undefined') {
+                alert('Cargando filtros desde el almacenamiento local');
                 const getItems = localStorage.getItem('filterClient');
                 if (!getItems) {
                     localStorage.setItem('filterClient', JSON.stringify(initialState));
