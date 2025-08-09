@@ -10,8 +10,6 @@ const initialState = {
 
 
 
-
-
 const setState = (data) => {
     if (typeof window !== 'undefined') {
         localStorage.setItem('filterClient', JSON.stringify(data));
@@ -34,7 +32,8 @@ const filterClientSlice = createSlice({
 
 
         removeClientFilterList: (state, action) => {
-            return setState({ ...state, clientList: [state.clientList.filter((id) => id !== action.payload)] });
+            setState({ ...state, clientList: [...state.clientList.filter((id) => id !== action.payload)] });
+            return { ...state, clientList: [...state.clientList.filter((id) => id !== action.payload)] };
         },
 
 
@@ -70,9 +69,8 @@ const filterClientSlice = createSlice({
 
         loadLocalStorage: (state, action) => {
             if (typeof window !== 'undefined') {
-                alert('Cargando filtros desde el almacenamiento local');
                 const getItems = localStorage.getItem('filterClient');
-                if (!getItems) {
+                if (getItems === 'undefined') {
                     localStorage.setItem('filterClient', JSON.stringify(initialState));
                     return initialState;
                 }
