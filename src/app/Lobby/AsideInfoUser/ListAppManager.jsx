@@ -87,7 +87,7 @@ export default function ListUser() {
                                         <div className='divUSerLive-userContain'>
                                             <div className='divUSerLive-divLive'>
                                             </div>
-                                            <p className='divUSerLive-userName'>{`${userClient.name} ${userClient.surName}`.toLowerCase() === 'daniel flores' ? 'Jose Aurrococheda' : `${userClient.name} ${userClient.surName}`}</p>
+                                            <p className='divUSerLive-userName'>{`${userClient.name} ${userClient.surName}`.toLowerCase() === 'daniel flores' ? '...' : `${userClient.name} ${userClient.surName}`}</p>
                                             {
                                                 user?.admin === true && user._id !== userClient._id ?
                                                     (

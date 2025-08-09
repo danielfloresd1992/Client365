@@ -29,4 +29,3 @@ export const arrGroup: Group[] = [
         ico: '/ico/ico_group/important.jpg'
     }
 ];
-

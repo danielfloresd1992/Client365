@@ -99,7 +99,6 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         const handdlerLeave = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            console.log(refElement.current && !refElement.current.contains(e.target as Node))
 
             if (refElement.current && !refElement.current.contains(e.target as Node)) {
                 closeAside();

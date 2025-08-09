@@ -29,7 +29,6 @@ import MemoSlider from '@/components/carruzel/slider';
 function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const whatsAppSendingSettings = useSelector(state => state.filterClientList?.groupIdWhatsapp);
-    console.log(whatsAppSendingSettings)
     const [noveltyState, setNoveltyState] = useState(null);
     const [deleteState, serDeleteState] = useState(false);
     const [isVideoBooleanState, setIsVideoBooleanState] = useState(false);

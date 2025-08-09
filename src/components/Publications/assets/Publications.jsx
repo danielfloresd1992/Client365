@@ -1,5 +1,6 @@
 'use client';
-import { useState, useEffect, useRef, memo } from 'react';
+import { useState, useEffect, useRef, memo, useCallback } from 'react';
+import { useSelector } from 'react-redux';
 //import { getInClientLastTeenNovelty } from '@/libs/ajaxClient/noveltyFetching.ts';
 import { Noveltie } from '../../Publication/Noveltie';
 import { Alert } from '../../Publication/Alert';
@@ -15,7 +16,7 @@ export default memo(function Publications({ dataPreRender }) {
 
 
     const fecthBooleanCurrent = useRef(true);
-
+    const filterAlert = useSelector(state => state.filterClientList);
     const [awaitFetch, setAwait] = useState(false);
     const paginateRef = useRef(0);
     const boxRef = useRef(null);
@@ -65,18 +66,20 @@ export default memo(function Publications({ dataPreRender }) {
 
 
 
-    const returnTypePublisher = (data, typePublishe) => {
+
+    const returnTypePublisher = useCallback((data, typePublishe) => {
         if (typePublishe.noveltie) {
-            return (
-                data ?
-                    (
-                        <Noveltie key={data._id} data={data} idNoveltie={typePublishe.noveltie} />
-                    )
-                    :
-                    (
-                        null
-                    )
-            )
+
+            //# FILTRADO DE ALERTAS DESDEL ESTADO GLOBAL "filterAlert"
+            if (filterAlert.isActivated && filterAlert?.clientList?.length > 0) {
+                if (filterAlert?.clientList.indexOf(data.local.id) > -1) return <Noveltie key={data._id} data={data} idNoveltie={typePublishe.noveltie} />;
+            }
+            else {
+                //# AL ESTAR APAGADO "filterAlert" ENTRARÁ TODAS LAS ALERTAS
+                return (
+                    <Noveltie key={data._id} data={data} idNoveltie={typePublishe.noveltie} />
+                )
+            }
         }
         else if (typePublishe.alert) {
             return (
@@ -94,7 +97,8 @@ export default memo(function Publications({ dataPreRender }) {
             )
         }
 
-    }
+    }, [filterAlert])
+
 
 
 

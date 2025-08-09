@@ -30,7 +30,6 @@ const filterClientSlice = createSlice({
 
 
         addGropupIdWhatsapp: (state, action) => {
-            console.log('action.payload', action.payload);
             setState({ ...state, groupIdWhatsapp: action.payload })
             return setState({ ...state, groupIdWhatsapp: action.payload });
         },
