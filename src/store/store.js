@@ -20,9 +20,9 @@ import filterClientReducer from '@/store/slices/filterAlert';
 
 const store = configureStore({
     reducer: {
-        modal, 
+        modal,
         configModal: configModalStore,
-        clients: clients, 
+        clients: clients,
         typeForm: typeForm,
         voice: voice,
         voiceDefinitive: voiceDefinitive,

@@ -66,20 +66,8 @@ export default function LoadingGuard({
                 });
 
                 setState(result);
-
-                // Cargar datos del cliente si está autenticado
-                if (result.stateSession === 'authenticated' && clientsStore.length < 1) {
-                    fetchData({
-                        url: '/localforCort',
-                        method: 'get',
-                        autoGetData: false,
-                        callback: (response: any) => {
-                            dispatch(setClient(response.data));
-                        },
-                    });
-                }
-
-            } catch (error) {
+            }
+            catch (error) {
                 console.error('Error verifying session:', error);
                 setState({
                     stateSession: 'unauthenticated',
@@ -90,13 +78,33 @@ export default function LoadingGuard({
                         error: 'Internal Server Error',
                     },
                 });
-            } finally {
+            }
+            finally {
                 setIsInitializing(false);
             }
         };
 
+
         handleSessionCheck();
     }, [clientsStore, dispatch, fetchData, setState]);
+
+
+
+
+    useEffect(() => {
+        if (dataSessionState?.stateSession === 'authenticated' && clientsStore.length < 1) {
+            fetchData({
+                url: '/localforCort',
+                method: 'get',
+                autoGetData: false,
+                callback: (response: any) => {
+                    dispatch(setClient(response.data));
+                },
+            });
+        }
+    }, [dataSessionState]);
+
+
 
     // Efecto para manejar redirecciones
     useEffect(() => {

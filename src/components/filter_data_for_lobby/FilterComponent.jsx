@@ -1,12 +1,13 @@
 'use client';
+import { useEffect, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import { arrGroup } from '@/libs/data/group';
-import { addClientFilterList, removeClientFilterList, clearClientFilters, toogleActivateFilter, addRankByFranchise, removeRankByFranchise } from '@/store/slices/filterAlert';
+import { addClientFilterList, removeClientFilterList, clearClientFilters, toogleActivateFilter, addRankByFranchise, removeRankByFranchise, loadLocalStorage } from '@/store/slices/filterAlert';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 
-
+import { setConfigModal } from '@/store/slices/globalModal';
 
 
 
@@ -16,11 +17,33 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
     const clientsStore = useSelector((store) => store.clients);
     const filterClient = useSelector((store) => store.filterClientList);
     const dispatch = useDispatch();
+    const isMounted = useRef(true);
+    const isMessageAlertRef = useRef(true);
 
 
-    if (!clientsStore || clientsStore.length === 0) {
-        return <div className='w-full h-full flex items-center justify-center'>No hay datos disponibles</div>;
-    }
+    useEffect(() => {
+        if (filterClient.isActivated && isMessageAlertRef.current) {
+            isMessageAlertRef.current = false;
+            dispatch(setConfigModal({
+                modalOpen: true,
+                title: 'Filtros de alertas',
+                description: 'El filtrado de alertas está activado, lo que significa que solo se mostrarán las alertas de los establecimientos seleccionados.',
+                type: 'warning',
+            }));
+
+            addAlert({
+                title: 'Filtros de alertas',
+                description: 'Seleccione los filtros de alertas que desea aplicar',
+            })
+            openAside();
+        }
+
+        if (isMounted.current) {
+            isMounted.current = false;
+            dispatch(loadLocalStorage());
+        }
+
+    }, [filterClient]);
 
 
 
@@ -44,6 +67,11 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
         });
 
         return list2.length === newArray.length;
+    }
+
+
+    if (!clientsStore || clientsStore.length === 0) {
+        return <div className='w-full h-full flex items-center justify-center'>No hay datos disponibles</div>;
     }
 
 
@@ -78,7 +106,7 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
                 </div>
             </header>
 
-            <div className='w-full h-[calc(100%_-_380px)]'>
+            <div className='w-full h-[calc(100%_-_380px)] bg-[#ffffff]'>
                 <div className='w-full h-full overflow-y-scroll flex flex-col gap-[.5rem]'>
                     {Object.entries(groupByFranchiseComprehensive(clientsStore)).map(([franchiseName, franchiseRestaurants]) => (
                         <div key={franchiseName} className="p-[.5rem]">
@@ -92,7 +120,7 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
                                         name={franchiseName}
                                         id={`input-${franchiseName}`}
                                         disabled={!filterClient.isActivated}
-                                   //*     checked={checkActivate(filterClient.clientList, franchiseRestaurants.map(item => item._id))}
+                                        //*     checked={checkActivate(filterClient.clientList, franchiseRestaurants.map(item => item._id))}
                                         onChange={e => {
                                             const checked = e.target.checked;
                                             const listFranchise = franchiseRestaurants.map(item => item._id);
