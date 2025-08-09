@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import { arrGroup } from '@/libs/data/group';
-import { addClientFilterList, removeClientFilterList, clearClientFilters, toogleActivateFilter, addRankByFranchise, removeRankByFranchise, loadLocalStorage } from '@/store/slices/filterAlert';
+import { addGropupIdWhatsapp, addClientFilterList, removeClientFilterList, clearClientFilters, toogleActivateFilter, addRankByFranchise, removeRankByFranchise, loadLocalStorage } from '@/store/slices/filterAlert';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 
 import { setConfigModal } from '@/store/slices/globalModal';
@@ -39,11 +39,13 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
         }
 
         if (isMounted.current) {
-            isMounted.current = false;
             dispatch(loadLocalStorage());
+            isMounted.current = false;
         }
 
     }, [filterClient]);
+
+
 
 
 
@@ -70,6 +72,34 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
     }
 
 
+
+    const handdlerCliclResetFilter = () => {
+        if (filterClient.isActivated && filterClient.clientList.length > 0) {
+            dispatch(setConfigModal({
+                modalOpen: true,
+                title: 'Reset filtros de alertas',
+                description: 'El filtrado de alertas se reseteara y se de desactivará, ¿seguro que continuar con la siguiente opción?',
+                type: 'warning',
+                isCallback: resetAlertAndDesactivate
+            }));
+        }
+    };
+
+
+
+    const resetAlertAndDesactivate = () => {
+        dispatch(clearClientFilters());
+        dispatch(setConfigModal({
+            modalOpen: true,
+            title: 'Completado',
+            description: 'El filtrado de alertas se restauró',
+            type: 'successfull',
+            isCallback: null
+        }))
+    };
+
+
+
     if (!clientsStore || clientsStore.length === 0) {
         return <div className='w-full h-full flex items-center justify-center'>No hay datos disponibles</div>;
     }
@@ -80,30 +110,43 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
         <div className='w-full h-full'>
 
             <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
-                <div className='h-full flex justify-start items-center flex-col gap-[.5rem]'>
-                    <div className='h-full flex justify-start items-center flex- gap-[.5rem]'>
-                        <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} alt='icoFILTRO' />
-                        <h2 className='text-black'>filtro de alertas</h2>
-                    </div>
-                    <div className='w-full flex items-center justify-center flex-row gap-[.5rem]'>
-                        <div>
-                            <InputBorderBlue
-                                type='toogle'
-                                disableLabelText={true}
-                                value={filterClient.isActivated}
-                                eventChengue={value => {
-                                    dispatch(toogleActivateFilter(value));
-                                }}
-                            />
+                <div className='h-full w-full flex justify-start items-center flex-col gap-[.5rem]'>
+                    <div className='w-full flex justify-between items-center'>
+                        <div className='flex justify-start items-center flex- gap-[.5rem]'>
+                            <Image src='/ico/icons8-filtro-vacío-30.png' width={30} height={30} alt='icoFILTRO' />
+                            <h2 className='text-black'>filtro de alertas</h2>
                         </div>
-                        <p style={{ color: filterClient.isActivated ? 'green' : 'red' }} className='block text-[0.8rem]'>{filterClient.isActivated ? 'filtro activado' : 'filtro apagado'}</p>
+
+                        <div className='flex items-center justify-center flex-row gap-[.5rem]'>
+                            <div>
+                                <InputBorderBlue
+                                    type='toogle'
+                                    disableLabelText={true}
+                                    value={filterClient.isActivated}
+                                    eventChengue={value => {
+                                        dispatch(toogleActivateFilter(value));
+                                    }}
+                                />
+                            </div>
+                            <p style={{ color: filterClient.isActivated ? 'green' : 'red' }} className='block text-[0.8rem]'>{filterClient.isActivated ? 'filtro activado' : 'filtro apagado'}</p>
+                        </div>
+                    </div>
+                    <div className='w-full flex justify-between items-center'>
+                        <div>
+                            <p className='text-[.7rem]'>Locales de entrada: {filterClient.isActivated ? filterClient.clientList.length : 0}</p>
+                        </div>
+
+                        <div>
+                            <button className='flex flex-row items-center justify-center gap-[.5rem] text-[#ff0000] text-[.7rem] border border-solid rounded-[5px] p-[0.1rem]' onClick={handdlerCliclResetFilter}>
+                                <Image src='/ico/icons8-cita-recurrente-48.png' width={15} height={15} alt='ico-reset' />
+                                Reset
+                            </button>
+                        </div>
                     </div>
 
                 </div>
 
-                <div>
-                    <p>{filterClient.isActivated ? filterClient.clientList.length : 0}</p>
-                </div>
+
             </header>
 
             <div className='w-full h-[calc(100%_-_380px)] bg-[#ffffff]'>
@@ -180,7 +223,14 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
                                         <label className='text-[0.8rem] text-[#595959] font-normal' htmlFor={`input-${group.name}`}>{group.name}</label>
                                     </div>
 
-                                    <input className='cursor-pointer' type='checkbox' name={group.name} id={`input-${group.name}`} />
+                                    <input
+                                        className='cursor-pointer'
+                                        type='checkbox'
+                                        checked={filterClient?.groupIdWhatsapp?.name === group.name ? true : false}
+                                        name={group.name}
+                                        id={`input-${group.name}`}
+                                        onChange={() => dispatch(addGropupIdWhatsapp(group))}
+                                    />
                                 </div>
                             </div>
                         ))

@@ -5,6 +5,7 @@ import { createSlice } from '@reduxjs/toolkit';
 
 const initialState = {
     isActivated: false,
+    groupIdWhatsapp: null,
     clientList: []
 };
 
@@ -22,6 +23,19 @@ const filterClientSlice = createSlice({
     name: 'filterClient',
     initialState: initialState,
     reducers: {
+
+        toogleActivateFilter: (state, action) => {
+            return setState({ ...state, isActivated: action.payload })
+        },
+
+
+        addGropupIdWhatsapp: (state, action) => {
+            console.log('action.payload', action.payload);
+            setState({ ...state, groupIdWhatsapp: action.payload })
+            return setState({ ...state, groupIdWhatsapp: action.payload });
+        },
+
+
 
         addClientFilterList: (state, action) => {
             const exists = state.clientList.includes(action.payload);
@@ -58,12 +72,8 @@ const filterClientSlice = createSlice({
 
 
         clearClientFilters: (state, action) => {
-            return setState({ ...state, clientList: [] })
-        },
-
-
-        toogleActivateFilter: (state, action) => {
-            return setState({ ...state, isActivated: action.payload })
+            localStorage.setItem('filterClient', JSON.stringify(initialState));
+            return { ...initialState, groupIdWhatsapp: state.groupIdWhatsapp };
         },
 
 
@@ -85,6 +95,7 @@ const filterClientSlice = createSlice({
 
 
 export const {
+    addGropupIdWhatsapp,
     addClientFilterList,
     removeClientFilterList,
     clearClientFilters,

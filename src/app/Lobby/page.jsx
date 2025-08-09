@@ -44,7 +44,7 @@ export default function Lobby() {
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
-                    { (methods) => (
+                    {(methods) => (
                         <FilterNoveltyForLobby {...methods} />
                     )}
                 </Aside_Eyelash>

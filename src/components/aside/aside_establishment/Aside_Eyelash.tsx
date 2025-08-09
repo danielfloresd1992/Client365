@@ -72,6 +72,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
         const handdlerMouseleave = (e: MouseEvent) => {
             e.preventDefault();
             e.stopPropagation();
+            setAlertState([]);
             if (!open) closeAside();
         };
 
