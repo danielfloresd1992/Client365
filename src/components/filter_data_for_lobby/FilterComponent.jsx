@@ -21,8 +21,9 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
     const isMessageAlertRef = useRef(true);
 
 
+
     useEffect(() => {
-        if (filterClient.isActivated && isMessageAlertRef.current) {
+        if (filterClient?.isActivated && isMessageAlertRef.current) {
             isMessageAlertRef.current = false;
             dispatch(setConfigModal({
                 modalOpen: true,
@@ -100,7 +101,7 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
 
 
 
-    if (!clientsStore || clientsStore.length === 0) {
+    if (!clientsStore || clientsStore.length === 0 || !filterClient) {
         return <div className='w-full h-full flex items-center justify-center'>No hay datos disponibles</div>;
     }
 

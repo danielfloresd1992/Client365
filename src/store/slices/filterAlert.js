@@ -77,10 +77,10 @@ const filterClientSlice = createSlice({
         },
 
 
-        loadLocalStorage: (state, action) => {
+        loadLocalStorage: () => {
             if (typeof window !== 'undefined') {
                 const getItems = localStorage.getItem('filterClient');
-                if (getItems === 'undefined') {
+                if (getItems === 'undefined' || getItems === null) {
                     localStorage.setItem('filterClient', JSON.stringify(initialState));
                     return initialState;
                 }
@@ -88,6 +88,7 @@ const filterClientSlice = createSlice({
                     return JSON.parse(getItems);
                 }
             }
+            return initialState;
         }
     }
 });

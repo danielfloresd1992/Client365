@@ -7,7 +7,7 @@ import DataFormart from '@/libs/time/dateFormat.js';
 import typeShareJarvis from './assets/shareJarvis';
 
 
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from 'react-redux';
 import { setConfigModal } from "@/store/slices/globalModal";
 
 import { ImgContext } from "@/contexts/imgContext";
@@ -28,7 +28,8 @@ import MemoSlider from '@/components/carruzel/slider';
 
 function Noveltie({ data, idNoveltie, isNotLobby }) {
 
-
+    const whatsAppSendingSettings = useSelector(state => state.filterClientList?.groupIdWhatsapp);
+    console.log(whatsAppSendingSettings)
     const [noveltyState, setNoveltyState] = useState(null);
     const [deleteState, serDeleteState] = useState(false);
     const [isVideoBooleanState, setIsVideoBooleanState] = useState(false);
@@ -158,13 +159,26 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const shareNoveltyForApiAva = async (imageOnly) => {
         try {
+            if (!whatsAppSendingSettings) {
+                dispatch(setConfigModal({
+                    modalOpen: true,
+                    title: 'Error de envio',
+                    description: 'Debe seleccionar un grupo de whatsapp para el envio de novedades en la pestaña de filtros.',
+                    isCallback: null,
+                    type: 'error'
+                }));
+                return null
+            }
+
+
             if (user.admin || user.super) {
                 if (typeof eval(noveltyState.isValidate.validation) !== 'boolean' || !eval(noveltyState.isValidate.validation)) return
                 const noveltieCopi = { ...noveltyState };
 
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
-                const responseSend = await typeShareJarvis([noveltieCopi]);
+
+                const responseSend = await typeShareJarvis([noveltieCopi], whatsAppSendingSettings.key);
 
 
                 putValidateNoveltie(noveltyState._id, {
@@ -176,11 +190,12 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                     {
                         modalOpen: true,
                         title: 'Enviado con éxito',
-                        description: 'La novedad fue enviada al grupo de Amazonas activo.',
+                        description: `La novedad fue enviada al grupo de ${whatsAppSendingSettings.name}.`,
                         isCallback: null,
                         type: 'successfull'
                     }
                 ));
+
             }
         }
         catch (error) {
@@ -235,7 +250,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                     height: '80x',
                                     width: '80px',
                                 }}>
-                                    <Img idLocal={noveltyState.local.idLocal}  />
+                                    <Img idLocal={noveltyState.local.idLocal} />
                                 </div>
 
                                 <div className='divContentNovelties-textContain'>
