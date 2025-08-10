@@ -18,20 +18,13 @@ export default function AlertInputLive() {
 
     return (
         <div className='w-full h-full flex flex-col'>
-            <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
-                <div className='h-full flex justify-start items-center flex- gap-[.5rem]'>
+            <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex flex-col items-center justify-between'>
+                <div className='w-full flex justify-start items-center flex- gap-[.5rem]'>
                     <h2 className='text-black'>Reporte de alertas</h2>
                 </div>
-
-                <div className=''>
-                    <button
-                        className='__pointer'
-                        style={{}}
-                        title='Generar reporte'
-
-                    >
-                        <img className='__never-pointer' style={{ width: '20px' }} src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAACXBIWXMAAAsTAAALEwEAmpwYAAAAyUlEQVR4nO3UsU4CURCF4duBoSD0WKGdLwc+hiIPRG2C76AEKBYjtfVnNk7lks2u3NvxV5u9yTnJzJ9J6UppMMQKR1R4qf/lLFhpssxZcIzQOR7juypRsMhegBtsz4zoKUf4COsI/MZXLPkZg4tswBivEX7AfTYbMMFbvO8wu8SGNt4x7RQeBfVY/trQxgdu+xQsu9jgd0SbeN/jrmvBMEqqVhtSY8n1aB9SbjQ1PWW/RRjELoreos/St6gqdov62Pdv9LDvSjrHD3ImK1d4iq3tAAAAAElFTkSuQmCC' alt="" />
-                    </button>
+                <div className='w-full flex justify-start items-center flex- gap-[.5rem]'>
+                    <button className='px-[0.2rem] py-[0.1rem] text-[.8rem] text-[green] border border-solid rounded-[5px]'>Generar indicador</button>
+                    <button className='px-[0.2rem] py-[0.1rem] text-[.8rem] text-[red] border border-solid rounded-[5px]'>Generar nuevo turno</button>
                 </div>
             </header>
 
@@ -60,10 +53,9 @@ export default function AlertInputLive() {
                                             </div>
 
                                             <div className='flex flex-row gap-[.5rem]'>
-                                                <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
-                                                <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
+                                                <input className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
+                                                <input className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
                                             </div>
-
                                         </div>
                                     )
                                 })}

@@ -15,10 +15,10 @@ import useNotificationSound from '@/hook/useNotificationSound';
 import { showBrowserNotification } from '@/libs/notification_push/native';
 
 
+
 export default function AlertLiveJarvis() {
 
     const { speak, changeVoice, changueVolume, voices } = useSpeckAlert();
-
 
     const { play } = useNotificationSound();
     const dispatch = useDispatch();
