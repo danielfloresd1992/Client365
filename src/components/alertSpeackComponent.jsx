@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import useSpeckAlert from '@/hook/useSpeckAlert';
 import socket_jarvis from '@/libs/socket/socketIo_jarvis';
+import socket from '@/libs/socket/socketIo';
 import AppManagerConfigStorange from '@/libs/script/app_manager_config_DB';
 import { isMobile } from 'react-device-detect';
 import { setVoicesDefinitive } from '@/store/slices/voiceDefinitive';
@@ -37,8 +38,8 @@ export default function AlertLiveJarvis() {
 
         const handlerMsmSocket = msm => {
             if (isSubscribed) {
-                speak(msm.text);
-                if (!isMobile) showBrowserNotification('Nueva alerta', { body: msm.text, icon: '/ico/icons8-campana-48.png' });
+                //    speak(msm.text);
+                //    if (!isMobile) showBrowserNotification('Nueva alerta', { body: msm.text, icon: '/ico/icons8-campana-48.png' });
             }
         };
 
@@ -48,34 +49,37 @@ export default function AlertLiveJarvis() {
                 speak(msm.text);
                 if (!isMobile) showBrowserNotification(msm.text, { body: msm.body, icon: msm.profilePic });
             }
-        }
+        };
 
+        const handdlerCreateSocket = (msm) => {
+            if (isSubscribed) {
+                speak(`Nueva alerta en ${msm.doc?.local?.name}`);
+                showBrowserNotification('Nueva alerta', {
+                    image: msm.doc.imageToShare,
+                    body: msm.doc.title, icon: '/ico/icons8-campana-48.png'
+                });
+            }
+        };
 
-        /*
-        body
-        : 
-        "."
-        nameChat
-        : 
-        "Jarvis365"
-        profilePic
-        : 
-        "https://pps.whatsapp.net/v/t61.24694-24/354038018_281930564308868_4429190779667048423_n.jpg?ccb=11-4&oh=01_Q5Aa2QG2GdAmfOvQwAdDIjl-mFEC3-Sn3bbB4WrdYb1Zy0pYtw&oe=68A5DC47&_nc_sid=5e03e0&_nc_cat=110"
-        text
-        : 
-        "¡Atención! el backup, a escrito en el grupo de Jarvis365."
-        type
-        : 
-        "complete" */
+        const handdlerPutSocket = (msm) => {
+            if (isSubscribed) {
+                console.log(msm);
+            }
+        };
+
 
         socket_jarvis.on('warning', handlerMsmSocket);
         socket_jarvis.on('alert', handdlerAlertSocket);
+        socket.on('document_created', handdlerCreateSocket);
+        socket.on('document_updated', handdlerPutSocket);
 
 
         return () => {
             isSubscribed = false;
             socket_jarvis.off('warnin', handlerMsmSocket);
             socket_jarvis.off('alert', handdlerAlertSocket);
+            socket.off('document_created', handdlerCreateSocket);
+            socket.off('document_updated', handdlerPutSocket);
         }
     }, [voices]);
 
