@@ -13,7 +13,7 @@ export default function AlertInputLive() {
 
 
     const clients = useSelector(store => store.clients);
-
+    const filterAlert = useSelector(state => state.filterClientList);
 
 
     return (
@@ -48,22 +48,25 @@ export default function AlertInputLive() {
                             </div>
 
                             <div className="grid gap-[.5rem] grid-cols-1">
-                                {franchiseRestaurants.map(restaurant => (
-                                    <div key={restaurant._id} className='w-full flex items-center justify-between'>
-                                        <div className='flex justify-center items-center gap-[.5rem]'>
-                                            <div className='w-[30px] h-[30px] overflow-hidden bg-[#dddddd] flex justify-center items-center'>
-                                                <img src={restaurant?.image ?? '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'} alt='ico-restaurastnr' />
+                                {franchiseRestaurants.map(restaurant => {
+                                    if (filterAlert.isActivated && filterAlert?.clientList?.length > 0 && filterAlert?.clientList.indexOf(restaurant._id) < 0) return null;
+                                    return (
+                                        <div key={restaurant._id} className='w-full flex items-center justify-between'>
+                                            <div className='flex justify-center items-center gap-[.5rem]'>
+                                                <div className='w-[30px] h-[30px] overflow-hidden bg-[#dddddd] flex justify-center items-center'>
+                                                    <img src={restaurant?.image ?? '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'} alt='ico-restaurastnr' />
+                                                </div>
+                                                <label className='text-[0.8rem] text-[rgb(51_48_48)] font-normal cursor-pointer' htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
                                             </div>
-                                            <label className='text-[0.8rem] text-[rgb(51_48_48)] font-normal cursor-pointer' htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
-                                        </div>
 
-                                        <div className='flex flex-row gap-[.5rem]'>
-                                            <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
-                                            <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
-                                        </div>
+                                            <div className='flex flex-row gap-[.5rem]'>
+                                                <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-alert`} id={`input-${restaurant.name}-alert`} />
+                                                <input readOnly className='cursor-pointer w-[50px] text-center' min='0' max='100' value='0' type='number' name={`${restaurant.name}-highlighter`} id={`input-${restaurant.name}-highlighter`} />
+                                            </div>
 
-                                    </div>
-                                ))}
+                                        </div>
+                                    )
+                                })}
                             </div>
                             <div className='w-full flex items-center gap-[.5rem] flex justify-between'>
                                 <p className='font-medium text-sm text-justify text-black'>Locales caidos:</p>

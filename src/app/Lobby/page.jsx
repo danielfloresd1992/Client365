@@ -37,7 +37,7 @@ export default function Lobby() {
                 <AsideInfoUser />
 
 
-                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0} >
+                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
                     {(methods) => (
                         <AlertInputLive {...methods} />
                     )}
