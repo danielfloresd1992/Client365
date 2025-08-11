@@ -7,7 +7,7 @@ import { Alert } from '../../Publication/Alert';
 import LoandingData from '@/components/loandingComponent/loanding';
 import socket from '@/libs/socket/socketIo';
 import { useFetch } from '@/hook/ajax_hook/useFetch';
-
+import autoAnimate from '@formkit/auto-animate'
 
 
 //datos dargado desdel servidor desactivado
@@ -21,7 +21,21 @@ export default memo(function Publications({ dataPreRender }) {
     const paginateRef = useRef(0);
     const boxRef = useRef(null);
 
+
+    // Hook personalizado para manejo de fetch
     const { data, fetchData, setItem } = useFetch(`/user/publisher/paginate=${paginateRef.current}/items=10`);
+
+
+
+    //Animación de entrada y salida de elementos
+    useEffect(() => {
+        boxRef.current && autoAnimate(boxRef.current, {
+            duration: 1000,
+            easing: 'ease-in-out',
+            disrespectUserMotionPreference: false
+        });
+    }, [boxRef]);
+
 
 
 
@@ -44,7 +58,7 @@ export default memo(function Publications({ dataPreRender }) {
         let isSubscribed = true;
         const handleSendPublisher = data => {
             if (isSubscribed) {
-                data.isNewData = true;
+                //  data.isNewData = true;
                 setItem(data, 'shift');
             }
         };
@@ -66,7 +80,7 @@ export default memo(function Publications({ dataPreRender }) {
 
 
 
-
+    //función para determinar el tipo de publicación
     const returnTypePublisher = useCallback((data, typePublishe) => {
         if (typePublishe.noveltie) {
 
@@ -101,7 +115,7 @@ export default memo(function Publications({ dataPreRender }) {
 
 
 
-
+    //función para imprimir las publicaciones
     const printPublications = () => {
         if (data?.length > 0) {
             return (

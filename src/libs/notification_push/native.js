@@ -9,6 +9,9 @@ function requestNotificationPermission() {
     }
 }
 
+
+requestNotificationPermission();
+
 // Mostrar una notificación
 export function showBrowserNotification(title, options) {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
@@ -17,4 +20,3 @@ export function showBrowserNotification(title, options) {
         requestNotificationPermission();
     }
 }
-

@@ -13,12 +13,9 @@ export default function ListClient() {
         <>
             <ul className='listRoute-a-menuTitle scrolltheme1 flex columns'>
                 {
-                    Array.isArray(client) ?
-                        client.map((item) => (
-                            <List data={item} key={item._id} />
-                        ))
-                        :
-                        null
+                    client && client.map((item) => (
+                        <List data={item} key={item._id} />
+                    ))
                 }
             </ul>
         </>
