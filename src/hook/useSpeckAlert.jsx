@@ -39,17 +39,18 @@ export default function useSpeckAlert() {
         if (listVoicesState.length > 0) {
             const voiceStorange = AppManagerConfigStorange.get('voice_definitive');
             if (voiceStorange) changeVoice(voiceStorange);
-            const volumeStorage = AppManagerConfigStorange.set('voice_volume');
+
+            const volumeStorage = AppManagerConfigStorange.get('voice_volume');
             if (volumeStorage) changueVolume(voiceStorange);
-            if (!voice_definitive && !voiceStorange) changueVolume('Microsoft Paola Online(Natural) - Spanish(Venezuela)')
+            alert(!voice_definitive && !voiceStorange);
+            if (!voice_definitive && !voiceStorange) changeVoice('Microsoft Paola Online (Natural) - Spanish (Venezuela)')
         }
     }, [listVoicesState]);
 
 
 
     const changueVolume = number => {
-        if (typeof number !== 'number') throw new Error('The parameter must be of type number');
-        AppManagerConfigStorange.set('voice_volume', value);
+        AppManagerConfigStorange.set('voice_volume', number);
         setVolumeState(number);
     };
 
@@ -65,13 +66,14 @@ export default function useSpeckAlert() {
 
 
 
+
     const speak = useCallback((text = '') => {
         const machine = window.speechSynthesis;
         const utterThis = new SpeechSynthesisUtterance(text);
         utterThis.voice = voice_definitive;
         utterThis.volume = volumeState;
         machine.speak(utterThis);
-    }, [voice_definitive]);
+    }, [voice_definitive, volumeState]);
 
 
 
