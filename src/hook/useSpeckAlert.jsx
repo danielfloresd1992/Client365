@@ -42,7 +42,6 @@ export default function useSpeckAlert() {
 
             const volumeStorage = AppManagerConfigStorange.get('voice_volume');
             if (volumeStorage) changueVolume(voiceStorange);
-            alert(!voice_definitive && !voiceStorange);
             if (!voice_definitive && !voiceStorange) changeVoice('Microsoft Paola Online (Natural) - Spanish (Venezuela)')
         }
     }, [listVoicesState]);
