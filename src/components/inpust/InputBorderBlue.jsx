@@ -45,7 +45,7 @@ export default function InputBorderBlue({
                     {
                         Array.isArray(childSelect) && childSelect.length > 0 ?
                             childSelect.map((option, index) => (
-                                <option value={option.value} key={index}>{option.text || option.value}</option>
+                                <option className='w-full' value={option.value} key={index}>{option.text || option.value}</option>
                             ))
                             :
                             null

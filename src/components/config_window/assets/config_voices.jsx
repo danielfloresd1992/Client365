@@ -1,18 +1,19 @@
 'use client';
-import { useSelector, useDispatch } from 'react-redux';
-import { setVoicesDefinitive } from '@/store/slices/voiceDefinitive';
-import { setVoiceVolumeDefinitive } from '@/store/slices/volumeVoiceDefinitive';
+
+
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
-import AppManagerConfigStorange from '@/libs/script/app_manager_config_DB';
+
 import BoxConfigForWindow from '@/layaut/BoxConfigForWindow';
+import { useState, useEffect } from 'react';
+import useSpeckAlert from '@/hook/useSpeckAlert';
+
 
 
 export default function SectionConfigVoice() {
 
-    const arrVoice = useSelector(store => store.voice);
-    const voiceDefinitiveState = useSelector(store => store.voiceDefinitive);
-    const volumeDefinitive = useSelector(store => store.volumeVoiceDefinitive);
-    const dispatch = useDispatch();
+
+    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState } = useSpeckAlert();
+
 
 
 
@@ -32,43 +33,52 @@ export default function SectionConfigVoice() {
     };
 
 
-    return (
-        <BoxConfigForWindow titleText='Configuración de voces'>
-            <div className='_center_center columns __flex-between __oneGap'>
-                <InputBorderBlue
-                    type='select'
-                    important={false}
-                    value={voiceDefinitiveState}
-                    textLabel='Listas de voces disponibles'
-                    childSelect={
-                        arrVoice.map(voice => {
-                            return { value: voice.name, name: voice.name }
-                        })
-                    }
-                    eventChengue={text => {
-                        AppManagerConfigStorange.set('voice_definitive', text);
-                        dispatch(setVoicesDefinitive(text));
-                    }}
-                />
-                <p className='text-center '>Voz selecionada: {voiceDefinitiveState ? voiceDefinitiveState : 'ninguna'}</p>
 
-                <div className='__center_center __oneGap __width-complete'>
+
+    return (
+        <div className='w-full h-full p-[1rem]'>
+            <div className='w-full h-[50%] bg-[#ffffff]'>
+
+            </div>
+            <div className='w-full h-[50%]'>
+                <div className='w-full h-full flex flex-col justify-around overflow-hidden'>
                     <InputBorderBlue
-                        type='range'
+                        type='select'
                         important={false}
-                        textLabel='Volumen'
-                        value={volumeDefinitive}
-                        min={0}
-                        max={1}
-                        step={0.1}
-                        eventChengue={value => {
-                            AppManagerConfigStorange.set('voice_volume', value);
-                            dispatch(setVoiceVolumeDefinitive(value));
+                        value={voice_definitive?.name}
+                        textLabel='Listas de voces disponibles'
+                        childSelect={
+                            listVoicesState.map(voice => ({
+                                value: voice.name, text: voice.name,
+                            }))
+                        }
+                        eventChengue={text => {
+                            changeVoice(text);
                         }}
                     />
-                    <img style={{ width: '30px', paddingTop: '2rem' }} src={renderImg(volumeDefinitive)} alt="" />
+
+
+                    <p className='text-center '>Voz selecionada: {voice_definitive ? voice_definitive.name : 'ninguna'}</p>
+
+                    <div className='__center_center __oneGap __width-complete'>
+                        <InputBorderBlue
+                            type='range'
+                            important={false}
+                            textLabel='Volumen'
+                            value={volumeState}
+                            min={0}
+                            max={1}
+                            step={0.05}
+                            eventChengue={value => {
+
+                                changueVolume(Number(value));
+                            }}
+                        />
+                        <img style={{ width: '30px', paddingTop: '2rem' }} src={renderImg(volumeState)} alt="" />
+                    </div>
                 </div>
+
             </div>
-        </BoxConfigForWindow>
+        </div>
     );
 }

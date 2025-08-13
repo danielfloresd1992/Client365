@@ -17,7 +17,7 @@ export default function ResetClientsNow() {
     };
 
     const closeSessionExpressAjax = () => {
-        axios.get('https://72.68.60.254:4000/bot/AlertaExpress/close')
+        axios.get('https://amazona365.ddns.net:4000/bot/AlertaExpress/close')
             .then(response => {
                 if (response.status === 200) {
                     dispatch(setConfigModal({

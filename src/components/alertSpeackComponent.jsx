@@ -18,27 +18,19 @@ import { showBrowserNotification } from '@/libs/notification_push/native';
 
 export default function AlertLiveJarvis() {
 
-    const { speak, changeVoice, changueVolume, voices } = useSpeckAlert();
+    const { speak, voice_definitive } = useSpeckAlert();
 
     const { play } = useNotificationSound();
-    const dispatch = useDispatch();
-
-
-    const voiceDefinitive = useSelector(store => store.voiceDefinitive);
-    const volumeDefinitive = useSelector(store => store.volumeVoiceDefinitive);
-
 
 
 
     useEffect(() => {   // Handler listener text on audio 
         let isSubscribed = true;
 
-        dispatch(setVoices(voices));
-
 
         const handlerMsmSocket = msm => {
             if (isSubscribed) {
-                //    speak(msm.text);
+                speak(msm.text);
                 //    if (!isMobile) showBrowserNotification('Nueva alerta', { body: msm.text, icon: '/ico/icons8-campana-48.png' });
             }
         };
@@ -81,18 +73,8 @@ export default function AlertLiveJarvis() {
             socket.off('document_created', handdlerCreateSocket);
             socket.off('document_updated', handdlerPutSocket);
         }
-    }, [voices]);
+    }, [voice_definitive]);
 
-
-
-    useEffect(() => {
-        if (voiceDefinitive) {
-            changeVoice(voiceDefinitive, err => {
-                console.log(err)
-            });
-        }
-        if (volumeDefinitive) changueVolume(Number(volumeDefinitive));
-    }, [voiceDefinitive, volumeDefinitive]);
 
 
 

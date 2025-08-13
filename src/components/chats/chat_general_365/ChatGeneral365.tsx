@@ -44,6 +44,9 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const buttonOpenEmojiRef = useRef<HTMLButtonElement>(null);
     const pageRef = useRef(0);
+
+
+    const keySubmit = useRef<boolean>(true);
     const keyInitFetchDataRef = useRef(true);
     const userContext = useContext(myUserContext);
     const user = userContext?.dataSessionState?.dataSession;
@@ -73,7 +76,8 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
     useEffect(() => {
         let key = true;
-        const recibeData = (message: Tmsm) => {
+
+        const recibeMsm = (message: Tmsm) => {
             if (key) {
                 setChangeData({ result: [message, ...data.result] });
                 if (user._id !== message.submittedByUser.userId) {
@@ -82,9 +86,18 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 }
             }
         };
-        socket.on('receive_message', recibeData)
+        socket.on('receive_message', recibeMsm);
+
+
+        const deletedMsm = (id: string) => {
+
+        };
+
+
+
+
         return () => {
-            socket.off('receive_message', recibeData);
+            socket.off('receive_message', recibeMsm);
             key = false;
         }
     }, [data, userContext]);
@@ -95,7 +108,6 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
     const groupConsecutiveMessages = useCallback((messages: Tmsm[]) => {
         if (!messages || messages.length === 0) return [];
-
         const grouped: Tmsm[][] = [];
         let currentGroup: Tmsm[] = [];
         let currentUser = messages[0].submittedByUser.userId;
@@ -149,13 +161,15 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
     const sendMsm = useCallback(() => {
-        console.log(message);
+        if (keySubmit.current === false) return;
+        keySubmit.current = false;
         if (message.trim() !== '') {
             fetchData({
                 url: '/chat',
                 method: 'post',
                 callback: () => {
                     setMessage('');
+                    keySubmit.current = true;
                     //    setShowEmojiPicker(false);
                 },
                 body: {
@@ -173,6 +187,12 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
         e.preventDefault();
         sendMsm();
     };
+
+
+
+    const deleteMsm = useCallback((id: string) => {
+        console.log(id);
+    }, [data])
 
 
     if (!userContext) return <div>Loading...</div>;
@@ -214,7 +234,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                                 <div className='w-full flex flex-col gap-[.2rem]' key={index}>
                                     {
                                         group.toReversed().map((item: Tmsm, indexMsm: number) => (
-                                            <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} />
+                                            <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} deleteProp={deleteMsm} />
                                         ))
                                     }
                                 </div>
@@ -267,11 +287,9 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                                         return message + '\n'
                                     });
                                 }
-                                // Evita que se añada un salto de línea
-                                if (message !== '') sendMsm();
-                                // Aquí puedes agregar la lógica para enviar el formulario, si es necesario.
-                                // Por ejemplo, si tienes una función para enviar el mensaje:
-                                // handleSendMessage();
+                                else {
+                                    if (message !== '') sendMsm();
+                                }
                             }
                         }}
                     />

@@ -1,48 +1,80 @@
 'use client';
 //import Speech from 'speak-tts';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import AppManagerConfigStorange from '@/libs/script/app_manager_config_DB';
+import { useSelector, useDispatch } from 'react-redux';
+
+import { setVoicesDefinitive } from '@/store/slices/voiceDefinitive';
+import { setVoiceVolumeDefinitive } from '@/store/slices/volumeVoiceDefinitive';
 
 
 export default function useSpeckAlert() {
 
-    const [voices, setVoices] = useState([]);
-    const [voiceDefault, setVoiceDefault] = useState(null);
+
+    const dispatch = useDispatch();
+    const voice_definitive = useSelector(store => store.voiceDefinitive);
+    const [listVoicesState, setListVoicesState] = useState([]);
+    const [voiceSeletedState, setVoiceSelectedState] = useState(null);
     const [volumeState, setVolumeState] = useState(1);
 
 
+
     useEffect(() => {
-        if (window !== undefined) {
-            if (voices.length < 1) {
-                const serializableVoices = speechSynthesis.getVoices().map(voice => ({
-                    name: voice.name,
-                }));
-                setVoices(serializableVoices);
+        if (typeof window !== 'undefined') {
+
+            const loadVoices = () => {
+                setListVoicesState(speechSynthesis.getVoices());
             }
+            speechSynthesis.addEventListener('voiceschanged', loadVoices);
+
+            return () => {
+                speechSynthesis.removeEventListener('voiceschanged', loadVoices);
+            };
         }
-    }, [voices]);
+    }, []);
 
 
 
+    useEffect(() => {
+        if (listVoicesState.length > 0) {
+            const voiceStorange = AppManagerConfigStorange.get('voice_definitive');
+            if (voiceStorange) changeVoice(voiceStorange);
+            const volumeStorage = AppManagerConfigStorange.set('voice_volume');
+            if (volumeStorage) changueVolume(voiceStorange);
+            if (!voice_definitive && !voiceStorange) changueVolume('Microsoft Paola Online(Natural) - Spanish(Venezuela)')
+        }
+    }, [listVoicesState]);
 
-    const speak = (text = '') => {
-        const machine = window.speechSynthesis;
-        const utterThis = new SpeechSynthesisUtterance(text);
-        const matchingVoice = speechSynthesis.getVoices().find((voice) => voice.name === voiceDefault);
-        utterThis.voice = matchingVoice;
-        utterThis.volume = volumeState;
-
-        machine.speak(utterThis);
-    };
 
 
     const changueVolume = number => {
         if (typeof number !== 'number') throw new Error('The parameter must be of type number');
-        return setVolumeState(number);
+        AppManagerConfigStorange.set('voice_volume', value);
+        setVolumeState(number);
     };
 
-    const changeVoice = (voiceName, errorCallback) => {
-        return setVoiceDefault(state => state = voiceName);
+
+
+    const changeVoice = (nameVoice) => {
+        if (typeof nameVoice !== 'string') throw new Error('The parameter must be of type string');
+        AppManagerConfigStorange.set('voice_definitive', nameVoice);
+        const seleted = speechSynthesis.getVoices().find((voice) => voice.name === nameVoice);
+        dispatch(setVoicesDefinitive(seleted));
+        setVoiceSelectedState(seleted);
     };
 
-    return { speak, changeVoice, changueVolume, voices, voiceDefault };
+
+
+    const speak = useCallback((text = '') => {
+        const machine = window.speechSynthesis;
+        const utterThis = new SpeechSynthesisUtterance(text);
+        utterThis.voice = voice_definitive;
+        utterThis.volume = volumeState;
+        machine.speak(utterThis);
+    }, [voice_definitive]);
+
+
+
+
+    return { listVoicesState, changeVoice, voice_definitive, speak, changueVolume, volumeState };
 }

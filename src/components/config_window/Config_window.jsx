@@ -1,5 +1,5 @@
 'use client';
-import { isMobile } from 'react-device-detect'; 
+import { isMobile } from 'react-device-detect';
 import { useSelector, useDispatch } from 'react-redux';
 import { setOpenWindowConfig } from '@/store/slices/configModalStore';
 import SectionConfigVoice from './assets/config_voices';
@@ -10,7 +10,7 @@ import ListDayGoal from './assets/configArr';
 
 
 
-export default function Config_window(){
+export default function Config_window() {
 
     const isOpenWindowState = useSelector(store => store.configModal);
     const dispatch = useDispatch();
@@ -20,7 +20,7 @@ export default function Config_window(){
     }
 
 
-    return(
+    return (
         !isMobile && isOpenWindowState ?
 
             <div className='__border-smoothed bdGray scrolltheme1'
@@ -42,28 +42,28 @@ export default function Config_window(){
                 >
                     <h3 className='t-white'>Configuración</h3>
                     <div className='__height-complete __center_center'>
-                        <button 
+                        <button
                             className='__pointer __center_center'
-                            onClick={ handlerCloseWindow }
+                            onClick={handlerCloseWindow}
                         >
-                            <img style={{ height: '30px', width: '30px' }} className='__width-complete __height-complete __never-pointer' src='/img/ico-close.png'  />
+                            <img style={{ height: '30px', width: '30px' }} className='__width-complete __height-complete __never-pointer' src='/img/ico-close.png' />
                         </button>
                     </div>
                 </div>
 
                 <div className='flex columns __padding1rem __width-complete __height-complete __oneGap'>
-                    <SectionConfigVoice />
+
                     <hr />
                     <ResetClientsNow />
                     <hr />
-                    <ConfigIsAdmin/>
+                    <ConfigIsAdmin />
                     <hr />
                     <ListDayGoal />
                     <hr />
                     <ChangueDaylightSavingTime />
                 </div>
             </div>
-        :
+            :
             null
     );
 }

@@ -13,6 +13,8 @@ import ChatGeneral365 from '@/components/chats/chat_general_365/ChatGeneral365';
 import FilterNoveltyForLobby from '@/components/filter_data_for_lobby/FilterComponent.jsx';
 import AlertInputLive from '@/components/alert_input/AlertIput.jsx';
 
+import SectionConfigVoice from '@/components/config_window/assets/config_voices'
+
 
 
 export default function Lobby() {
@@ -50,7 +52,7 @@ export default function Lobby() {
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
-                    <h2>coming soong...</h2>
+                    <SectionConfigVoice />
                 </Aside_Eyelash>
 
                 <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
