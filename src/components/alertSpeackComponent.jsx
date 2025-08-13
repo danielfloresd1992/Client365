@@ -45,11 +45,13 @@ export default function AlertLiveJarvis() {
 
         const handdlerCreateSocket = (msm) => {
             if (isSubscribed) {
-                speak(`Nueva alerta en ${msm.doc?.local?.name}`);
+                speak(`Nueva alerta en ${msm.doc?.local?.name}, por validar`);
+                /*
                 showBrowserNotification('Nueva alerta', {
                     image: msm.doc.imageToShare,
                     body: msm.doc.title, icon: '/ico/icons8-campana-48.png'
                 });
+                */
             }
         };
 
