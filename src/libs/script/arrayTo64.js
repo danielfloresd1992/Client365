@@ -33,5 +33,5 @@ function bufferToDataURL(buffer , type){
     return `data:${type};base64,${base64}`;
 }
 
-0
+
 export { arrayBufferToBase64, bufferToDataURL };

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal.js';
 import { useSearchParams } from 'next/navigation';
@@ -33,6 +33,9 @@ export default function Layautbody() {
     const [state, setState] = useState(null);
     const [showFormBoolean, setShowFormBoolean] = useState(false);
 
+    const refPutData = useRef(null);
+
+    const { fetchData } = useSingleFetch(null, false);
 
 
 
@@ -78,6 +81,7 @@ export default function Layautbody() {
 
 
     const closeForm = () => {
+        refPutData.current = null;
         setShowFormBoolean(false);
     };
 
@@ -201,6 +205,15 @@ export default function Layautbody() {
     };
 
 
+    const handdlerClickGetDish = (id) => {
+        fetchData({
+            url: `/dishes/id=${id}`, method: 'get', autoGetDat: false, callback: (response, error) => {
+                if (response?.data) refPutData.current = { ...response.data?.data, isPut: true };
+                setShowFormBoolean(true);
+            }
+        })
+    };
+
 
 
     if (!state) return <LoandingData title='Cargando datos' />
@@ -248,7 +261,9 @@ export default function Layautbody() {
                                         'Detallado'
                                 }
                             </td>
-                            <td>.</td>
+                            <td>
+                                <button className='color-gray-500 border-solid border-[1px] text-[.7rem] p-[.2rem_.5rem] rounded-[4px]' onClick={() => handdlerClickGetDish(item._id)}>editar</button>
+                            </td>
                         </tr>
                     ))
                 }
@@ -258,7 +273,7 @@ export default function Layautbody() {
                 showFormBoolean ?
                     (
                         <WindowFormLayaut close={closeForm}>
-                            <FormDish establishment={state} pushData={pushData} close={closeForm} />
+                            <FormDish establishment={state} pushData={pushData} close={closeForm} putData={refPutData.current} />
                         </WindowFormLayaut>
                     )
                     :

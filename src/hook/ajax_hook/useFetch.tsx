@@ -47,7 +47,7 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
 
 
     useEffect(() => {
-        if (!state.data && endpoint.method === 'get' && initFetch) fetchData({ url: null, method: null, autoGetData: true, callback: null });
+        if (!state?.data && endpoint?.method === 'get' && initFetch) fetchData({ url: null, method: null, autoGetData: true, callback: null });
     }, []);
 
 
@@ -68,6 +68,7 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
         }
         catch (err) {
             console.log(err);
+            callback(null, err);
             setState({ data: null, loading: false, error: err, ok: false });
         }
     }, [state, endpoint]);

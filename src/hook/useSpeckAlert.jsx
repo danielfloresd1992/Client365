@@ -21,7 +21,7 @@ export default function useSpeckAlert() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-
+            
             const loadVoices = () => {
                 setListVoicesState(speechSynthesis.getVoices());
             }

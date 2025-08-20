@@ -53,7 +53,7 @@ export default function InputBorderBlue({
                 </select>
             );
 
-        }
+        }//box-shadow: 
         if (type === 'range') {
             return (
                 <input
@@ -86,18 +86,26 @@ export default function InputBorderBlue({
                     }}
                 />
             )
-        }
+        } ''
         if (type === 'toogle') {
             return (
                 <div className='relative bg-white w-10 h-5 rounded-full cursor-pointer flex items-center'
+                    style={{
+                        boxShadow: 'inset -1px -1px 2px 0px #838383'
+                    }}
                     onClick={() => {
                         eventChengue(!valueState);
-                    }}
+                    }
+                    }
                 >
-                    <div className={`absolute w-[22px] h-[22px] rounded-full bg-[#0a2657] ${valueState ? 'right-[0]' : 'left-[0]'}`}>
+                    <div className={`absolute w-[22px] h-[22px] rounded-full bg-[#0a2657] ${valueState ? 'right-[0]' : 'left-[0]'}`}
+                        style={{
+                            backgroundColor: valueState ? 'green' : 'red'
+                        }}
+                    >
 
                     </div>
-                </div>
+                </div >
             )
         }
         else {

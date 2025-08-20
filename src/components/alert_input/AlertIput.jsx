@@ -1,4 +1,5 @@
 'use client';
+import { useEffect } from 'react';
 import { useRef } from 'react';
 import { useSelector } from 'react-redux';
 import BannerConfigAlert from './assets/BannerConfig';
@@ -16,6 +17,23 @@ export default function AlertInputLive() {
     const filterAlert = useSelector(state => state.filterClientList);
 
 
+
+    useEffect(() => {
+
+    }, []);
+
+
+
+    const handdlerClickGenerateGrafic = () => {
+    };
+
+
+    const handdlerClickGenerateShift = () => {
+    };
+
+
+
+
     return (
         <div className='w-full h-full flex flex-col'>
             <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex flex-col items-center justify-between'>
@@ -23,8 +41,14 @@ export default function AlertInputLive() {
                     <h2 className='text-black'>Reporte de alertas</h2>
                 </div>
                 <div className='w-full flex justify-start items-center flex- gap-[.5rem]'>
-                    <button className='px-[0.2rem] py-[0.1rem] text-[.8rem] text-[green] border border-solid rounded-[5px]'>Generar indicador</button>
-                    <button className='px-[0.2rem] py-[0.1rem] text-[.8rem] text-[red] border border-solid rounded-[5px]'>Generar nuevo turno</button>
+                    <button
+                        className='px-[0.4rem] py-[0.1rem] text-[.8rem] text-[green] border border-solid rounded-[5px]'
+                        onClick={handdlerClickGenerateGrafic}
+                    >Generar indicador</button>
+                    <button
+                        className='px-[0.4rem] py-[0.1rem] text-[.8rem] text-[red] border border-solid rounded-[5px]'
+                        onClick={handdlerClickGenerateShift}
+                    >Generar nuevo turno</button>
                 </div>
             </header>
 

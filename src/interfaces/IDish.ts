@@ -1,18 +1,24 @@
-interface IEstablishment{
+interface IEstablishment {
     _id: string | undefined
 }
 
-interface IFormDishProp{
+interface IFormDishProp {
     establishment: IEstablishment,
+    putData: any,
     pushData: (data: any) => void
     close: () => void
 }
 
 
-interface IDish{
+interface IDish {
     nameDishe: string | null,
     category: string | undefined,
-    dayActivate: string | undefined
+    allDay: boolean
+    timeLimit: any
+    timeLimitSeconds: any
+    idLocalRef: string | null | undefined
+    showDelaySubtraction: boolean
+    isPut: boolean
 }
 
 
