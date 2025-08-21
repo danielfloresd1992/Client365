@@ -72,7 +72,7 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
 
     const setDish: () => void = () => {
 
-        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'POST', body: stateData })
+        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'POST', body: { ...stateData, idLocalRef: establishment._id } })
             .then((response: AxiosResponse) => {
                 if (response.status === 200) {
                     pushData(response.data);
