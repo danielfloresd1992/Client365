@@ -97,7 +97,7 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
 
 
     const putDish = () => {
-        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'PUT', body: stateData })
+        requestAction({ url: `/dishes/id=${establishment._id}`, action: 'PUT', body: stateData })
             .then((response: AxiosResponse) => {
                 if (response.status === 200) {
                     dispatch(setConfigModal({
