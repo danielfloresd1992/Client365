@@ -68,11 +68,12 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
         stateData.isPut ? putDish() : setDish()
     };
 
+    console.log('stateData', stateData);
 
 
     const setDish: () => void = () => {
 
-        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'POST', body: { ...stateData, idLocalRef: establishment._id } })
+        requestAction({ url: `/dishes?id=${establishment._id}`, action: 'POST', body: stateData })
             .then((response: AxiosResponse) => {
                 if (response.status === 200) {
                     pushData(response.data);
@@ -97,8 +98,11 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
 
 
     const putDish = () => {
-        requestAction({ url: `/dishes/id=${establishment._id}`, action: 'PUT', body: stateData })
+        console.log('putDish', stateData);
+
+        requestAction({ url: `/dishes/id=${stateData._id}`, action: 'PUT', body: { ...stateData, idLocalRef: establishment._id } })
             .then((response: AxiosResponse) => {
+                console.log(response);
                 if (response.status === 200) {
                     dispatch(setConfigModal({
                         title: 'Succeful',

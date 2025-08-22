@@ -208,7 +208,7 @@ export default function Layautbody() {
     const handdlerClickGetDish = (id) => {
         fetchData({
             url: `/dishes/id=${id}`, method: 'get', autoGetDat: false, callback: (response, error) => {
-                if (response?.data) refPutData.current = { ...response.data?.data, isPut: true };
+                if (response?.data) refPutData.current = { ...response.data?.data, isPut: true, idLocalRef: state._id };
                 setShowFormBoolean(true);
             }
         })

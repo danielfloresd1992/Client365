@@ -19,6 +19,7 @@ interface IDish {
     idLocalRef: string | null | undefined
     showDelaySubtraction: boolean
     isPut: boolean
+    _id?: string
 }
 
 

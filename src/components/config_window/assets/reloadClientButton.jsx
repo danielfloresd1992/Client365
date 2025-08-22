@@ -16,6 +16,13 @@ export default function ResetClientsNow() {
         socket.emit('recive-reload-client-appmanager', null);
     };
 
+
+    const resetExpress = () => {
+        socket.emit('reset_client_jarvis', { client: 'express' });
+    }
+
+
+
     const closeSessionExpressAjax = () => {
         axios.get('https://amazona365.ddns.net:4000/bot/AlertaExpress/close')
             .then(response => {
@@ -59,6 +66,15 @@ export default function ResetClientsNow() {
                 <div className='_center_center columns __flex-between __oneGap'>
                     <button style={{ padding: '.5rem', fontSize: '.8rem' }} className='btn-item' onClick={closeSessionExpressAjax}>
                         <p className='t-white'>Close now</p>
+                    </button>
+                </div>
+            </BoxConfigForWindow>
+
+
+            <BoxConfigForWindow titleText='Cerrar cuentas de Reportes Express'>
+                <div className='_center_center columns __flex-between __oneGap'>
+                    <button style={{ padding: '.5rem', fontSize: '.8rem' }} className='btn-item' onClick={resetExpress}>
+                        <p className='t-white'>Reiniciar todos los usuarios de express</p>
                     </button>
                 </div>
             </BoxConfigForWindow>
