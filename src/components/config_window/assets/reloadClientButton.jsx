@@ -11,6 +11,8 @@ import axios from 'axios';
 export default function ResetClientsNow() {
 
     const dispatch = useDispatch();
+    let connectionString = process.env.NEXT_PUBLIC_SOCKET_AVA_CHAT || 'https://72.68.60.201:3009';
+
 
     const reset = () => {
         socket.emit('recive-reload-client-appmanager', null);
@@ -24,7 +26,7 @@ export default function ResetClientsNow() {
 
 
     const closeSessionExpressAjax = () => {
-        axios.get('https://amazona365.ddns.net:4000/bot/AlertaExpress/close')
+        axios.get(`${connectionString}/bot/AlertaExpress/close`)
             .then(response => {
                 if (response.status === 200) {
                     dispatch(setConfigModal({

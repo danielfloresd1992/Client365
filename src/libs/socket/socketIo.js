@@ -2,37 +2,11 @@
 import { io } from 'socket.io-client';
 
 
-let IP;
-
-
-if (process.env.NODE_ENV === 'development') {
-
-    if (typeof window !== 'undefined') {
-        window.location.host === '72.68.60.201:3000' ?
-            //IP = 'https://amazona365.ddns.net:455'
-            IP = 'https://72.68.60.201:3007'
-            :
-            IP = 'https://amazona365.ddns.net:3007';
-        //IP = 'https://amazona365.ddns.net:455';
-    }
-}
-else {      // PRODUCTION
-
-    if (typeof window !== 'undefined') {
-        window.location.host === '72.68.60.254:3005' ?
-            IP = 'https://72.68.60.254:455'
-            :
-            IP = 'https://amazona365.ddns.net:455';
-    }
-    else {
-        IP = 'https://72.68.60.201:3007';
-    }
-}
+let connectionString = process.env.NEXT_PUBLIC_SOCKET_JARVIS || 'https://72.68.60.201:3007';
 
 
 
-
-const socket = io(IP, {
+const socket = io(connectionString, {
     secure: true,
     rejectUnauthorized: false,
 });
@@ -56,9 +30,6 @@ socket.on('error', error => {
 
 
 socket.emit('join_room', 'lobby');
-
-
-
 
 
 

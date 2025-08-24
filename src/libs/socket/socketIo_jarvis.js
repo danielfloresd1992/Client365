@@ -2,32 +2,14 @@
 import { io } from 'socket.io-client';
 
 
-let IP;
-
-if (process.env.NODE_ENV === 'development') {
-    if (typeof window !== 'undefined') {
-        window.location.host === '72.68.60.201:3000' ?
-            IP = 'https://72.68.60.254:3000'
-            :
-            IP = 'https://amazona365.ddns.net:3000';
-    }
-}
-else {
-    if (typeof window !== 'undefined') {
-        window.location.host === '72.68.60.254:3005' ?
-            IP = 'https://72.68.60.254:3000'
-            :
-            IP = 'https://amazona365.ddns.net:3000';
-    }
-    else {
-        IP = 'https://72.68.60.254:3000';
-    }
-}
+let connectionString = process.env.NEXT_PUBLIC_SOCKET_AVA || 'https://72.68.60.254:3000';
 
 
 
 
-const socket_jarvis = io(IP, {
+
+
+const socket_jarvis = io(connectionString, {
     secure: true,
     rejectUnauthorized: false,
 });
