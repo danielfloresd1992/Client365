@@ -10,6 +10,7 @@ import { DataToCreateUserBasic, SessionState, SessionContextProps, ReturFunc, Er
 
 
 // fetchins
+
 import { requestLogin, closeSession } from '@/libs/ajaxClient/authFetch';
 
 
@@ -19,14 +20,6 @@ export default function useAuthOnServer(): ReturFunc {
 
     const { dataSessionState, setState }: any = useContext(myUserContext);
     const router = useRouter();
-    const pathName: string = usePathname();
-
-
-
-    useEffect(() => {
-
-
-    }, []);
 
 
 
@@ -44,7 +37,9 @@ export default function useAuthOnServer(): ReturFunc {
 
             setDataResult.stateSession = 'authenticated';
             setDataResult.dataSession = dataRes;
+
             setState(setDataResult);
+
             if (callbackUrl) router.push(callbackUrl);
         });
     }, [router]);

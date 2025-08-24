@@ -13,7 +13,7 @@ import useAuthOnServer from '@/hook/auth'
 
 export default function Login({ setType }) {
 
-    const [ visibilityState, setVisibilityState ] = useState(true);
+    const [visibilityState, setVisibilityState] = useState(true);
 
 
     const { signIn, dataSessionState, errorState } = useAuthOnServer();
@@ -27,7 +27,7 @@ export default function Login({ setType }) {
 
 
     useEffect(() => {
-        if(errorState){
+        if (errorState) {
             dispatch(setConfigModal({
                 type: 'error',
                 title: '',
@@ -35,8 +35,8 @@ export default function Login({ setType }) {
                 modalOpen: false,
             }));
         }
-        else{
-            if(dataSessionState.stateSession === 'authenticated'){
+        else {
+            if (dataSessionState.stateSession === 'authenticated') {
                 dispatch(setConfigModal({
                     type: '',
                     title: '',
@@ -44,14 +44,14 @@ export default function Login({ setType }) {
                     modalOpen: false,
                 }));
             }
-           
+
             reset();
         }
-    }, [ errorState, dataSessionState ]);
+    }, [errorState, dataSessionState]);
 
 
 
-    const loginUser = async data => { 
+    const loginUser = async data => {
         dispatch(setConfigModal({
             type: 'await',
             title: 'Iniciando sessión',
@@ -62,12 +62,12 @@ export default function Login({ setType }) {
         signIn({ email, password }, '/Lobby');
     };
 
-    
+
 
     const printErrorAuth = () => {
         if (errorState?.status === 404) return 'Correo o usuario no existe';
-        else if (errorState?.status === 401 &&  errorState?.message !== 'Your session has expired') return 'Clave invalida';
-        else if ( errorState?.status >= 500 ) return 'Error server internal'
+        else if (errorState?.status === 401 && errorState?.message !== 'Your session has expired') return 'Clave invalida';
+        else if (errorState?.status >= 500) return 'Error server internal'
         else ''
     };
 
@@ -75,10 +75,10 @@ export default function Login({ setType }) {
 
 
     return (
-        <FormLayaut setSubmit={handleSubmit(loginUser)} style={{ position: 'relative', minHeight : '300px' }} >
+        <FormLayaut setSubmit={handleSubmit(loginUser)} style={{ position: 'relative', minHeight: '300px' }} >
             {
                 dataSessionState.stateSession === 'authenticated' ?
-                    <LoandingData title={ 'Esperando repuesta' } style={{ height: '300px' }} />
+                    <LoandingData title={'Esperando repuesta'} style={{ height: '300px' }} />
                     :
                     <>
                         <div className="__width-complete">
