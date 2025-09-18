@@ -4,7 +4,7 @@ import IP from '@/libs/ajaxClient/dataFecth';
 
 
 // Crear una instancia de CookieJar
-
+console.log(IP);
 
 // Crear un agente HTTPS que ignore la verificación de certificados
 const agent = new https.Agent({

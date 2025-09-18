@@ -56,14 +56,14 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
     const fetchData = useCallback(async ({ url, method, autoGetData = true, callback, body }: TFetchData): Promise<void> => {
         try {
             const objectRequest: any = { method: method ?? endpoint.method, url: url ?? endpoint.resource }
+            console.log(objectRequest);
             if (body) objectRequest.data = body;
             let response = await axiosInstance(objectRequest);
-
             if (typeof callback === 'function') {
                 callback(response);
             }
             else {
-                if (autoGetData) setState({ data: response.data, loading: false, error: null, ok: true });
+                if (autoGetData) setState({ data: response?.data, loading: false, error: null, ok: true });
             }
         }
         catch (err) {
