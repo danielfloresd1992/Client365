@@ -68,8 +68,12 @@ export function useSingleFetch<T extends ApiEndpoint>(endpoint: T, initFetch: bo
         }
         catch (err) {
             console.log(err);
-            callback(null, err);
-            setState({ data: null, loading: false, error: err, ok: false });
+            if (typeof callback === 'function') {
+                callback(null, err);
+            }
+            else {
+                setState({ data: null, loading: false, error: err, ok: false });
+            }
         }
     }, [state, endpoint]);
 
