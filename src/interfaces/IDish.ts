@@ -17,7 +17,8 @@ interface IDish {
     timeLimit: any
     timeLimitSeconds: any
     idLocalRef: string | null | undefined
-    showDelaySubtraction: boolean
+    showDelaySubtraction: boolean,
+    requiresTableNumber: boolean,
     isPut: boolean
     _id?: string
 }

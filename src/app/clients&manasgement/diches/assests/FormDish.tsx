@@ -42,16 +42,9 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
         },
         showDelaySubtraction: false,
         idLocalRef: establishment._id,
+        requiresTableNumber: true,
         isPut: false,
     });
-
-
-    const arrChillOption: any = [
-        { value: 'desserts_and_sweets', text: 'postres y  dulces' },
-        { value: 'drinks', text: 'bebidas' },
-        { value: 'food', text: 'aperitivos' },
-    ]
-
 
 
 
@@ -60,6 +53,14 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
             setStateData(putData);
         }
     }, []);
+
+
+    const arrChillOption: any = [
+        { value: 'desserts_and_sweets', text: 'postres y  dulces' },
+        { value: 'drinks', text: 'bebidas' },
+        { value: 'food', text: 'aperitivos' },
+    ]
+
 
 
     const handdlerSubmit = (e: React.FormEvent): void => {
@@ -98,8 +99,6 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
 
 
     const putDish = () => {
-        console.log('putDish', stateData);
-
         requestAction({ url: `/dishes/id=${stateData._id}`, action: 'PUT', body: { ...stateData, idLocalRef: establishment._id } })
             .then((response: AxiosResponse) => {
                 console.log(response);
@@ -176,6 +175,14 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
     };
 
 
+
+    const changeConfigNumberTable: any = (value: boolean) => {
+        alert(value);
+        setStateData({
+            ...stateData,
+            requiresTableNumber: value
+        })
+    }
 
 
 
@@ -281,6 +288,18 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
                         eventChengue={changeToggle}
                     />
                 </div>
+            </div>
+
+            <div
+                className='w-full'
+            >
+                <InputBorderBlue
+                    textLabel='¿añadir número de mesa?'
+                    type='checkbox'
+                    name=''
+                    value={stateData.requiresTableNumber as any}
+                    eventChengue={changeConfigNumberTable}
+                />
             </div>
             <br />
             {
