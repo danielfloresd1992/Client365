@@ -190,7 +190,7 @@ export default function Layautbody() {
     const resetConfigRequest = () => {
         const bodyForRequest = { ...state };
         delete bodyForRequest.img;
-        requestAction({ url: `https://${IP}/local/${state._id}?populate`, body: { ...bodyForRequest, dishes: [] }, action: 'PUT' })
+        requestAction({ url: `/local/${state._id}?populate`, body: { ...bodyForRequest, dishes: [] }, action: 'PUT' })
             .then(response => {
                 if (response.status === 200) setState({ ...state, dishes: [] });
             })
