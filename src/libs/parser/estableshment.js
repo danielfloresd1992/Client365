@@ -1,4 +1,7 @@
 export function groupByFranchiseComprehensive(restaurantsArray) {
+
+    if (!restaurantsArray) return null;
+
     return restaurantsArray.reduce((grouped, restaurant) => {
         // Use name_franchise as primary key, fallback to franchise if not available
         const key = restaurant.franchiseReference?.name_franchise || restaurant.franchise;

@@ -1,37 +1,43 @@
 'use client';
 import { useState, memo } from 'react';
 import Table from '@/components/tablet_component/Table.jsx';
-import CellClient from './assets/CellClient';
+import ClientBox from './assets/clientBox';
 //mport getListClient from '@/libs/ajaxServer/getListClient';
 import ItenCellClien from './assets/ItenCellClien';
 
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
+import { groupByFranchiseComprehensive } from '../../libs/parser/estableshment';
 
 
 
+function ContentCliets() {
 
-function TabletClient() {
 
+    const { data, fetchData, loading } = useSingleFetch({ resource: '/establishment&compressed', method: 'get' }, true);
 
-    const { data, fetchData, loading } = useSingleFetch({ resource: '/localLigth', method: 'get' }, true);
-
+    const groupClients = groupByFranchiseComprehensive(data);
 
     if (loading) return null;
 
 
-    return (
-        <Table dataHead={['Número', 'Orden de apilamiento', 'Nombre', 'Logo', 'Horario', 'Manager', 'Configuración de plato']} >
-            {
-                data.map((item, index) => (
-                    <tr style={{ order: item.order }} key={index} >
-                        <CellClient data={item} index={index} />
-                    </tr>
-                ))
-            }
-            <ItenCellClien />
-        </Table>
-    );
+    return groupClients && Object.entries(groupClients).map(([key, client]) => {
+
+
+        return (
+            <div className='w-full' key={key}>
+                <div><p className='text-center'>{key}</p></div>
+                <div className='w-full'>
+                    {
+                        client && client.map(items => {
+
+                            return <ClientBox data={items} />
+                        })
+                    }
+                </div>
+            </div>
+        );
+    });
 }
 
 
-export default memo(TabletClient)
+export default memo(ContentCliets)

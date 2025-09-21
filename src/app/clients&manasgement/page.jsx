@@ -10,7 +10,7 @@ export default function Content() {
     return (
         <>
             <Aside />
-            <div className='w-[calc(100%-256px)]'>
+            <div className='w-[calc(100%-256px)] h-full overflow-y-scroll'>
                 <TabletClient />
             </div>
 

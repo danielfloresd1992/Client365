@@ -13,7 +13,7 @@ import useAuthOnServer from '@/hook/auth';
 
 
 
-export default function CellClient({ data, index }) {
+export default function ClientBox({ data, index }) {
 
 
 
@@ -65,7 +65,7 @@ export default function CellClient({ data, index }) {
 
 
     return (
-        <>
+        <div>
             <td>
                 {index}
             </td>
@@ -107,6 +107,6 @@ export default function CellClient({ data, index }) {
                     onClick={() => router.push(`/clients&manasgement/diches?id=${data._id}`)}
                 > Editar </button>
             </td>
-        </>
+        </div>
     );
 }

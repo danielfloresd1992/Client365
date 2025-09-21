@@ -1,17 +1,17 @@
 'use client';
 import { useSelector } from 'react-redux';
-import CellClient from './CellClient';
+import CellClient from './clientBox';
 
 
-export default function ItenCellClien(){
+export default function ItenCellClien() {
 
     const newEstablishment = useSelector(state => state.newEstablishment);
 
-    
-    return(
+
+    return (
         newEstablishment.map((establishment, index) => (
-            <tr style={{ order: establishment.order }} key={ index } >
-                <CellClient data={ establishment } index={ index }/>
+            <tr style={{ order: establishment.order }} key={index} >
+                <CellClient data={establishment} index={index} />
             </tr>
         ))
     );

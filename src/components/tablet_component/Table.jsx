@@ -9,10 +9,10 @@ export default function Table({ dataHead, children }) {
 
 
     return (
-        <div className='__width-complete contain-between scrolltheme1 containForTableOne __paddingNone'
+        <div className='h-full __width-complete contain-between scrolltheme1 containForTableOne __paddingNone'
             style={{ alignItems: 'flex-start' }}
         >
-            <table className='__width-complete tabletOne __border-none'>
+            <table className='h-full __width-complete tabletOne __border-none'>
                 <thead className='__width-complete __border-button'>
                     <tr>
                         {
