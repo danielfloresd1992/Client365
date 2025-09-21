@@ -1,16 +1,19 @@
 
-import BannerContain from './assets/BannerConaint';
+import Aside from './assets/BannerConaint';
 import TabletClient from '@/components/TableClient/TableClient';
 import FormComponent from './assets/FormComponent';
 
 
-export default function Content(){
+export default function Content() {
 
 
-    return(
+    return (
         <>
-            <BannerContain />
-            <TabletClient />
+            <Aside />
+            <div className='w-[calc(100%-256px)]'>
+                <TabletClient />
+            </div>
+
             <FormComponent />
         </>
     );

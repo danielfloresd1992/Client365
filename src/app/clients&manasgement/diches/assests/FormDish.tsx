@@ -177,7 +177,6 @@ export default function FormDish({ establishment, putData, pushData, close }: IF
 
 
     const changeConfigNumberTable: any = (value: boolean) => {
-        alert(value);
         setStateData({
             ...stateData,
             requiresTableNumber: value
