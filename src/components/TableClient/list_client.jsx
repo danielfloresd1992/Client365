@@ -10,27 +10,26 @@ import { groupByFranchiseComprehensive } from '../../libs/parser/estableshment';
 
 
 
-function ContentCliets() {
+function ContentCliets({ clients }) {
 
 
     const { data, fetchData, loading } = useSingleFetch({ resource: '/establishment&compressed', method: 'get' }, true);
-
     const groupClients = groupByFranchiseComprehensive(data);
 
     if (loading) return null;
 
 
-    return groupClients && Object.entries(groupClients).map(([key, client]) => {
+    return groupClients && Object.entries(groupClients).map(([key, clients]) => {
 
 
         return (
             <div className='w-full' key={key}>
-                <div><p className='text-center'>{key}</p></div>
-                <div className='w-full'>
+                <div className='w-full bg-[#dddddd] p-[.5rem]'><p className='text-center font-medium text-[#636262]'>{key}</p></div>
+                <div className='w-full p-[2rem] flex items-center justify-center gap-[3rem] flex-wrap'>
                     {
-                        client && client.map(items => {
+                        clients && clients.map(items => {
 
-                            return <ClientBox data={items} />
+                            return <ClientBox data={items} key={items._id} />
                         })
                     }
                 </div>

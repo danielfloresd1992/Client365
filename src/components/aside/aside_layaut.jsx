@@ -7,10 +7,12 @@ export default function AsideGreen({ title, urlIco, children }) {
         <aside className='w-[256px] h-full bg-[#31c967] text-black flex flex-col justify-between overflow-hidden rounded-[10px]'>
             <div className='flex flex-col items-center gap-[2rem]  p-4'>
                 <div className='w-full flex flex-col gap-[.5rem]'>
-                    <div className='w-full flex flex-row items-center justify-center gap-[.5rem]'>
+                    <div className='relative w-full flex flex-row items-center justify-center gap-[.5rem]'>
                         {
                             urlIco ?
-                                <Image src={urlIco} alt={`ico-${title}`} width={20} height={20} />
+                                <div className='absolute left-[0px]'>
+                                    <Image src={urlIco} alt={`ico-${title}`} width={20} height={20} />
+                                </div>
                                 :
                                 null
                         }
