@@ -1,0 +1,66 @@
+.hidden-aside {
+    @apply transform -translate-x-full
+}
+
+
+.visible-aside {
+    @apply transform -translate-x-[0%]
+}
+
+
+.aside-green {
+    @apply absolute top-[0] left-[0] w-[300px] h-full bg-[#31c967] text-black flex flex-col justify-between p-[2.5rem_0rem_2rem_0rem] 
+}
+
+
+.aside-contentHeader {
+    @apply static w-full flex flex-row items-center justify-center gap-[.5rem]
+}
+
+
+
+.aside-buttonBurger {
+    @apply absolute left-[320px];
+    background-color: #cfcfcf;
+    padding: .2rem;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    filter: drop-shadow(2px 4px 6px black);
+}
+
+
+
+
+
+
+.hidden-aside {
+    @apply transform -translate-x-full
+}
+
+
+@media (min-width: 640px) {
+    .aside-green {
+        @apply relative w-[256px] h-full bg-[#31c967] text-black flex flex-col justify-between overflow-hidden rounded-[10px] p-[0]
+    }
+
+    .aside-contentHeader {
+        @apply relative
+    }
+
+
+    .aside-buttonBurger {
+        @apply left-[0px];
+        background-color: transparent;
+        filter: none;
+    }
+
+
+    .aside-buttonToBack {
+        @apply h-[35px] pointer-events-none;
+
+    }
+}

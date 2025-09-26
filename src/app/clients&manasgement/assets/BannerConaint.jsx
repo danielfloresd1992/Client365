@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import { setTypeForm } from '@/store/slices/typeForm';
 import BannerBetween from '@/components/Header/BannerBetween';
-import AsideGreen from '../../../components/aside/aside_layaut';
+import AsideGreen from '../../../components/aside/aside_green/aside_layaut';
 import ButtonForBanner from '@/components/buttons/ButtonForBanner';
 import useAuthOnServer from '@/hook/auth';
 import Image from 'next/image';

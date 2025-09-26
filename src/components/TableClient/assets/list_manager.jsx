@@ -49,14 +49,12 @@ function Manager({ id }) {
     }, [id]);
 
 
-    console.log(id);
-    console.log(stateData);
 
 
     return (
-        <div>
-            <p>{stateData?.burden} {stateData?.name}</p>
-        </div>
+        <ul>
+            <li><p className='text-black text-[.8rem]'>{stateData?.burden} {stateData?.name}</p></li>
+        </ul>
     );
 }
 
