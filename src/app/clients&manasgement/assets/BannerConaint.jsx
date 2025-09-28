@@ -3,11 +3,9 @@ import { useState, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import { setTypeForm } from '@/store/slices/typeForm';
-import BannerBetween from '@/components/Header/BannerBetween';
 import AsideGreen from '../../../components/aside/aside_green/aside_layaut';
 import ButtonForBanner from '@/components/buttons/ButtonForBanner';
 import useAuthOnServer from '@/hook/auth';
-import Image from 'next/image';
 
 
 import key_search from '@/libs/script/search';
@@ -88,9 +86,12 @@ export default function BannerContain({ clients }) {
                             onChange={handdlerChangeInputSearch}
                         />
                     </div>
-                    <div className='absolute p-[0] top-[31.5px] bg-[#ffffffe0] w-full min-h-[0px] max-h-[300px] overflow-y-scroll'>
+                    <div className='absolute p-[0] top-[31.5px] bg-[#baffb9de] rounded-[3px] w-full min-h-[0px] max-h-[300px]'
+                        style={{padding: 0}}
+                        
+                    >
                         {
-                            searchResultState.result.length > 0 && searchResultState.result.map(item => {
+                           searchResultState.result.length > 0 && searchResultState.result.map(item => {
 
 
                                 return (

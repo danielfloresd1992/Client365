@@ -11,6 +11,7 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import useAuthOnServer from '@/hook/auth';
 
+import ContentResponsive from '@/components/layaut/layaut_clients/section'
 import PieceLoader from '../../../components/loandingComponent/piece_loader';
 import ListManager from './list_manager';
 
@@ -82,7 +83,8 @@ export default function ClientBox({ data, index }) {
 
 
     return (
-        <div className='w-full min-h-[300px] flex' id={`${data._id}-${data?.name}`}>
+        <ContentResponsive id={`${data._id}-${data?.name}`}>
+
             <div className='w-[190px] min-h-[250px] flex flex-col items-center gap-[.5rem] shadow-[5px_5px_10px_#656565]' ref={ref}>
                 {
                     client ?
@@ -165,6 +167,6 @@ export default function ClientBox({ data, index }) {
                     </div>
                 </div>
             </div>
-        </div>
+        </ContentResponsive>
     );
 }
