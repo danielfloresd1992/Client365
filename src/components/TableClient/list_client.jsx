@@ -13,13 +13,11 @@ import { groupByFranchiseComprehensive } from '../../libs/parser/estableshment';
 function ContentCliets({ clients }) {
 
 
-    const { data, fetchData, loading } = useSingleFetch({ resource: '/establishment&compressed', method: 'get' }, true);
-    const groupClients = groupByFranchiseComprehensive(data);
-
-    if (loading) return null;
+  
+    if (!clients) return null;
 
 
-    return groupClients && Object.entries(groupClients).map(([key, clients]) => {
+    return clients && Object.entries(clients).map(([key, clients]) => {
 
 
         return (

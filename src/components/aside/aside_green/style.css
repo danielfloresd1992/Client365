@@ -1,7 +1,9 @@
-.hidden-aside {
-    @apply transform -translate-x-full
-}
 
+
+
+.hidden-aside {
+    @apply transform -translate-x-[100%]
+}
 
 .visible-aside {
     @apply transform -translate-x-[0%]
@@ -9,7 +11,7 @@
 
 
 .aside-green {
-    @apply absolute top-[0] left-[0] w-[300px] h-full bg-[#31c967] text-black flex flex-col justify-between p-[2.5rem_0rem_2rem_0rem] 
+    @apply absolute top-[0] left-[0] w-[300px] h-full bg-[#31c967] text-black flex flex-col justify-between p-[2.5rem_0rem_2rem_0rem] animationTranstition 
 }
 
 
@@ -20,7 +22,7 @@
 
 
 .aside-buttonBurger {
-    @apply absolute left-[320px];
+    @apply absolute left-[320px] visible;
     background-color: #cfcfcf;
     padding: .2rem;
     width: 30px;
@@ -33,18 +35,29 @@
 }
 
 
+.aside-buttonBurger-toLeft {
+    left: 20px;
+}
 
 
 
 
-.hidden-aside {
-    @apply transform -translate-x-full
+
+
+.aside-buttonToBack {
+    @apply w-full h-[45px] bg-[#0c6d33]
+}
+
+
+
+.animationTranstition {
+    transition: transform 0.3s ease-in-out;
 }
 
 
 @media (min-width: 640px) {
     .aside-green {
-        @apply relative w-[256px] h-full bg-[#31c967] text-black flex flex-col justify-between overflow-hidden rounded-[10px] p-[0]
+        @apply relative w-[256px] h-full bg-[#31c967] text-black flex flex-col justify-between overflow-hidden rounded-[10px] p-[0] visible-aside
     }
 
     .aside-contentHeader {
@@ -53,9 +66,10 @@
 
 
     .aside-buttonBurger {
-        @apply left-[0px];
+        @apply left-[0px] ;
         background-color: transparent;
         filter: none;
+        
     }
 
 

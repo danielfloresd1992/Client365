@@ -52,6 +52,7 @@ export default function ClientBox({ data, index }) {
 
 
 
+
     const validateAuthorization = useCallback(callback => {
         if (!user.admin) {
             dispatch(setConfigModal({
@@ -69,6 +70,7 @@ export default function ClientBox({ data, index }) {
 
 
 
+
     const hadlerClickEditClient = () => {
         validateAuthorization(() => {
             dispatch(setTypeForm({ type: 'create-client', idData: data._id }))
@@ -76,11 +78,11 @@ export default function ClientBox({ data, index }) {
     };
 
 
-    console.log(client);
+
 
 
     return (
-        <div className='w-full min-h-[300px] flex' id={data?.name}>
+        <div className='w-full min-h-[300px] flex' id={`${data._id}-${data?.name}`}>
             <div className='w-[190px] min-h-[250px] flex flex-col items-center gap-[.5rem] shadow-[5px_5px_10px_#656565]' ref={ref}>
                 {
                     client ?

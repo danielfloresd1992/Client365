@@ -39,23 +39,23 @@ export default function Lobby() {
                 <AsideInfoUser />
 
 
-                <Aside_Eyelash position='l' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
+                <Aside_Eyelash position='r' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
                     {(methods) => (
                         <AlertInputLive {...methods} />
                     )}
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
+                <Aside_Eyelash position='r' title='Filtros' urlIco={'/ico/icons8-filtro-vacío-30.png'} eyelash={1}>
                     {(methods) => (
                         <FilterNoveltyForLobby {...methods} />
                     )}
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
+                <Aside_Eyelash position='r' title='Parlante' urlIco={'/ico/icons8-megaphone-50.png'} eyelash={2}>
                     <SectionConfigVoice />
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='l' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
+                <Aside_Eyelash position='r' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
                     {(methods) => (
                         <ChatGeneral365  {...methods} />
                     )}

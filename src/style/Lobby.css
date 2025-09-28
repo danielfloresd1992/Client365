@@ -1880,3 +1880,21 @@ footer a {
         transform: rotate3d(1, 0, 0, 0deg);
     }
 }
+
+
+
+.seleted-element {
+
+    animation: seleted 4s ease;
+}
+
+
+@keyframes seleted {
+    from {
+        background-color: #7c7c7c;
+    }
+
+    to {
+        background-color: transparent
+    }
+}

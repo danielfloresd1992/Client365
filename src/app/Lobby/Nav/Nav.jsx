@@ -3,10 +3,10 @@ import ListClient from './ListClient.jsx';
 import LiItemGrey from '@/components/ListItem/LiItemGray.jsx';
 
 
-export default function Nav(){
-    
+export default function Nav() {
 
-    return(
+
+    return (
         <nav className='listRoute border10'>
             <div className='aside-contents'>
                 <div className='listRoute-a-menuTitle'>
@@ -28,7 +28,7 @@ export default function Nav(){
                         <Image width={30} height={30} alt='ico-global' style={{ filter: 'brightness(0.5)' }} src='/img/grupos-de-usuarios-50.png' />
                         <p className='usersContain-title'>Nuestro clientes</p>
                     </div>
-                    
+
                     <ListClient />
                 </div>
             </div>
