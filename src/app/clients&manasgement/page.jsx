@@ -31,7 +31,7 @@ export default function Content() {
                         return (
                             <div className='w-full' key={key}>
                                 <div className='w-full bg-[#dddddd] p-[.5rem]'><p className='text-center font-medium text-[#636262]'>{key}</p></div>
-                                <div className='w-full p-[2rem] flex items-center justify-center gap-[3rem] flex-wrap'>
+                                <div className='w-full p-[1rem_0rem] flex items-center justify-center gap-[3rem] flex-wrap'>
                                     {
                                         clientGroup && clientGroup.map(items => {
 
@@ -45,7 +45,7 @@ export default function Content() {
                     })
                 }
 
-            
+
             </Section>
             <FormComponent />
         </>

@@ -4,7 +4,7 @@ import { useDispatch } from 'react-redux';
 import { useInView } from 'react-intersection-observer';
 import useAxios from '@/hook/useAxios';
 
-import DataFormart from '@/libs/time/dateFormat.js';
+
 import { setTypeForm } from '@/store/slices/typeForm';
 import { setConfigModal } from '@/store/slices/globalModal';
 import Image from 'next/image';
@@ -12,11 +12,11 @@ import { useRouter } from 'next/navigation';
 import useAuthOnServer from '@/hook/auth';
 
 import ContentResponsive from '@/components/layaut/layaut_clients/section'
-import PieceLoader from '../../../components/loandingComponent/piece_loader';
 import ListManager from './list_manager';
 
 
-
+import Break_layaut from '@/components/layaut/break_layaut'
+import Card from './box/card';
 
 
 export default function ClientBox({ data, index }) {
@@ -83,52 +83,18 @@ export default function ClientBox({ data, index }) {
 
 
     return (
-        <ContentResponsive id={`${data._id}-${data?.name}`}>
+        <div className='w-full' ref={ref}>
+            <ContentResponsive id={`${data._id}-${data?.name}`}>
 
-            <div className='w-[190px] min-h-[250px] flex flex-col items-center gap-[.5rem] shadow-[5px_5px_10px_#656565]' ref={ref}>
-                {
-                    client ?
-                        <>
-                            <div className='w-full p-[.5rem_0] bg-[#ddd] flex items-center justify-center'>
-                                <div className='w-[160px] h-[120px]'>
-                                    <img className='w-full h-full bg-[#ddd]' src={client?.image} alt={`logo-${client?.name}`} />
-                                </div>
-                            </div>
+                <Card
+                    client={client}
+                    editFunction={hadlerClickEditClient}
+                />
 
-                            <div>
-                                <p className='text-black'>{client?.name}</p>
-                            </div>
-                            <div className='w-full flex flex-col gap-[.5rem] p-[.5rem]'>
-                                <div className='w-full flex justify-center'>
-                                    <button
-                                        className='flex itens-center gap-[.3rem] p-[.1rem_.4rem] text-[0.7rem] border border-solid border-[#3349e1] text-[#3349e1] rounded-[3px] font-medium'
-                                        onClick={hadlerClickEditClient}
-                                    >
-                                        <img className='w-[5px]' src='/ico/lapiz_ico.png' alt='edit-ico' />Editar parametros
-                                    </button>
-                                </div>
-                                <div className='text-[.8rem] w-full'>
-                                    <p className='text-[#636262]'>Monitoreo: <span>{client?.status}</span></p>
-                                    <p className='text-[#636262]'>Idioma: <span>{client?.lang}</span></p>
-                                </div>
-                                <p className='text-[#000000] text-[.6rem] font-medium'>Creación: <span>{DataFormart.formatDateApp(client?.date)}</span></p>
-                            </div>
-                        </>
-                        :
-                        <PieceLoader />
-                }
-
-            </div>
-            {/*
+                {/*
        
            
-            <td>
-                <button
-                    onClick={() => router.push(`/clients&manasgement/time_monitoring?id=${data._id}`)}
-                    className={client?.schedules ? 'btn-item __btn-item-transparent __btn-item-green' : 'btn-item __btn-item-transparent'}
-                    title={client?.schedules ? 'Click aquí para editar la configuración existente' : 'Aun no existe una configuración para el horario'}
-                >Gestionar</button>
-            </td>
+          
             <td>
                 <button
                     className='btn-item __btn-item-transparent __btn-item-green'
@@ -146,27 +112,75 @@ export default function ClientBox({ data, index }) {
 
 
 
+                <Break_layaut
+                    height='100%'
+                    width='calc(100% - 190px)'
+                >
 
-            <div className='w-[calc(100%-190px)] h-full p-[0rem_1rem]'>
-                <div className='w-full'>
-                    <h2 className='text-center text-black text-[.9rem] text-center font-medium'>Ficha informativa</h2>
-                </div>
-                <hr />
-                <div className='p-[.5rem] flex w-full h-full scrolltheme1'>
-
-                    <div className='flex gap-[.5rem] flex-col'>
-                        <div className='flex items-center gap-[.5rem]'>
-                            <p className='text-[.88rem] font-medium'>lista de gerentes</p>
-                            <button className='' title='Modificar o Agregar'>
-                                <img className='w-[10px] h-[10px]' src='/ico/lapiz_ico.png' alt='edit-ico' />
-                            </button>
+                    <div className='w-full h-full min-h-[300px] p-[0rem_1rem]'>
+                        <div className='w-full'>
+                            <h2 className='text-center text-black text-[.9rem] text-center font-medium'>Ficha informativa</h2>
                         </div>
-                        <div className=''>
-                            <ListManager list={client?.managers ?? []} />
+                        <hr />
+
+
+                        <div className='flex justify-between w-full p-[.5rem] flex w-full gap-[2rem] h-full scrolltheme1'>
+
+                            <div className='w-[150px] pt-2 pr-2 pb-[0.8rem] pl-2'>
+                                <div className='flex gap-[.5rem] flex-col'>
+                                    <div className='flex items-center gap-[.5rem]'>
+                                        <p className='text-[.88rem] font-medium'>lista de gerentes</p>
+                                        <button className='' title='Modificar o Agregar'>
+                                            <img className='w-[10px] h-[10px]' src='/ico/lapiz_ico.png' alt='edit-ico' />
+                                        </button>
+                                    </div>
+                                    <div className=''>
+                                        <ListManager list={client?.managers ?? []} />
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <div className='min-w-[150px] pt-2 pr-2 pb-[0.8rem] pl-2'>
+                                <div className='flex gap-[.5rem] flex-col'>
+                                    <div className='flex items-center gap-[.5rem]'>
+                                        <p className='text-[.88rem] font-medium'>Horario moniroteo</p>
+                                        <button className='' title='Modificar o Agregar'>
+                                            <img className='w-[10px] h-[10px]' src='/ico/lapiz_ico.png' alt='edit-ico' />
+                                        </button>
+                                    </div>
+                                    <div className='h-full flex items-center justify-center'>
+                                        <button
+                                            onClick={() => router.push(`/clients&manasgement/time_monitoring?id=${data._id}`)}
+                                            className={client?.schedules ? 'btn-item __btn-item-transparent __btn-item-green' : 'btn-item __btn-item-transparent'}
+                                            title={client?.schedules ? 'Click aquí para editar la configuración existente' : 'Aun no existe una configuración para el horario'}
+                                        >Gestionar</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className='min-w-[150px] pt-2 pr-2 pb-[0.8rem] pl-2'>
+                                <div className='flex gap-[.5rem] flex-col'>
+                                    <div className='flex items-center gap-[.5rem]'>
+                                        <p className='text-[.88rem] font-medium'>Configuración de menú</p>
+                                        <button className='' title='Modificar o Agregar'>
+                                            <img className='w-[10px] h-[10px]' src='/ico/lapiz_ico.png' alt='edit-ico' />
+                                        </button>
+                                    </div>
+                                    <div className='h-full flex items-center justify-center'>
+                                        <button
+                                            className='btn-item __btn-item-transparent __btn-item-green'
+                                            title='Click aquí para editar la configuración existente'
+                                            onClick={() => router.push(`/clients&manasgement/diches?id=${data._id}`)}
+                                        > Editar </button>
+                                    </div>
+                                </div>
+                            </div>
+
                         </div>
                     </div>
-                </div>
-            </div>
-        </ContentResponsive>
+                </Break_layaut>
+            </ContentResponsive>
+        </div>
     );
 }
