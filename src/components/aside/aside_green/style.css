@@ -71,7 +71,7 @@
 
 
     .aside-buttonToBack {
-        @apply h-[35px] pointer-events-none;
+        @apply h-[35px]
 
     }
 }

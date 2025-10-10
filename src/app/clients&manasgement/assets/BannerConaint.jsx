@@ -86,12 +86,12 @@ export default function BannerContain({ clients }) {
                             onChange={handdlerChangeInputSearch}
                         />
                     </div>
-                    <div className='absolute p-[0] top-[31.5px] bg-[#baffb9de] rounded-[3px] w-full min-h-[0px] max-h-[300px]'
-                        style={{padding: 0}}
-                        
+                    <div className='absolute p-[0] top-[31.5px] bg-[#baffb9de] rounded-[3px] w-full min-h-[0px] max-h-[300px] overflow-y-auto shadow-lg z-10'
+                        style={{ padding: 0 }}
+
                     >
                         {
-                           searchResultState.result.length > 0 && searchResultState.result.map(item => {
+                            searchResultState.result.length > 0 && searchResultState.result.map(item => {
 
 
                                 return (
