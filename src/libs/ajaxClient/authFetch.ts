@@ -54,6 +54,7 @@ export async function requestLogin(data: DataToCreateUserBasic, callback: (error
 
     }
     catch (error: unknown) {
+        console.log(error);
         callback(error, null)
     }
 }

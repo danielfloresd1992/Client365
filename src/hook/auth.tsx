@@ -27,20 +27,25 @@ export default function useAuthOnServer(): ReturFunc {
     const signIn = useCallback((data: DataToCreateUserBasic, callbackUrl: string | undefined): void => {
         requestLogin(data, (error, dataRes) => {
 
-            //if (error?.response) return setErrorState(error?.response?.data);
+            if (error?.response) {
 
-            const setDataResult: SessionState = {
-                stateSession: 'loading',
-                dataSession: null,
-                error: null
-            };
+            }
+            else {
+                const setDataResult: SessionState = {
+                    stateSession: 'loading',
+                    dataSession: null,
+                    error: null
+                };
 
-            setDataResult.stateSession = 'authenticated';
-            setDataResult.dataSession = dataRes;
+                setDataResult.stateSession = 'authenticated';
+                setDataResult.dataSession = dataRes;
 
-            setState(setDataResult);
+                setState(setDataResult);
 
-            if (callbackUrl) router.push(callbackUrl);
+                if (callbackUrl) router.push(callbackUrl);
+            }
+
+
         });
     }, [router]);
 

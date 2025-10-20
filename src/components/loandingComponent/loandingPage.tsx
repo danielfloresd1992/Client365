@@ -98,7 +98,7 @@ export default function LoadingGuard({
                 method: 'get',
                 autoGetData: false,
                 callback: (response: any) => {
-                    dispatch(setClient(response.data));
+                    if (response?.data) dispatch(setClient(response?.data));
                 },
             });
         }
