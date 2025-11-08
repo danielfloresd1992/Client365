@@ -29,7 +29,7 @@ export default memo(function Publications({ dataPreRender }) {
 
     //Animación de entrada y salida de elementos
     useEffect(() => {
-        boxRef.current && autoAnimate(boxRef.current, {
+        false && boxRef.current && autoAnimate(boxRef.current, {
             duration: 1000,
             easing: 'ease-in-out',
             disrespectUserMotionPreference: false
