@@ -6,7 +6,7 @@ export default function page_auth(){
     
 
     return (
-        <div className='__width-complete flex p-8' style={{ minHeight: '100vh' }}>
+        <div className='__width-complete  h-full display flex justify-center items-center' >
             <ContentForm />
         </div>
     )

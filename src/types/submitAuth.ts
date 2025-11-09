@@ -82,13 +82,19 @@ export interface ILegacePropsForm {
 export type HanddlerCreateUser = (error: Error | null, dataForCallback: DateToCreateComplete | null) => void
 
 
+type ErrorHttp = {
+    status: number | null,
+    message: string,
+    error:any,
+    error_connection?: boolean
+}
 
 // 
 
 export type SessionState = {
-    stateSession: 'loading' | 'authenticated' | 'unauthenticated';
+    stateSession: 'loading' | 'authenticated' | 'unauthenticated'  | 'Error conection' | '';
     dataSession: any;
-    error: any
+    errorHttp: ErrorHttp
 }
 
 

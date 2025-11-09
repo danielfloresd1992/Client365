@@ -1,12 +1,12 @@
 'use client';
 import { useEffect, useCallback, useMemo, useContext } from 'react';
-import { setSession } from '@/store/slices/session';
 
-import { useRouter, usePathname } from 'next/navigation';
+
 import { myUserContext } from '@/contexts/userContext';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch'
 //types 
 import { DataToCreateUserBasic, SessionState, SessionContextProps, ReturFunc, ErrorAuth } from '@/types/submitAuth';
+
 
 
 // fetchins
@@ -19,52 +19,56 @@ export default function useAuthOnServer(): ReturFunc {
 
 
     const { dataSessionState, setState }: any = useContext(myUserContext);
-    const router = useRouter();
 
 
-
-
-    const signIn = useCallback((data: DataToCreateUserBasic, callbackUrl: string | undefined): void => {
+    const signIn = useCallback((data: DataToCreateUserBasic, callback: () => void ): void => {
         requestLogin(data, (error, dataRes) => {
+            const setDataResult: SessionState = {
+                stateSession: 'loading',
+                dataSession: null,
+                errorHttp: {
+                    error: null,
+                    status: null,
+                    message: ''
+                }
+            };
 
-            if (error?.response) {
-
+            if (error) {
+                if(error?.response){
+                    setDataResult.errorHttp = error.response.data;
+                    setDataResult.stateSession = 'unauthenticated';
+                    setDataResult.dataSession = null
+                }
             }
             else {
-                const setDataResult: SessionState = {
-                    stateSession: 'loading',
-                    dataSession: null,
-                    error: null
-                };
-
                 setDataResult.stateSession = 'authenticated';
                 setDataResult.dataSession = dataRes;
-
-                setState(setDataResult);
-
-                if (callbackUrl) router.push(callbackUrl);
+                if(typeof callback === 'function') callback()
             }
 
-
+            setState(setDataResult);
         });
-    }, [router]);
+    }, []);
 
 
 
 
-    const logOut = useCallback((callbackUrl: string | undefined): void => {
+    const logOut = (): void => {
         closeSession(error => {
             if (error) throw console.log(error);
 
             const setDataResult: SessionState = {
                 stateSession: 'unauthenticated',
                 dataSession: null,
-                error: null
+                errorHttp: {
+                    status: null,
+                    error:null,
+                    message: ''
+                }
             }
             setState(setDataResult);
-            if (callbackUrl) router.push(callbackUrl);
         });
-    }, [router]);
+    };
 
 
 

@@ -13,80 +13,80 @@ import { SessionState } from '@/types/submitAuth';
 
 
 
+export default function LoadingGuard({ title = "Cargando...", children }: any): JSX.Element | null {
 
 
 
-export default function LoadingGuard({
-    title = "Cargando...",
-    children,
-}: any): JSX.Element | null {
     const { dataSessionState, setState }: any = useContext(myUserContext);
+
     const clientsStore = useSelector((store: any) => store.clients);
     const dispatch = useDispatch();
+
     const router = useRouter();
     const pathName = usePathname();
 
-    const [isInitializing, setIsInitializing] = useState(true);
+    
     const sessionCheckAttempted = useRef(false);
     const redirectAttempted = useRef(false);
+
 
     const { fetchData } = useSingleFetch({
         resource: '/localforCort',
         method: 'get',
     }, false);
 
+
+
+
     // Efecto principal para verificar la sesión
     useEffect(() => {
         if (sessionCheckAttempted.current) return;
         sessionCheckAttempted.current = true;
 
-        const handleSessionCheck = async () => {
-            try {
-                const result = await new Promise<SessionState>((resolve) => {
-                    checkIfSessionExists((error, dataSession) => {
-                        if (dataSession) {
-                            resolve({
-                                stateSession: 'authenticated',
-                                dataSession,
-                                error: null,
-                            });
-                        } else {
-                            resolve({
-                                stateSession: 'unauthenticated',
-                                dataSession: null,
-                                error: error?.code === 'ERR_NETWORK' ? {
-                                    status: 503,
-                                    message: 'Sin conexión al servidor',
-                                    error: 'Bad Gateway',
-                                    error_connection: true,
-                                } : null
-                            });
-                        }
-                    });
-                });
-
-                setState(result);
+        dataSessionState.stateSession === 'loading' && checkIfSessionExists((error, dataSession) => {
+            
+            const dataState: SessionState = {
+                stateSession: '',
+                dataSession: null,
+                errorHttp: {
+                    status: null,
+                    message: '',
+                    error: null
+                }
             }
-            catch (error) {
-                console.error('Error verifying session:', error);
-                setState({
-                    stateSession: 'unauthenticated',
-                    dataSession: null,
-                    error: {
-                        status: 500,
-                        message: 'Error interno',
-                        error: 'Internal Server Error',
-                    },
-                });
-            }
-            finally {
-                setIsInitializing(false);
-            }
-        };
 
 
-        handleSessionCheck();
-    }, [clientsStore, dispatch, fetchData, setState]);
+            if (error?.code === 'ERR_NETWORK') {
+                dataState.errorHttp.message = 'Sin conexión al servidor';
+                dataState.errorHttp.status = 503;
+                dataState.errorHttp.error = 'Bad Gateway';
+                dataState.errorHttp.error_connection = true;
+                dataState.stateSession  = 'Error conection';
+                dataState.dataSession = null
+            }
+
+             
+            if(error?.response){
+                dataState.dataSession = null;
+                dataState.stateSession  = 'unauthenticated';
+                dataState.errorHttp = error.response.data;
+              
+            }
+
+            if(dataSession){
+                dataState.errorHttp.message = '';
+                dataState.errorHttp.status = 200;
+                dataState.errorHttp.error = '';
+                dataState.errorHttp.error_connection = false;
+                dataState.stateSession  = 'authenticated';
+                dataState.dataSession = dataSession
+            }
+
+            setState(dataState);
+
+        });
+
+    }, [ fetchData, setState]);
 
 
 
@@ -106,24 +106,26 @@ export default function LoadingGuard({
 
 
 
-    // Efecto para manejar redirecciones
+    
     useEffect(() => {
-        if (isInitializing) return;
-        if (redirectAttempted.current) return;
-
+      
+        
         // Manejar redirecciones basadas en estado de autenticación
-        if (dataSessionState?.stateSession === 'authenticated') {
-            if (pathName === '/') {
+        if (dataSessionState.stateSession === 'authenticated') {
+            if (pathName === '/' || pathName === '/auth') {
                 router.replace('/Lobby');
                 redirectAttempted.current = true;
             }
-        } else if (dataSessionState?.stateSession === 'unauthenticated') {
+        } else if (dataSessionState.stateSession === 'unauthenticated') {
             if (pathName !== '/') {
                 router.replace('/');
                 redirectAttempted.current = true;
             }
         }
-    }, [dataSessionState, pathName, router, isInitializing]);
+            
+    }, [dataSessionState]);
+
+
 
     // Manejar estados de renderizado
     if (dataSessionState?.error?.status === 503) {
@@ -136,8 +138,8 @@ export default function LoadingGuard({
         );
     }
 
-    if (isInitializing ||
-        (dataSessionState?.stateSession === 'loading' && clientsStore.length === 0)) {
+
+    if (dataSessionState?.stateSession === 'loading' && clientsStore.length === 0) {
         return (
             <div className='__width-complete __center_center' style={{ height: '100%', width: '100%', top: '0', position: 'fixed', backgroundColor: '#fff', zIndex: 1000 }}>
                 <div className='__center_center columns' style={{ gap: '1rem' }}>
