@@ -135,7 +135,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
 
 
     return (
-        <FormLayaut control={control} setSubmit={handleSubmit(sumbit)} style={styleForm} max={true}>
+        <FormLayaut control={control} setSubmit={handleSubmit(sumbit)} style={styleForm} maxWidth={true}>
 
             <div className="__width-complete">
                 <h1 className='__text-center' style={{ fontWeight: '500', fontSize: '1.5rem' }}>{update ? 'Actualize sus datos' : 'Registro de usuario'}</h1>

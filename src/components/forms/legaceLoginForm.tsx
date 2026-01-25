@@ -43,7 +43,7 @@ export default function LegaceLoginForm({ componentUpdateUser }: ILegacePropsFor
 
     if (legaceDataState) return componentUpdateUser(legaceDataState);
     else return (
-        <FormLayaut setSubmit={handleSubmit(submit)} style={null} >
+        <FormLayaut setSubmit={handleSubmit(submit)} style={null} maxWidth={false}>
             <div className="__width-complete">
                 <h1 className='__text-center' style={{ fontWeight: '500', fontSize: '1.5rem' }}>Ingrese sus datos</h1>
             </div>

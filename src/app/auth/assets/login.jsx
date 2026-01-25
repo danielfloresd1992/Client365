@@ -37,7 +37,7 @@ export default function Login({ eventSubmit, errorHttp, setType }) {
 
 
     return (
-        <FormLayaut setSubmit={handleSubmit(eventSubmit)} style={{ position: 'relative', minHeight: '300px' }} >
+        <FormLayaut setSubmit={handleSubmit(eventSubmit)} style={{ position: 'relative', minHeight: '300px' }} maxWidth={false}>
         
                 <div className='__width-complete flex justify-center padding-[1rem]'>
                         <Image src='/logo-page-removebg.png' alt='ico-lgo-jarvis' width={60} height={50} />
