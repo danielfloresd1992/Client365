@@ -6,7 +6,7 @@ interface IFormLayautProps{
     style?: React.CSSProperties | null | undefined,
     children: React.ReactNode,
     control?: any,
-    max: boolean | undefined
+    max: any
 }
 
 
