@@ -11,7 +11,7 @@ import LoandingData from '@/components/loandingComponent/loanding';
 
 
 
-export default function Login({ eventSubmit, errorHttp }) {
+export default function Login({ eventSubmit, errorHttp, setType }) {
 
 
     const [visibilityState, setVisibilityState] = useState(true);

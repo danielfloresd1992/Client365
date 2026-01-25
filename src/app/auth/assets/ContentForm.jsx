@@ -131,12 +131,13 @@ export default function ContentForm() {
     };
 
 
-    
+
 
     if (typeFormState === 'login') return (
         <Login
             eventSubmit={loginUser}
             errorHttp={status}
+            setType={changeTypeForm}
         />
     )
     else if (typeFormState === 'createUser') return <CreatUser setType={changeTypeForm} callback={functionForCallback} />
