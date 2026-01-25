@@ -22,6 +22,7 @@ export default function useAuthOnServer(): ReturFunc {
 
 
     const signIn = useCallback((data: DataToCreateUserBasic, callback: () => void ): void => {
+
         requestLogin(data, (error, dataRes) => {
             const setDataResult: SessionState = {
                 stateSession: 'loading',
@@ -32,6 +33,7 @@ export default function useAuthOnServer(): ReturFunc {
                     message: ''
                 }
             };
+
 
             if (error) {
                 if(error?.response){

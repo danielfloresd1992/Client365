@@ -9,6 +9,7 @@ import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import { setClient } from '@/store/slices/Client';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch';
 import { SessionState } from '@/types/submitAuth';
+import { ContinuousColorLegend } from '@mui/x-charts';
 
 
 
@@ -116,8 +117,12 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
                 router.replace('/Lobby');
                 redirectAttempted.current = true;
             }
-        } else if (dataSessionState.stateSession === 'unauthenticated') {
-            if (pathName !== '/') {
+        } 
+        else if (dataSessionState.stateSession === 'unauthenticated') {
+            if(pathName == '/auth'){
+                console.log('hla')
+            }    
+            else if(pathName !== '/') {
                 router.replace('/');
                 redirectAttempted.current = true;
             }

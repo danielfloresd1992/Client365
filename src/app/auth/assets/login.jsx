@@ -13,6 +13,7 @@ import LoandingData from '@/components/loandingComponent/loanding';
 
 export default function Login({ eventSubmit, errorHttp }) {
 
+
     const [visibilityState, setVisibilityState] = useState(true);
     const { register, handleSubmit, reset } = useForm();
 
@@ -77,7 +78,7 @@ export default function Login({ eventSubmit, errorHttp }) {
 
 
                 <div className='__width-complete __center_center columns' style={{ gap: '1rem' }}>
-                    <button className='btn-item '>Iniciar sesión</button>
+                    <button className='btn-item'>Iniciar sesión</button>
                     <a href='' className='text-sm'>¿Haz olvidado la contraseña?</a>
                     <p onClick={() => setType('createUser')} className='__pointer text-sm' style={{ textDecoration: 'underline' }}>Registarse en Jarvis365</p>
 

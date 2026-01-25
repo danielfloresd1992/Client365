@@ -29,6 +29,7 @@ export default function ContentForm() {
     const errorState = false;
     const status = dataSessionState.errorHttp.message !== 'Your session has expired' ? dataSessionState.errorHttp.status : 0
 
+
     useEffect(() => {
         if (errorState) {
             dispatch(setConfigModal({
@@ -129,13 +130,13 @@ export default function ContentForm() {
         return <CreatUser setType={changeTypeForm} callback={upateData} update={propData} />
     };
 
-    console.log(dataSessionState?.errorHttp)
+
     
 
     if (typeFormState === 'login') return (
         <Login
             eventSubmit={loginUser}
-            errorHttp={status }
+            errorHttp={status}
         />
     )
     else if (typeFormState === 'createUser') return <CreatUser setType={changeTypeForm} callback={functionForCallback} />
