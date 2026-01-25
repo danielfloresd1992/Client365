@@ -121,6 +121,7 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
         else if (dataSessionState.stateSession === 'unauthenticated') {
             if(pathName == '/auth'){
                 console.log('hla')
+                redirectAttempted.current = true;
             }    
             else if(pathName !== '/') {
                 router.replace('/');
