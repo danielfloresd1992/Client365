@@ -15,7 +15,8 @@ import ButtonForBanner from '@/components/buttons/ButtonForBanner';
 import useAuthOnServer from '@/hook/auth';
 import useAxios from '@/hook/useAxios';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
-
+import Section from '@/components/contentMain_nextToAside/Content';
+import AsideGreen from '@/components/aside/aside_green/aside_layaut';
 
 
 export default function Layautbody() {
@@ -200,9 +201,8 @@ export default function Layautbody() {
     };
 
 
-    const pushData = data => {
-        setState({ ...state, dishes: [...state.dishes, data.newDish] });
-    };
+    const pushData = data => setState({ ...state, dishes: [...state.dishes, data.newDish] });
+    
 
 
     const handdlerClickGetDish = (id) => {
@@ -222,53 +222,60 @@ export default function Layautbody() {
 
     return (
         <>
-            <BannerBetween>
-                <h3>Gestionar platos en {state.name}</h3>
-                <div className='flex __oneGap'>
-                    <ButtonForBanner ico='/ico/icons8-cita-recurrente-50.png' value='Resetear' actionButton={askResetConfigRequest} />
-                    <ButtonForBanner ico='/ico/añadir-50.png' value='Add new' actionButton={showOpenForm} />
-                    <ButtonForBanner ico='/ico/icons8-copiar-50.png' value='Clonar platos' actionButton={askCloneDishConfigurationObject} />
-                    <ButtonForBanner url='' ico='/ico/gira-a-la-izquierda-32.png' value='volver' />
+            <AsideGreen
+                  title={`Platos en ${state.name}`}
+                    urlIco='/ico/icons8-menú-50.png'
+            >
+           
+              
+
+                 <div className='w-full'>
+                    
+                    <ButtonForBanner ico='/ico/icons8-repetir-50.png' value='Resetear' actionButton={askResetConfigRequest} />
+                    <ButtonForBanner ico='/ico/icons8-agregar-base-de-datos-50.png' value='Add new' actionButton={showOpenForm} />
+                    <ButtonForBanner ico='/ico/icons8-duplicación-50.png' value='Clonar platos' actionButton={askCloneDishConfigurationObject} />
                 </div>
-            </BannerBetween>
 
-            <Table dataHead={['Eliminar de la lista', 'nombre de plato', 'Regla de uso', 'editar']} >
-                {
-                    state.dishes.map((item, index) => (
-                        <tr key={index} >
-                            <td>
-                                <button className='__pointer' onClick={() => {
-                                    dispatch(setConfigModal({
-                                        title: 'Aviso',
-                                        description: 'Segura de eliminar este plato',
-                                        modalOpen: true,
-                                        type: 'warning',
-                                        isCallback: () => {
-                                            deleteDishItem(item._id)
-                                        }
-                                    }));
-                                }}
-                                >
-                                    <Image className='__never-pointer' src='/ico/icons8-basura-26.png' alt='ico-delete' width={25} height={25} />
-                                </button>
-                            </td>
-                            <td>{item.nameDishe}</td>
-                            <td>
-                                {
-                                    typeof item.nameDishe === 'string' ?
-                                        'Genérico'
-                                        :
-                                        'Detallado'
-                                }
-                            </td>
-                            <td>
-                                <button className='color-gray-500 border-solid border-[1px] text-[.7rem] p-[.2rem_.5rem] rounded-[4px]' onClick={() => handdlerClickGetDish(item._id)}>editar</button>
-                            </td>
-                        </tr>
-                    ))
-                }
-            </Table>
+            </AsideGreen>
 
+            <Section spaceToSubtract={300}>
+                <Table dataHead={['Eliminar de la lista', 'nombre de plato', 'Regla de uso', 'editar']} >
+                    {
+                        state.dishes.map((item, index) => (
+                            <tr key={index} >
+                                <td>
+                                    <button className='__pointer' onClick={() => {
+                                        dispatch(setConfigModal({
+                                            title: 'Aviso',
+                                            description: 'Segura de eliminar este plato',
+                                            modalOpen: true,
+                                            type: 'warning',
+                                            isCallback: () => {
+                                                deleteDishItem(item._id)
+                                            }
+                                        }));
+                                    }}
+                                    >
+                                        <Image className='__never-pointer' src='/ico/icons8-basura-26.png' alt='ico-delete' width={25} height={25} />
+                                    </button>
+                                </td>
+                                <td>{item.nameDishe}</td>
+                                <td>
+                                    {
+                                        typeof item.nameDishe === 'string' ?
+                                            'Genérico'
+                                            :
+                                            'Detallado'
+                                    }
+                                </td>
+                                <td>
+                                    <button className='color-gray-500 border-solid border-[1px] text-[.7rem] p-[.2rem_.5rem] rounded-[4px]' onClick={() => handdlerClickGetDish(item._id)}>editar</button>
+                                </td>
+                            </tr>
+                        ))
+                    }
+                </Table>
+            </Section>
             {
                 showFormBoolean ?
                     (
