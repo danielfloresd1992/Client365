@@ -67,7 +67,6 @@ export default function BannerContain({ clients }) {
         <AsideGreen
             title='Gestion de clientes'
             urlIco='/ico/icons8-menú-50.png'
-
         >
             <div className='relative w-full flex flex-col items-center gap-[1.5rem]'>
                 <div className='relative w-full flex flex-col'>

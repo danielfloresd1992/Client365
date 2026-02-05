@@ -11,7 +11,7 @@ import InputBorderBlue from '@/components/inpust/InputBorderBlue';
 import LoandingData from '@/components/loandingComponent/loanding';
 import { ScheduleBox } from '@/components/box/ScheduleBox';
 import useAuthOnServer from '@/hook/auth';
-
+import Section from '@/components/contentMain_nextToAside/Content';
 
 
 
@@ -265,14 +265,15 @@ export default function Layautbody() {
 
             {
                 configLocalDate ?
-                    (
-                        <ScheduleBox
-                            idLocal={id}
-                            configLocalDate={configLocalDate.dayMonitoring}
-                            openSetForm={openFormWindow}
-                            deleteHour={deleteHourForDay}
-                            addDataRequest={data => { pushDateDay(data) }}
-                        />
+                    (   <Section spaceToSubtract={300}>
+                            <ScheduleBox
+                                idLocal={id}
+                                configLocalDate={configLocalDate.dayMonitoring}
+                                openSetForm={openFormWindow}
+                                deleteHour={deleteHourForDay}
+                                addDataRequest={data => { pushDateDay(data) }}
+                            />
+                        </Section>
                     )
                     :
                     (
