@@ -19,6 +19,7 @@ export default function Nav() {
                         <LiItemGrey urlImage='/img/corporate-67.png' textTitle='Gestion de clientes' urlLink='/clients&manasgement' />
                         <LiItemGrey urlImage='/img/carta-50.png' textTitle='Gestion de alertas' urlLink='/alertmanasgement' />
                         <LiItemGrey urlImage='/img/analistica-web-48.png' textTitle='analytical' urlLink='/#' />
+                        <LiItemGrey urlImage='/ico/icons8-grupo-de-usuario-24.png' textTitle='Gestion del personal' urlLink='/user' />
                     </ul>
                 </div>
             </div>
