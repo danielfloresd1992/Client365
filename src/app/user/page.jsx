@@ -92,12 +92,12 @@ export default function UserScheduler() {
                     
                     {/* Usamos 'min-w-max' para que la tabla se expanda horizontalmente lo necesario */}
                     <div className='inline-block min-w-full align-middle'>
-                        <div className='border-b border-gray-200'>
+                        <div className='sticky top-0 z-20 bg-white border-b border-gray-200' id='header'>
                             
                             {/* --- HEADER (FECHAS) --- */}
                             <div className='flex'>
                                 {/* Espacio vacío arriba de la columna de nombres (Sticky) */}
-                                <div className='sticky left-0 z-20 w-48 min-w-[12rem] bg-white border-r border-gray-200 p-4 font-bold text-gray-500'>
+                                <div className='left-0 z-20 w-48 min-w-[12rem] bg-white border-r border-gray-200 p-4 font-bold text-gray-500'>
                                     Empleado
                                 </div>
 
