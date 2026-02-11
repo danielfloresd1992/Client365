@@ -119,8 +119,8 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
             }
         } 
         else if (dataSessionState.stateSession === 'unauthenticated') {
-            if(pathName == '/auth'){
-                console.log('hla')
+            if(pathName == '/auth' || pathName == '/user'){
+                
                 redirectAttempted.current = true;
             }    
             else if(pathName !== '/') {
