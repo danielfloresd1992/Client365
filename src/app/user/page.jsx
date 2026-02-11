@@ -7,7 +7,7 @@ import { fetchUserData } from '@/libs/ajaxClient/user.fecth';
 
 
 // --- 1. TU FUNCIÓN GENERADORA DE FECHAS (INTACTA) ---
-export const generate30DayRange = (baseDate) => {
+const generate30DayRange = (baseDate) => {
     const startDate = subDays(baseDate, 15);
     const endDate = addDays(baseDate, 15);
     const range = eachDayOfInterval({ start: startDate, end: endDate });
