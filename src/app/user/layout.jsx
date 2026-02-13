@@ -11,7 +11,7 @@ export default function UserLayout({ children, params }) {
 
     return (
         <div className="w-full flex h-full bg-gray-50">
-            {/* Sidebar Fijo */}
+            {/* Sidebar Fijo 
             <aside className="w-[300px] h-full bg-slate-900 text-white p-6 sticky top-0">
                 <h2 className="text-xl font-bold mb-8 text-blue-200">Panel de Empleado</h2>
                 <nav className="space-y-2">
@@ -27,7 +27,7 @@ export default function UserLayout({ children, params }) {
                     ))}
                 </nav>
             </aside>
-
+*/}
                 {/* Contenido Dinámico */}
             <main className="w-[calc(100%-300px)] flex-1 p-[0px_.5rem]">
                 <div className="w-full h-full">
