@@ -25,3 +25,15 @@ export const userById = async (id) => {
         throw error;
     }   
 };
+
+
+export const updateUserByRrhh = async (id, data) => {
+    try {
+        const response = await axiosInstance.put(`/user/${id}`,data);
+        return response.data;
+    } 
+    catch (error) {
+        console.log(error);
+        throw error;
+    }
+}
