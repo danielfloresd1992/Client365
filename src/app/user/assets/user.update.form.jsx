@@ -258,7 +258,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                             sizing='sm' 
                             placeholder='Ej: Equipo de supervición' 
                             // Conexión con useForm y Yup
-                            {...register('detail')}
+                            {...register('jobInformation.detail')}
                             // Muestra el error de validación si existe
                             helperText={errors.name?.detail && (
                                 <span className='font-medium text-red-500'>

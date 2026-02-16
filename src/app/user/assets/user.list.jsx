@@ -1,4 +1,5 @@
-import { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef, useContext } from 'react';
+import { myUserContext } from '@/contexts/userContext';
 import {  isSameDay,  getDay ,isBefore, startOfDay} from 'date-fns';
 import { userById, } from '@/libs/ajaxClient/user.fecth';
 
@@ -9,6 +10,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
     const userState = user
 
+    const {dataSessionState} = useContext(myUserContext);
 
 
 
@@ -32,16 +34,18 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
     }));
 
 
+    if(user.workSchedule.outForkSchedule) return null;
+
 
     return (
         <div className='flex border-b border-gray-300 hover:bg-gray-50 transition-colors'>
 
             {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
-            <div className='relative sticky left-0 z-10 w-48 min-w-[12rem] bg-white border-r border-gray-300 p-2 flex items-center flex-col gap-2'>
+            <div className='relative sticky left-0 z-10 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
                 <div className='w-full flex items-center gap-3'>
 
-                    <div className={`w-10 h-10 rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`}>
-                        <img className='w-full h-full object-contain' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
+                    <div className={`w-[70px] h-[75px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>
+                        <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
                         
                         {/*user.name.charAt(0)*/}
                     </div>
@@ -49,14 +53,15 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                     <div>
                         <p className='text-xs font-semibold text-gray-800 truncate'>{userState?.name}</p>
                         <p className='text-xs font-semibold text-gray-800 truncate'>{userState?.surName}</p>
+                        <p className='text-xs text-gray-500'>{userState?.jobInformation?.position || 'Sin definir'}</p>
                     </div>
                     <button 
                         onClick={() => onEditClick(userState)}
-                        className='absolute right-[10px] pointer'                        >
+                        className='absolute top-[0px] right-[10px] pointer'                        >
                         <span className="text-[10px] text-[#001fff] font-bold">EDITAR</span>
                     </button>
                 </div>
-                <p className='text-xs text-gray-500'>{userState?.jobInformation?.position || 'Sin definir'}</p>
+               
             </div>
 
             {/* CELDAS DE DATOS (Iteramos los días de nuevo para este usuario) */}
