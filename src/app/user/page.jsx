@@ -71,7 +71,7 @@ export default function UserScheduler() {
     const userRefs = useRef({});
 
 
-    const departmentList = ['Operaciones', 'Reportes', 'Sistemas y desarrollo',  'Recursos Humanos'];
+    const departmentList = ['Operaciones', 'Recursos Humanos', 'Reportes', 'Sistemas y desarrollo', 'Sin definir'];
     const positionList = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
 
 
@@ -182,21 +182,22 @@ export default function UserScheduler() {
 
     
     const orderUserByDepartment  = data => {
-        const result = {};
+        const result = { };
     
-        data.forEach(item => {
-            
-            if(!item.jobInformation?.department){
-                if(result['Sin definir']) result['Sin definir'].push(item)
-                else result['Sin definir'] = [item]
+        for(const iteration of departmentList) {
+            for(let i = 0; i < data.length; i++){
+                const user = data[i];
+                if(user.jobInformation?.department !== iteration) continue;
+                else if(!result[iteration]['diurno']){ 
+                    result[iteration] = {};
+                    if(!result[iteration][] )
+                    result[iteration]['nocurno'] = [];
+                }
+                else if(result[iteration]){ 
+                    result[iteration].push(user)
+                }
             }
-            else{
-                
-                if(result[item.jobInformation?.department]) result[item.jobInformation?.department].push(item)
-                else result[item.jobInformation?.department] = [item]
-            }
-        });
-
+        }
         return result;
     };
 
@@ -214,7 +215,9 @@ export default function UserScheduler() {
 
 
     const userOrder = orderUserByDepartment(userData);
+    console.log(userOrder)
 
+    return null;
 
     return (
         <div className='w-full h-full p-6 bg-gray-50'>
@@ -288,7 +291,7 @@ export default function UserScheduler() {
                             {
                                 Object.entries(userOrder).map(([key, value]) => {
 
-                                    
+                                    console.log(key, value);
 
                                     return(
                                         <div>

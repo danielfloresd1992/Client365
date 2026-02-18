@@ -13,7 +13,6 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
     const {dataSessionState} = useContext(myUserContext);
 
 
-
     const remplazeUrl = (url) => {
         if(!url) return null;
 
