@@ -188,14 +188,19 @@ export default function UserScheduler() {
             for(let i = 0; i < data.length; i++){
                 const user = data[i];
                 if(user.jobInformation?.department !== iteration) continue;
-                else if(!result[iteration]['diurno']){ 
-                    result[iteration] = {};
-                    if(!result[iteration][] )
-                    result[iteration]['nocurno'] = [];
+                else if(!result[iteration]){ 
+                    result[iteration] = {
+                        diurno : [],
+                        nocturno : [],
+                        'sin definir' : []
+                    };            
                 }
-                else if(result[iteration]){ 
-                    result[iteration].push(user)
+                if(!user.workSchedule?.shiftType){
+                    result[iteration]['sin definir'].push(user); 
+                    continue; 
                 }
+
+                result[iteration][user.workSchedule?.shiftType.toLowerCase()].push(user);
             }
         }
         return result;
@@ -215,9 +220,9 @@ export default function UserScheduler() {
 
 
     const userOrder = orderUserByDepartment(userData);
-    console.log(userOrder)
 
-    return null;
+
+    
 
     return (
         <div className='w-full h-full p-6 bg-gray-50'>
@@ -291,28 +296,39 @@ export default function UserScheduler() {
                             {
                                 Object.entries(userOrder).map(([key, value]) => {
 
-                                    console.log(key, value);
-
                                     return(
-                                        <div>
-                                            <div className='w-full'>
-                                                <p className='text-[10px] font-medium text-black text-center'>{key}</p>
-                                            </div>
+                                        <div key={key}>
                                             {
-                                                dataOrderedByPosition(value).map((user) => (
-                                                    <UserList 
-                                                        key={user._id} 
-                                                        user={user} 
-                                                        daysRange={daysRange} 
-                                                        onEditClick={(user) => setEditingUser(user)}
-                                                        ref={(el) => (userRefs.current[user._id] = el)}
-                                                        departmentList={departmentList}
-                                                    />
-                                                ))
-                                            }   
+                                                Object.entries(value).map(([shift, users]) => {
+                                                    console.log(shift, users);
+                                                    if(users.length === 0) return null; 
+                                                    return(
+                                                        <>
+                                                            <div className='sticky left-0 w-48 min-w-[12rem] bg-white border-r border-gray-200 p-2' >
+                                                                <p className='font-bold text-gray-500'>{key} {shift}</p>
+                                                            </div>
+                                                           
+                                                            {
+                                                                dataOrderedByPosition(users).map((user) => (
+                                                                    <UserList 
+                                                                        key={user._id} 
+                                                                        user={user} 
+                                                                        daysRange={daysRange} 
+                                                                        onEditClick={(user) => setEditingUser(user)}
+                                                                        ref={(el) => (userRefs.current[user._id] = el)}
+                                                                        departmentList={departmentList}
+                                                                    />
+                                                                ))
+                                                            }
+                                                        </>
+                                                    )
+                                                    
+                                                })
+                                            }  
                                         </div>
                                         
                                     )
+                                    
                                 })
                             }
                         
