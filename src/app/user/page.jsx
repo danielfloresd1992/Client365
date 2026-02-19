@@ -12,6 +12,12 @@ import UserList from './assets/user.list';
 import { fetchUserData, userById, updateUserByRrhh } from '@/libs/ajaxClient/user.fecth';
 
 const DEPARTMENTS = ['Operaciones', 'Recursos Humanos', 'Reportes', 'Sistemas y desarrollo', 'Sin definir'];
+const COLORS_DEPARTMENTS = [
+    { name: 'Operaciones', diurno: '#abf8fd', nocturno: "#cfd0ff" },
+    { name: 'Recursos Humanos', diurno: '#b0facc', nocturno: "#fffab8" },
+    { name: 'Sistemas y desarrollo', diurno: '#ffbfe2', nocturno: "#c2d5ff" },
+    { name: 'Reportes', diurno: '#fdaeae', nocturno: "#fdc5ff" },
+];
 const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
 
 
@@ -76,7 +82,7 @@ export default function UserScheduler() {
         DEPARTMENTS.forEach(dept => {
             // Filter users for this department
             const deptUsers = userData.filter(u => (u.jobInformation?.department || 'Sin definir') === dept);
-            
+
             if (deptUsers.length === 0) return;
 
             result[dept] = {
@@ -104,7 +110,7 @@ export default function UserScheduler() {
         });
 
         return result;
-    }, [userData]); 
+    }, [userData]);
 
 
 
@@ -116,7 +122,7 @@ export default function UserScheduler() {
 
             setUserData(prev => prev.map(u => u._id === id ? updatedUser : u));
             setEditingUser(null);
-            
+
             dispatch(setConfigModal({
                 type: 'successfull',
                 title: 'Actualizado',
@@ -155,28 +161,54 @@ export default function UserScheduler() {
     return (
         <div className='w-full h-full p-6 bg-gray-50 flex flex-col'>
 
-            <div className='flex justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border'>
-                <div>
-                    <h1 className='text-2xl font-bold text-gray-800'>Horario Operacional</h1>
-                    <p className='text-sm text-gray-500'>Gestión de turnos y personal</p>
+            <div className='flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 lg:p-6 rounded-xl shadow-sm border'>
+
+                {/* SECCIÓN TÍTULO: Se centra en móvil/tablet, se alinea a la izquierda en desktop */}
+                <div className='text-center lg:text-left'>
+                    <h1 className='text-xl md:text-2xl font-bold text-gray-800 leading-tight'>Horario Operacional</h1>
+                    <p className='text-xs md:text-sm text-gray-500'>Gestión de turnos y personal</p>
                 </div>
 
-                <div className='flex items-center gap-6'>
-                    {/* CONTROL DE ZOOM */}
-                    <div className='flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border'>
-                        <span className='text-xs font-bold text-gray-600 w-16' ref={inputZoomRef}>Zoom: 0%</span>
-                        <input 
-                            type="range" min="0.5" max="1" step="0.1" 
+                {/* SECCIÓN CONTROLES: Agrupa Zoom y Botones */}
+                <div className='flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto'>
+
+                    {/* CONTROL DE ZOOM: Se expande si es necesario */}
+                    <div className='flex items-center justify-between sm:justify-start gap-3 bg-gray-50 px-4 py-2 rounded-lg border w-full sm:w-auto'>
+                        <span className='text-xs font-bold text-gray-600 whitespace-nowrap' ref={inputZoomRef}>
+                            Zoom: 0%
+                        </span>
+                        <input
+                            type="range"
+                            min="0.5"
+                            max="1"
+                            step="0.1"
                             onChange={handdlerInputZoom}
-                            className="w-32 h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                            className="w-full sm:w-24 md:w-32 h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
                         />
                     </div>
 
-                    <div className='flex gap-2'>
-                        <button onClick={() => setPivotDate(subDays(pivotDate, 15))} className='px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'>Anterior</button>
-                        <button onClick={() => setPivotDate(new Date())} className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium'>Hoy</button>
-                        <button onClick={() => setPivotDate(addDays(pivotDate, 15))} className='px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'>Siguiente</button>
+                    {/* GRUPO DE BOTONES: Ahora son más responsivos */}
+                    <div className='flex gap-2 w-full sm:w-auto justify-center'>
+                        <button
+                            onClick={() => setPivotDate(subDays(pivotDate, 15))}
+                            className='flex-1 sm:flex-none px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'
+                        >
+                            Ant.
+                        </button>
+                        <button
+                            onClick={() => setPivotDate(new Date())}
+                            className='flex-1 sm:flex-none px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium'
+                        >
+                            Hoy
+                        </button>
+                        <button
+                            onClick={() => setPivotDate(addDays(pivotDate, 15))}
+                            className='flex-1 sm:flex-none px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'
+                        >
+                            Sig.
+                        </button>
                     </div>
+
                 </div>
             </div>
 
@@ -184,9 +216,9 @@ export default function UserScheduler() {
 
             <div className='flex-1 bg-white rounded-xl shadow-lg border overflow-hidden'>
                 <div className='h-full overflow-auto'>
-                    
-                    <div className='inline-block min-w-full align-middle' ref={tableRef} style={{zoom: 0.8}}>
-                        
+
+                    <div className='inline-block min-w-full align-middle' ref={tableRef} style={{ zoom: 0.8 }}>
+
                         {/* HEADER */}
                         <div className='sticky top-0 z-30 bg-white border-b'>
                             <div className='flex'>
@@ -215,30 +247,42 @@ export default function UserScheduler() {
 
                         {/* BODY */}
                         <div className='divide-y divide-gray-100'>
-                            {Object.entries(processedUsers).map(([dept, shifts]) => (
-                                
-                                <div key={dept} className="bg-white">
-                                    {Object.entries(shifts).map(([shift, users]) => (
-                                        users.length > 0 && (
-                                            <div key={`${dept}-${shift}`}>
-                                                {/* Sticky Section Header */}
-                                                <div className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'>
-                                                    {dept} — <span className="text-blue-600">{shift}</span>
-                                                </div>
-                                                {users.map(user => (
-                                                    <UserList 
-                                                        key={user._id} 
-                                                        user={user} 
-                                                        daysRange={daysRange} 
-                                                        onEditClick={setEditingUser}
-                                                        ref={(el) => (userRefs.current[user._id] = el)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        )
-                                    ))}
-                                </div>
-                            ))}
+                            {Object.entries(processedUsers).map(([dept, shifts]) => {
+                                return (
+                                    
+                                    <div key={dept} className="bg-white">
+                                        {Object.entries(shifts).map(([shift, users]) => {
+                                            console.log(COLORS_DEPARTMENTS.filter(config => config.name === dept)[0])
+
+                                            const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
+                                            return (
+                                                users.length > 0 && (
+                                                    <div key={`${dept}-${shift}`}>
+                                                        {/* Sticky Section Header */}
+                                                        <div
+                                                            className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                            style={{
+                                                                backgroundColor: color
+                                                            }}
+                                                        >
+                                                            {dept} — <span className="text-blue-600">{shift}</span>
+                                                        </div>
+                                                        {users.map(user => (
+                                                            <UserList
+                                                                key={user._id}
+                                                                user={user}
+                                                                daysRange={daysRange}
+                                                                onEditClick={setEditingUser}
+                                                                ref={(el) => (userRefs.current[user._id] = el)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                )
+                                            )
+                                        })}
+                                    </div>
+                                )
+                            })}
                         </div>
                     </div>
                 </div>
@@ -249,8 +293,8 @@ export default function UserScheduler() {
             {/* Modal remains same but use conditional rendering carefully */}
             {editingUser && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <UserEditForm 
-                        initialData={editingUser} 
+                    <UserEditForm
+                        initialData={editingUser}
                         onSave={handleUpdateUser}
                         onCancel={() => setEditingUser(null)}
                         departmentList={DEPARTMENTS}
