@@ -43,21 +43,21 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
             <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
                 <div className='w-full flex items-center gap-3'>
 
-                    <div className={`w-[70px] h-[75px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>
+                    <div className={`w-[60px] h-[65px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>
                         <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
                         
                         {/*user.name.charAt(0)*/}
                     </div>
                     
                     <div>
-                        <p className='text-xs font-semibold text-gray-800 truncate'>{userState?.name}</p>
-                        <p className='text-xs font-semibold text-gray-800 truncate'>{userState?.surName}</p>
+                        <p className='text-xs font-semibold text-[16px] text-gray-800 truncate'>{userState?.name}</p>
+                        <p className='text-xs font-semibold text-[12px] text-gray-800 truncate'>{userState?.surName}</p>
                         <p className='text-xs text-gray-500'>{userState?.jobInformation?.position || 'Sin definir'}</p>
                     </div>
                     <button 
                         onClick={() => onEditClick(userState)}
-                        className='absolute top-[0px] right-[10px] pointer'                        >
-                        <span className="text-[10px] text-[#001fff] font-bold">EDITAR</span>
+                        className='absolute top-[5px] right-[5px] pointer'>
+                        <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
                     </button>
                 </div>
                
@@ -87,15 +87,17 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                 if(isPast) return(
                     <div
                         key={`${user._id}-${day.fullDateISO}`}
-                        className={`flex-shrink-0 w-24 h-20 p-1 border-r border-gray-300  flex items-center justify-center 
+                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300  flex items-center justify-center 
                             ${day.isToday ? 'bg-blue-50/20' : ''}`}
                     >
-    
-                            <div className={`w-full h-full flex items-center justify-center bg-red-400 rounded-md'`}>
-                             
-                                <span className='text-black text-[10px] font-bold'>FALTA</span>
-                             
-                             </div>
+                            {/*
+                                <div className={`w-full h-full flex items-center justify-center bg-red-400 rounded-md'`}>
+                                    <span className='text-black text-[12px] font-bold'>FALTA</span>
+                                </div>
+                            */}
+                        <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
+                            <span className='text-gray-600 text-[12px] font-bold'>Sin registro</span>
+                        </div>
                 
                     </div>
                 );
@@ -104,7 +106,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                 return (
                     <div
                         key={`${user._id}-${day.fullDateISO}`}
-                        className={`flex-shrink-0 w-24 h-20 p-1 border-r border-gray-300 flex items-center justify-center 
+                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center 
                             ${day.isToday ? 'bg-blue-50/20' : ''}`}
                     >
     
