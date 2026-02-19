@@ -40,7 +40,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
         <div className='flex border-b border-gray-300 hover:bg-gray-50 transition-colors'>
 
             {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
-            <div className='relative sticky left-0 z-10 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
+            <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
                 <div className='w-full flex items-center gap-3'>
 
                     <div className={`w-[70px] h-[75px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>

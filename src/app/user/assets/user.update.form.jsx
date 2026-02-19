@@ -210,7 +210,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                 <option value=''>Selecciona un departamento</option>    
                                 {
                                     departmentList.map(department => (
-                                        <option className='text-[#000000]' value={department}>{department}</option>
+                                        <option key={department} className='text-[#000000]' value={department}>{department}</option>
                                     ))
                                 }
                 
@@ -233,7 +233,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                             <option className='text-[#000000]' value=''>Selecciona un puesto</option>
                             {
                                 positionList.map(text => (
-                                    <option className='text-[#000000]' value={text}>{text}</option>
+                                    <option key={text} className='text-[#000000]' value={text}>{text}</option>
                                 ))
                             }
 
@@ -380,7 +380,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                 <div className='w-full'>
 
                     <Label className="mb-2 block" htmlFor="file-upload-helper-text">
-                        Subir foto '(Operacional)'
+                       {"Subir foto '(Operacional)'"}
                     </Label>
                     <FileInput id="file-upload-helper-text" onChange={handleFileChange} />
                     <HelperText className="mt-1">SVG, PNG, JPG or GIF (MAX. 800x400px).</HelperText>

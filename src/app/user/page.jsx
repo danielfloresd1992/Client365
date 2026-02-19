@@ -276,20 +276,7 @@ export default function UserScheduler() {
                             </div>
                         </div>
 
-                        {editingUser && (
-                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                                <div className="w-full max-w-xl p-4">
-                                    <UserEditForm 
-                                        initialData={editingUser} 
-                                        onSave={(id, data) => handdlerPutUser(id, data)}
-                                        onCancel={() => setEditingUser(null)}
-                                        departmentList={departmentList}
-                                        positionList={positionList}
-                                    />
-                                </div>
-                            </div>
-                        )}
-
+                        
                         {/* --- BODY (USUARIOS) --- */}
                         <div>
                             
@@ -297,16 +284,21 @@ export default function UserScheduler() {
                                 Object.entries(userOrder).map(([key, value]) => {
 
                                     return(
-                                        <div key={key}>
+                                        <div className='relative w-full h-full' key={key}>
                                             {
                                                 Object.entries(value).map(([shift, users]) => {
                                                     console.log(shift, users);
                                                     if(users.length === 0) return null; 
                                                     return(
-                                                        <>
-                                                            <div className='sticky left-0 w-48 min-w-[12rem] bg-white border-r border-gray-200 p-2' >
-                                                                <p className='font-bold text-gray-500'>{key} {shift}</p>
-                                                            </div>
+                                                        <div key={`${key}-${shift}`} className='relative'>
+
+                                                            <div className='z-10 sticky top-[77px] left-0 bg-neutral-300 border-r border-gray-200 p-2'>
+ 
+                                                            <p className='text-center font-[.8rem] text-white'>
+                                                                {key} {shift}
+                                                            </p>
+                                                        </div>
+                                                     
                                                            
                                                             {
                                                                 dataOrderedByPosition(users).map((user) => (
@@ -320,7 +312,7 @@ export default function UserScheduler() {
                                                                     />
                                                                 ))
                                                             }
-                                                        </>
+                                                        </div>
                                                     )
                                                     
                                                 })
@@ -346,7 +338,21 @@ export default function UserScheduler() {
                                 )
                             }
                         </div>
-                        
+
+                        {editingUser && (
+                            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                                <div className="w-full max-w-xl p-4">
+                                    <UserEditForm 
+                                        initialData={editingUser} 
+                                        onSave={(id, data) => handdlerPutUser(id, data)}
+                                        onCancel={() => setEditingUser(null)}
+                                        departmentList={departmentList}
+                                        positionList={positionList}
+                                    />
+                                </div>
+                            </div>
+                        )}
+
                     </div>
                 </div>
             </div>
