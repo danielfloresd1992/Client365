@@ -114,8 +114,7 @@ export default function UserScheduler() {
                 const shift = user.workSchedule?.shiftType?.toLowerCase() || 'sin definir';
                 if (result[dept][shift]) {
 
-                    const datail = user.jobInformation?.detail;
-                    console.log(datail);
+                    const datail = user.jobInformation?.detail
 
                     if(!datail || datail === ''){ 
                         result[dept][shift].default.push(user);
@@ -174,8 +173,6 @@ export default function UserScheduler() {
             });
         }
     }, [daysRange]);
-
-
 
 
 

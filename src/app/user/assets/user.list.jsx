@@ -1,7 +1,7 @@
 import { useState, useEffect, useImperativeHandle, forwardRef, useContext } from 'react';
 import { myUserContext } from '@/contexts/userContext';
-import {  isSameDay,  getDay ,isBefore, startOfDay} from 'date-fns';
-import { userById, } from '@/libs/ajaxClient/user.fecth';
+import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
+import { userById, getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
 
 
 
@@ -10,19 +10,19 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
     const userState = user
 
-    const {dataSessionState} = useContext(myUserContext);
+    const { dataSessionState } = useContext(myUserContext);
 
 
     const remplazeUrl = (url) => {
-        if(!url) return null;
+        if (!url) return null;
 
-        return 'https://amazona365.ddns.net:3006' +  url.split('https://amazona365.ddns.net')[1]
+        return 'https://amazona365.ddns.net:3006' + url.split('https://amazona365.ddns.net')[1]
     };
 
 
 
     const updateUser = user => {
-       
+
     };
 
 
@@ -33,7 +33,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
     }));
 
 
-    if(user.workSchedule.outForkSchedule) return null;
+    if (user.workSchedule.outForkSchedule) return null;
 
 
     return (
@@ -45,83 +45,158 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
                     <div className={`w-[60px] h-[65px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>
                         <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
-                        
+
                         {/*user.name.charAt(0)*/}
                     </div>
-                    
+
                     <div>
                         <p className='text-xs font-semibold text-[16px] text-gray-800 truncate'>{userState?.name}</p>
                         <p className='text-xs font-semibold text-[12px] text-gray-800 truncate'>{userState?.surName}</p>
                         <p className='text-xs text-gray-500'>{userState?.jobInformation?.position || 'Sin definir'}</p>
                     </div>
-                    <button 
+                    <button
                         onClick={() => onEditClick(userState)}
                         className='absolute top-[5px] right-[5px] pointer'>
                         <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
                     </button>
                 </div>
-               
+
             </div>
 
             {/* CELDAS DE DATOS (Iteramos los días de nuevo para este usuario) */}
-            {daysRange.map((day) => {
-                const today = startOfDay(new Date());
-                const currentCellDate = startOfDay(day.dateObj);
-
-
-                const isPast = isBefore(currentCellDate, today); // ¿Ya pasó?
-                const isToday = isSameDay(currentCellDate, today); // ¿Es hoy?
-                const isFuture = !isPast && !isToday; // ¿Es un día futuro?
-                // const data = getCellData(user.id, day.dateObj);
-                // 1. Obtenemos el número del día actual de la celda (0-6)
-                const currentDayNumber = getDay(day.dateObj);
-
-                // 2. Obtenemos los días libres del usuario (asegurando que sea un array)
-                // Si aún no ha cargado userState, asumimos array vacío []
-                const restDays = userState?.workSchedule?.restDays || [];
-               
-                let isRestDay = restDays[currentDayNumber] ? true : false; // TOCA EL DÍA LIBRE
-                const isWeekend = day.dayName === 'dom' || day.dayName === 'sáb';
-   
-
-                if(isPast) return(
-                    <div
-                        key={`${user._id}-${day.fullDateISO}`}
-                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300  flex items-center justify-center 
-                            ${day.isToday ? 'bg-blue-50/20' : ''}`}
-                    >
-                            {/*
-                                <div className={`w-full h-full flex items-center justify-center bg-red-400 rounded-md'`}>
-                                    <span className='text-black text-[12px] font-bold'>FALTA</span>
-                                </div>
-                            */}
-                        <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
-                            <span className='text-gray-600 text-[13px]'>Sin registro</span>
-                        </div>
-                
-                    </div>
-                );
-                
-
+            {user && daysRange.map((day) => {
                 return (
                     <div
                         key={`${user._id}-${day.fullDateISO}`}
                         className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center 
                             ${day.isToday ? 'bg-blue-50/20' : ''}`}
                     >
-    
-                            <div className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
-                                {isRestDay ? (
-                                    <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
-                                ) : (
-                                    /* 3. Día laborable normal sin info aún */
-                                    <span className='text-gray-500 text-[13px]'>Guardia</span>
-                                )}
-                            </div>
-                
+                        {/* Invocamos al hijo pasándole los datos necesarios */}
+                        <AttendanceCell
+                            userId={user._id}
+                            dateObj={day.dateObj}
+                            // Pasamos los días libres para que el hijo calcule si le toca
+                            restDaysSchedule={userState?.workSchedule?.restDays}
+                        />
                     </div>
                 );
             })}
         </div>
     );
 });
+
+
+
+
+
+
+
+
+
+
+
+function AttendanceCell({ userId, dateObj, restDaysSchedule }) {
+    // Estados: 'initial', 'loading', 'data', 'empty'
+    const [status, setStatus] = useState('initial');
+    const [attendanceData, setAttendanceData] = useState(null);
+
+    // Lógica de fechas (movida desde el padre)
+    const today = startOfDay(new Date());
+    const currentCellDate = startOfDay(dateObj);
+    const isPast = isBefore(currentCellDate, today);
+    const isToday = isSameDay(currentCellDate, today);
+
+    // Lógica de día libre (movida desde el padre)
+    const currentDayNumber = getDay(dateObj);
+    const restDays = restDaysSchedule || [];
+    const isRestDay = restDays[currentDayNumber] ? true : false;
+
+    if(attendanceData) console.log(attendanceData);
+
+
+    useEffect(() => {
+        // Solo buscamos datos si es pasado o es hoy
+        if (isPast || isToday) {
+            setStatus('loading');
+            const fetchData = async () => {
+                try {
+                    // Usamos ISO String para la petición
+                    const dateIso = currentCellDate.toISOString();
+                    const response = await getAttendanceByDate(userId, dateIso);
+                    console.log(response);
+                    if (response && response.data) {
+                        setAttendanceData(response.data);
+                        setStatus('data');
+                    } else {
+                        setStatus('empty');
+                    }
+                } catch (error) {
+                    console.error("Error fetching attendance:", error);
+                    setStatus('empty');
+                }
+            };
+            fetchData();
+        }
+        // Si es futuro, se queda en estado 'initial'
+    }, [userId, dateObj]); // Dependencias del efecto
+
+
+    // ==================================================================
+    // RENDERIZADO CON TUS ESTILOS ORIGINALES
+    // ==================================================================
+
+    // 1. Estado de carga (Para mantener el tamaño de la celda mientras busca)
+    if (status === 'loading') {
+        return <div className="w-full h-full bg-gray-100 rounded-md animate-pulse"></div>;
+    }
+
+    // 2. Si YA PASÓ y NO se encontraron datos ('empty')
+    // (Tu bloque original de "Sin registro")
+    if (isPast && status === 'empty') {
+        return (
+            <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
+                <span className='text-gray-600 text-[13px]'>Sin registro</span>
+            </div>
+        );
+    }
+
+    // 3. Si SE ENCONTRARON DATOS (Nuevo bloque necesario para mostrar la asistencia real)
+    // He usado estilos muy simples que encajan con los tuyos (texto 12px/13px)
+    if (isPast) return (
+        <div
+            key={`${userId}-${currentCellDate.fullDateISO}`}
+            className={`flex-shrink-0 w-24 p-1 border-r border-gray-300  flex items-center justify-center 
+                            ${isToday ? 'bg-blue-50/20' : ''}`}
+        >
+            {/*
+                                <div className={`w-full h-full flex items-center justify-center bg-red-400 rounded-md'`}>
+                                    <span className='text-black text-[12px] font-bold'>FALTA</span>
+                                </div>
+                            */}
+            <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
+                <span className='text-gray-600 text-[13px]'>Sin registro</span>
+            </div>
+
+        </div>
+    );
+
+
+    return (
+        <div
+            key={`${userId}-${currentCellDate.fullDateISO}`}
+            className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center 
+                            ${isToday ? 'bg-blue-50/20' : ''}`}
+        >
+
+            <div className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
+                {isRestDay ? (
+                    <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
+                ) : (
+                    /* 3. Día laborable normal sin info aún */
+                    <span className='text-gray-500 text-[13px]'>Guardia</span>
+                )}
+            </div>
+
+        </div>
+    );
+}
