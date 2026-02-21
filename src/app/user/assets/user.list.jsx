@@ -96,7 +96,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                                 </div>
                             */}
                         <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
-                            <span className='text-gray-600 text-[12px] font-bold'>Sin registro</span>
+                            <span className='text-gray-600 text-[13px]'>Sin registro</span>
                         </div>
                 
                     </div>
@@ -112,10 +112,10 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
     
                             <div className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
                                 {isRestDay ? (
-                                    <span className='text-green-600 text-[10px] font-bold'>LIBRE</span>
+                                    <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
                                 ) : (
                                     /* 3. Día laborable normal sin info aún */
-                                    <span className='text-gray-500 text-[12px]'>Guardia</span>
+                                    <span className='text-gray-500 text-[13px]'>Guardia</span>
                                 )}
                             </div>
                 

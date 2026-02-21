@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
-import { addDays, subDays, eachDayOfInterval, format, isSameDay } from 'date-fns';
+import { addDays, subDays, eachDayOfInterval, format, isSameDay, secondsToMilliseconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Assets & Components
@@ -13,7 +13,7 @@ import { fetchUserData, userById, updateUserByRrhh } from '@/libs/ajaxClient/use
 
 const DEPARTMENTS = ['Operaciones', 'Recursos Humanos', 'Reportes', 'Sistemas y desarrollo', 'Sin definir'];
 const COLORS_DEPARTMENTS = [
-    { name: 'Operaciones', diurno: '#abf8fd', nocturno: "#cfd0ff" },
+    { name: 'Operaciones', diurno: '#abf8fd', nocturno: "#c1c2fd" },
     { name: 'Recursos Humanos', diurno: '#b0facc', nocturno: "#fffab8" },
     { name: 'Sistemas y desarrollo', diurno: '#ffbfe2', nocturno: "#c2d5ff" },
     { name: 'Reportes', diurno: '#fdaeae', nocturno: "#fdc5ff" },
@@ -75,6 +75,8 @@ export default function UserScheduler() {
         loadData();
     }, []); // Removed pivotDate from dependency to prevent refetching on horizontal scroll
 
+
+
     // 3. Memoized Grouping & Sorting Logic
     const processedUsers = useMemo(() => {
         const result = {};
@@ -86,9 +88,18 @@ export default function UserScheduler() {
             if (deptUsers.length === 0) return;
 
             result[dept] = {
-                diurno: [],
-                nocturno: [],
-                'sin definir': []
+                diurno: {
+                    default : [],
+                    total: 0
+                },
+                nocturno: {
+                    default : [],
+                    total: 0
+                },
+                'sin definir': {
+                    default : [],
+                    total: 0
+                }
             };
 
             // Sort by Position Priority first
@@ -102,10 +113,21 @@ export default function UserScheduler() {
             sortedByPosition.forEach(user => {
                 const shift = user.workSchedule?.shiftType?.toLowerCase() || 'sin definir';
                 if (result[dept][shift]) {
-                    result[dept][shift].push(user);
+
+                    const datail = user.jobInformation?.detail;
+                    console.log(datail);
+
+                    if(!datail || datail === ''){ 
+                        result[dept][shift].default.push(user);
+                    }
+                    else{
+                        if(result[dept][shift][datail]) result[dept][shift][datail].push(user);
+                        else result[dept][shift][datail] = [user];
+                    }
                 } else {
-                    result[dept]['sin definir'].push(user);
+                    result[dept]['sin definir']['default'].push(user);
                 }
+                result[dept][shift].total = result[dept][shift].total + 1;
             });
         });
 
@@ -152,6 +174,7 @@ export default function UserScheduler() {
             });
         }
     }, [daysRange]);
+
 
 
 
@@ -244,41 +267,63 @@ export default function UserScheduler() {
 
 
 
-
                         {/* BODY */}
                         <div className='divide-y divide-gray-100'>
                             {Object.entries(processedUsers).map(([dept, shifts]) => {
                                 return (
-                                    
                                     <div key={dept} className="bg-white">
-                                        {Object.entries(shifts).map(([shift, users]) => {
-                                            console.log(COLORS_DEPARTMENTS.filter(config => config.name === dept)[0])
-
+                                        {Object.entries(shifts).map((category) => {
+                                            const [shift, subcategorys] = category;
+                                         
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
-                                            return (
-                                                users.length > 0 && (
-                                                    <div key={`${dept}-${shift}`}>
-                                                        {/* Sticky Section Header */}
-                                                        <div
-                                                            className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
-                                                            style={{
-                                                                backgroundColor: color
-                                                            }}
-                                                        >
-                                                            {dept} — <span className="text-blue-600">{shift}</span>
-                                                        </div>
-                                                        {users.map(user => (
-                                                            <UserList
-                                                                key={user._id}
-                                                                user={user}
-                                                                daysRange={daysRange}
-                                                                onEditClick={setEditingUser}
-                                                                ref={(el) => (userRefs.current[user._id] = el)}
-                                                            />
-                                                        ))}
+                                            return subcategorys.total > 0 && (
+                                                <div key={`${dept}-${shift}`}>
+                                                    {/* Sticky Section Header */}
+                                                    <div
+                                                        className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                        style={{
+                                                            backgroundColor: color
+                                                        }}
+                                                    >
+                                                        {dept} — <span className="text-blue-600">{shift}</span>
                                                     </div>
-                                                )
+                                                    {
+                                                        Object.entries(subcategorys).map(([subcategory, listUser]) => {
+                                                            console.log(subcategory);
+                                                            return (
+                                                                <>
+                                                                <div
+                                                                    className='sticky left-0 w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                                    style={{
+                                                                        backgroundColor: '#ddd',
+                                                                        color: 'black',
+                                                                        display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none': 'block'
+                                                                    }}
+                                                                >
+                                                                    {subcategory}
+                                                                </div>
+                                                                {
+                                                                    listUser.length > 0 && listUser.map(user => {
+                                                                        
+                                                                        return(
+                                                                            <UserList
+                                                                                key={user._id}
+                                                                                user={user}
+                                                                                daysRange={daysRange}
+                                                                                onEditClick={setEditingUser}
+                                                                                ref={(el) => (userRefs.current[user._id] = el)}
+                                                                            />
+                                                                        )
+                                                                    })
+                                                                }
+                                                                </>
+                                                            )
+                                                            
+                                                        })
+                                                    }
+                                                </div>
                                             )
+                                            
                                         })}
                                     </div>
                                 )
@@ -287,9 +332,7 @@ export default function UserScheduler() {
                     </div>
                 </div>
             </div>
-            {
-                console.log(editingUser)
-            }
+            
             {/* Modal remains same but use conditional rendering carefully */}
             {editingUser && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
