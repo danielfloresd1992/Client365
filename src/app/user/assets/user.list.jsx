@@ -2,7 +2,7 @@ import { useState, useEffect, useImperativeHandle, forwardRef, useContext } from
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { userById, getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
-
+import { useInView } from 'react-intersection-observer';
 
 
 export default forwardRef(function UserList({ user, daysRange, onEditClick }, ref) {
@@ -74,6 +74,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                         {/* Invocamos al hijo pasándole los datos necesarios */}
                         <AttendanceCell
                             userId={user._id}
+                            dni={user.dni}
                             dateObj={day.dateObj}
                             // Pasamos los días libres para que el hijo calcule si le toca
                             restDaysSchedule={userState?.workSchedule?.restDays}
@@ -89,41 +90,48 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
 
 
+function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
+    const { ref, inView } = useInView({
+        threshold: .05,
+        triggerOnce: true
+    });
 
-
-
-
-
-
-function AttendanceCell({ userId, dateObj, restDaysSchedule }) {
-    // Estados: 'initial', 'loading', 'data', 'empty'
     const [status, setStatus] = useState('initial');
     const [attendanceData, setAttendanceData] = useState(null);
 
-    // Lógica de fechas (movida desde el padre)
     const today = startOfDay(new Date());
     const currentCellDate = startOfDay(dateObj);
     const isPast = isBefore(currentCellDate, today);
     const isToday = isSameDay(currentCellDate, today);
 
-    // Lógica de día libre (movida desde el padre)
     const currentDayNumber = getDay(dateObj);
     const restDays = restDaysSchedule || [];
     const isRestDay = restDays[currentDayNumber] ? true : false;
 
-    if(attendanceData) console.log(attendanceData);
-
+    // Función para formatear hora a Venezuela (UTC-4)
+    const formatTimeVE = (dateStr) => {
+        if (!dateStr) return "---";
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('es-VE', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true,
+            timeZone: 'America/Caracas'
+        }).format(date);
+    };
 
     useEffect(() => {
-        // Solo buscamos datos si es pasado o es hoy
-        if (isPast || isToday) {
+        if (inView && (isPast || isToday)) {
             setStatus('loading');
             const fetchData = async () => {
                 try {
-                    // Usamos ISO String para la petición
-                    const dateIso = currentCellDate.toISOString();
-                    const response = await getAttendanceByDate(userId, dateIso);
-                    console.log(response);
+                    // Generamos la fecha 00:00:00 LOCAL para que el toISOString 
+                    // devuelva el T04:00:00.000Z que espera tu servidor
+                    const d = new Date(dateObj);
+                    d.setHours(0, 0, 0, 0);
+                    const dateIso = d.toISOString();
+
+                    const response = await getAttendanceByDate(dni, dateIso);
                     if (response && response.data) {
                         setAttendanceData(response.data);
                         setStatus('data');
@@ -131,72 +139,72 @@ function AttendanceCell({ userId, dateObj, restDaysSchedule }) {
                         setStatus('empty');
                     }
                 } catch (error) {
-                    console.error("Error fetching attendance:", error);
                     setStatus('empty');
                 }
             };
             fetchData();
         }
-        // Si es futuro, se queda en estado 'initial'
-    }, [userId, dateObj]); // Dependencias del efecto
+    }, [dni, dateObj, inView]);
 
-
-    // ==================================================================
-    // RENDERIZADO CON TUS ESTILOS ORIGINALES
-    // ==================================================================
-
-    // 1. Estado de carga (Para mantener el tamaño de la celda mientras busca)
+    // 1. ESTADO CARGANDO (Barra de espera)
     if (status === 'loading') {
-        return <div className="w-full h-full bg-gray-100 rounded-md animate-pulse"></div>;
-    }
-
-    // 2. Si YA PASÓ y NO se encontraron datos ('empty')
-    // (Tu bloque original de "Sin registro")
-    if (isPast && status === 'empty') {
         return (
-            <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
-                <span className='text-gray-600 text-[13px]'>Sin registro</span>
+            <div ref={ref} className="w-full h-[50px] flex flex-col gap-1 justify-center items-center px-1">
+                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="w-full h-full bg-blue-500 animate-[loading_1.5s_infinite] origin-left"></div>
+                </div>
+                <span className="text-[10px] text-gray-400">Cargando...</span>
+                <style jsx>{`
+                    @keyframes loading {
+                        0% { transform: scaleX(0); }
+                        50% { transform: scaleX(0.5); }
+                        100% { transform: scaleX(1); }
+                    }
+                `}</style>
             </div>
         );
     }
 
-    // 3. Si SE ENCONTRARON DATOS (Nuevo bloque necesario para mostrar la asistencia real)
-    // He usado estilos muy simples que encajan con los tuyos (texto 12px/13px)
-    if (isPast) return (
-        <div
-            key={`${userId}-${currentCellDate.fullDateISO}`}
-            className={`flex-shrink-0 w-24 p-1 border-r border-gray-300  flex items-center justify-center 
-                            ${isToday ? 'bg-blue-50/20' : ''}`}
-        >
-            {/*
-                                <div className={`w-full h-full flex items-center justify-center bg-red-400 rounded-md'`}>
-                                    <span className='text-black text-[12px] font-bold'>FALTA</span>
-                                </div>
-                            */}
-            <div title='No hay registro del usuario en este día' className={`w-full h-full flex items-center justify-center bg-gray-200 rounded-md'`}>
-                <span className='text-gray-600 text-[13px]'>Sin registro</span>
-            </div>
-
-        </div>
-    );
-
-
-    return (
-        <div
-            key={`${userId}-${currentCellDate.fullDateISO}`}
-            className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center 
-                            ${isToday ? 'bg-blue-50/20' : ''}`}
-        >
-
-            <div className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
-                {isRestDay ? (
-                    <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
-                ) : (
-                    /* 3. Día laborable normal sin info aún */
-                    <span className='text-gray-500 text-[13px]'>Guardia</span>
+    // 2. SI HAY DATOS (Mostrar Entrada y Salida)
+    if (status === 'data' && attendanceData) {
+        return (
+            <div ref={ref} className={`w-full h-full flex flex-col justify-center px-1 text-[11px] ${isToday ? 'bg-blue-50/30' : ''}`}
+                style={attendanceData?.isLate ?{
+                    backgroundColor : '#ffdbdb'
+                }:null}
+            >
+                <div className="flex justify-between items-center border-b border-gray-100 pb-0.5">
+                    <span className="font-bold text-blue-600">E:</span>
+                    <span className="text-gray-700 font-semibold">{formatTimeVE(attendanceData.checkIn)}</span>
+                </div>
+                <div className="flex justify-between items-center pt-0.5">
+                    <span className="font-bold text-orange-600">S:</span>
+                    <span className="text-gray-700 font-semibold">{formatTimeVE(attendanceData.checkOut)}</span>
+                </div>
+                {attendanceData.isLate && (
+                    <div className="text-[9px] text-red-500 text-center font-bold text-[12px]">Retardo</div>
                 )}
             </div>
+        );
+    }
 
+    // 3. SIN REGISTRO (Días pasados)
+    if (isPast && status === 'empty') {
+        return (
+            <div ref={ref} title='No hay registro' className='w-full h-full flex items-center justify-center bg-gray-100 rounded-md'>
+                <span className='text-gray-400 text-[11px] italic'>Sin registro</span>
+            </div>
+        );
+    }
+
+    // 4. ESTADO POR DEFECTO (Libre o Guardia futuro)
+    return (
+        <div ref={ref} className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
+            {isRestDay ? (
+                <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
+            ) : (
+                <span className='text-gray-400 text-[13px]'>{isPast || isToday ? '---' : 'Guardia'}</span>
+            )}
         </div>
     );
 }

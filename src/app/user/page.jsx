@@ -17,6 +17,7 @@ const COLORS_DEPARTMENTS = [
     { name: 'Recursos Humanos', diurno: '#b0facc', nocturno: "#fffab8" },
     { name: 'Sistemas y desarrollo', diurno: '#ffbfe2', nocturno: "#c2d5ff" },
     { name: 'Reportes', diurno: '#fdaeae', nocturno: "#fdc5ff" },
+    { name: 'Sin definir', diurno: '#bbbbbb', nocturno: "#bbb" },
 ];
 const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
 
@@ -270,8 +271,9 @@ export default function UserScheduler() {
                                 return (
                                     <div key={dept} className="bg-white">
                                         {Object.entries(shifts).map((category) => {
+
                                             const [shift, subcategorys] = category;
-                                         
+                                            console.log(shift);
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
                                             return subcategorys.total > 0 && (
                                                 <div key={`${dept}-${shift}`}>
@@ -286,34 +288,33 @@ export default function UserScheduler() {
                                                     </div>
                                                     {
                                                         Object.entries(subcategorys).map(([subcategory, listUser]) => {
-                                                            console.log(subcategory);
                                                             return (
-                                                                <>
-                                                                <div
-                                                                    className='sticky left-0 w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
-                                                                    style={{
-                                                                        backgroundColor: '#ddd',
-                                                                        color: 'black',
-                                                                        display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none': 'block'
-                                                                    }}
-                                                                >
-                                                                    {subcategory}
+                                                                <div key={`${dept}-${shift}-${subcategory}`}>
+                                                                    <div
+                                                                        className='sticky left-0 w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                                        style={{
+                                                                            backgroundColor: '#ddd',
+                                                                            color: 'black',
+                                                                            display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none': 'block'
+                                                                        }}
+                                                                    >
+                                                                        {subcategory}
+                                                                    </div>
+                                                                    {
+                                                                        listUser.length > 0 && listUser.map(user => {
+                                                                            
+                                                                            return(
+                                                                                <UserList
+                                                                                    key={user._id}
+                                                                                    user={user}
+                                                                                    daysRange={daysRange}
+                                                                                    onEditClick={setEditingUser}
+                                                                                    ref={(el) => (userRefs.current[user._id] = el)}
+                                                                                />
+                                                                            )
+                                                                        })
+                                                                    }
                                                                 </div>
-                                                                {
-                                                                    listUser.length > 0 && listUser.map(user => {
-                                                                        
-                                                                        return(
-                                                                            <UserList
-                                                                                key={user._id}
-                                                                                user={user}
-                                                                                daysRange={daysRange}
-                                                                                onEditClick={setEditingUser}
-                                                                                ref={(el) => (userRefs.current[user._id] = el)}
-                                                                            />
-                                                                        )
-                                                                    })
-                                                                }
-                                                                </>
                                                             )
                                                             
                                                         })

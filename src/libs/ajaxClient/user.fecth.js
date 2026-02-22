@@ -36,20 +36,10 @@ export const userById = async (id) => {
 */
 export const getAttendanceByDate = async (dni, dateISO) => {
     try {
-        const response = await axiosInstance.get(`/user/attendance/${dni}`, {
-            params: { 
-                date: dateISO // Envía la fecha como Query Parameter
-            }
-        });
-
-        // Retornamos directamente la data (que contiene {status, data, message})
+        const response = await axiosInstance.get(`/user/attendance/${dni}?date=${dateISO}`);
         return response.data;
-        
-    } catch (error) {
-        // Log para depuración en desarrollo
-        console.error(`Error al obtener asistencia (${dni}):`, error.response?.data || error.message);
-        
-        // Propagamos el error para que el componente AttendanceCell lo capture en su catch
+    } 
+    catch (error) {
         throw error;
     }
 };

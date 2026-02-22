@@ -8,11 +8,10 @@ export const fetchFileData = async (file) => {
 
         const formData = new FormData();
         formData.append('img', file)
-
         const response = await axiosInstance.post('/multimedia', formData);
         return response.data;
-    } catch (error) {
-        console.error('Error fetching user data:', error);
+    } 
+    catch (error) {
         throw error;
     }       
 };
