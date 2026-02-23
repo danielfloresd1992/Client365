@@ -1,23 +1,31 @@
 import { useState, useEffect, useImperativeHandle, forwardRef, useContext } from 'react';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
-import { userById, getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
+import { getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
 import { useInView } from 'react-intersection-observer';
 
-import socket from '@/libs/socket/socketIo_jarvis';
+//import socket from '@/libs/socket/socketIo_jarvis';
 
 
-export default forwardRef(function UserList({ user, daysRange, onEditClick }, ref) {
+export default forwardRef(function UserList({
+    user,
+    daysRange,
+    onEditClick,
+    onOpenDynamicSchedule,
+    selectedDateMap = {},
+    isDraggingSelection = false,
+    onStartDragSelection,
+    onDragOverCell,
+    onClearSelectedDates
+}, ref) {
 
 
     const userState = user
-
     const { dataSessionState } = useContext(myUserContext);
 
 
     const remplazeUrl = (url) => {
         if (!url) return null;
-
         return 'https://amazona365.ddns.net:3006' + url.split('https://amazona365.ddns.net')[1]
     };
 
@@ -26,6 +34,8 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
     const updateUser = user => {
 
     };
+
+
 
 
 
@@ -39,7 +49,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
 
     return (
-        <div className='flex border-b border-gray-300 hover:bg-gray-50 transition-colors'>
+        <div className='flex border-b border-gray-300 hover:bg-gray-50 transition-colors select-none' onDragStart={(e) => e.preventDefault()}>
 
             {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
             <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
@@ -57,7 +67,10 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                         <p className='text-xs text-gray-500'>{userState?.jobInformation?.position || 'Sin definir'}</p>
                     </div>
                     <button
-                        onClick={() => onEditClick(userState)}
+                        onClick={() => {
+                            onClearSelectedDates?.();
+                            onEditClick(userState);
+                        }}
                         className='absolute top-[5px] right-[5px] pointer'>
                         <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
                     </button>
@@ -70,11 +83,15 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
                 return (
                     <div
                         key={`${user._id}-${day.fullDateISO}`}
-                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center 
-                            ${day.isToday ? 'bg-blue-50/20' : ''}`}
+                        onMouseDown={(event) => onStartDragSelection?.(day.fullDateISO, event.button)}
+                        onMouseEnter={() => onDragOverCell?.(day.fullDateISO)}
+                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center cursor-pointer
+                            ${day.isToday ? 'bg-blue-50/20' : ''}
+                            ${selectedDateMap[day.fullDateISO] ? 'ring-2 ring-inset ring-indigo-500 bg-indigo-100/70' : ''}`}
                     >
                         {/* Invocamos al hijo pasándole los datos necesarios */}
                         <AttendanceCell
+                            user={user}
                             userId={user._id}
                             dni={user.dni}
                             dateObj={day.dateObj}
@@ -92,7 +109,7 @@ export default forwardRef(function UserList({ user, daysRange, onEditClick }, re
 
 
 
-function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
+function AttendanceCell({ user, dni, dateObj, restDaysSchedule }) {
     const { ref, inView } = useInView({
         threshold: .05,
         triggerOnce: true
@@ -123,7 +140,7 @@ function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
     };
 
     useEffect(() => {
-        if (inView && (isPast || isToday)) {
+        if (inView) {
             setStatus('loading');
             const fetchData = async () => {
                 try {
@@ -148,6 +165,7 @@ function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
         }
     }, [dni, dateObj, inView]);
 
+
     // 1. ESTADO CARGANDO (Barra de espera)
     if (status === 'loading') {
         return (
@@ -168,12 +186,12 @@ function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
     }
 
     // 2. SI HAY DATOS (Mostrar Entrada y Salida)
-    if (status === 'data' && attendanceData) {
+    if (status === 'data' && attendanceData?.checkIn) {
         return (
             <div ref={ref} className={`w-full h-full flex flex-col justify-center px-1 text-[11px] ${isToday ? 'bg-blue-50/30' : ''}`}
-                style={attendanceData?.isLate ?{
-                    backgroundColor : '#ffdbdb'
-                }:null}
+                style={attendanceData?.isLate ? {
+                    backgroundColor: '#ffdbdb'
+                } : null}
             >
                 <div className="flex justify-between items-center border-b border-gray-100 pb-0.5">
                     <span className="font-bold text-blue-600">E:</span>
@@ -204,8 +222,26 @@ function AttendanceCell({ userId, dni, dateObj, restDaysSchedule }) {
         <div ref={ref} className={`w-full h-full flex items-center justify-center ${isRestDay ? 'bg-stripes rounded-md' : ''}`}>
             {isRestDay ? (
                 <span className='text-green-600 text-[13px] font-bold'>LIBRE</span>
-            ) : (
-                <span className='text-gray-400 text-[13px]'>{isPast || isToday ? '---' : 'Guardia'}</span>
+            ) : 
+            (
+                <div className={`w-full h-full flex flex-col justify-center px-1 text-[11px] ${isToday ? 'bg-blue-50/30' : ''}`}>
+                    {
+                        user?.workSchedule.startTime ? 
+                            <>
+                                <div className="flex justify-between items-center border-b border-gray-100 pb-0.5">
+                                    <span className="text-blue-600">Entrada:</span>
+                                    <span className="text-gray-700 font-bold">{user?.workSchedule?.startTime || 'Sin definir'}</span>
+                                </div>
+                                <div className="flex justify-between items-center pt-0.5">
+                                    <span className="text-orange-600">Salida:</span>
+                                    <span className="text-gray-700 font-bold">{user?.workSchedule?.endTime || 'Sin definir'}</span>
+                                </div>
+                            </>
+                        :
+                        <span className="text-gray-700 font-semibold">Sin definir</span>
+                    }
+                   
+                </div>
             )}
         </div>
     );

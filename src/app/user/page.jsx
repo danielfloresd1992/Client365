@@ -9,7 +9,10 @@ import { es } from 'date-fns/locale';
 // Assets & Components
 import UserEditForm from './assets/user.update.form';
 import UserList from './assets/user.list';
+import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
 import { fetchUserData, userById, updateUserByRrhh } from '@/libs/ajaxClient/user.fecth';
+
+
 
 const DEPARTMENTS = ['Operaciones', 'Recursos Humanos', 'Reportes', 'Sistemas y desarrollo', 'Sin definir'];
 const COLORS_DEPARTMENTS = [
@@ -28,14 +31,19 @@ export default function UserScheduler() {
     const [pivotDate, setPivotDate] = useState(new Date());
     const [userData, setUserData] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
+    const [dynamicScheduleConfig, setDynamicScheduleConfig] = useState(null);
+    const [selectedCellsByUser, setSelectedCellsByUser] = useState({});
+    const [dragSelection, setDragSelection] = useState({
+        active: false,
+        action: null,
+        visited: {}
+    });
     const [isLoading, setIsLoading] = useState(false);
     const tableRef = useRef(null);
     const inputZoomRef = useRef(null);
 
     const todayRef = useRef(null);
     const userRefs = useRef({});
-
-
 
     // 1. Memoized Date Range
     const daysRange = useMemo(() => {
@@ -75,6 +83,8 @@ export default function UserScheduler() {
         };
         loadData();
     }, []); // Removed pivotDate from dependency to prevent refetching on horizontal scroll
+
+
 
 
 
@@ -156,11 +166,100 @@ export default function UserScheduler() {
         }
     };
 
+    const handleSaveDynamicSchedule = async (data) => {
+        console.log('Dynamic schedule payload:', data);
+        setDynamicScheduleConfig(null);
+
+        dispatch(setConfigModal({
+            type: 'successfull',
+            title: 'Configuración guardada',
+            description: 'Horario dinámico preparado para envío al servidor',
+            modalOpen: true,
+        }));
+    };
+
 
 
     const handdlerInputZoom = e => {
         tableRef.current.style.zoom = e.target.value;
         inputZoomRef.current.textContent = `Zoom: ${e.target.value}%`;
+    };
+
+    const handleOpenDynamicSchedule = ({ user, dateObj, mode, selectedDates = [] }) => {
+        if (!user) return;
+
+        setDynamicScheduleConfig({
+            user,
+            mode,
+            dateObj: dateObj || null,
+            selectedDates
+        });
+    };
+
+    const handleStartDragSelection = (userId, dateISO, mouseButton) => {
+        if (mouseButton !== 0) return;
+
+        const userMap = selectedCellsByUser[userId] || {};
+        const isCurrentlySelected = !!userMap[dateISO];
+        const action = isCurrentlySelected ? 'deselect' : 'select';
+
+        setDragSelection({
+            active: true,
+            action,
+            visited: { [`${userId}-${dateISO}`]: true }
+        });
+
+        setSelectedCellsByUser(prev => ({
+            ...prev,
+            [userId]: {
+                ...(prev[userId] || {}),
+                [dateISO]: action === 'select'
+            }
+        }));
+    };
+
+    const handleDragOverCell = (userId, dateISO) => {
+        if (!dragSelection.active || !dragSelection.action) return;
+        const cellKey = `${userId}-${dateISO}`;
+        if (dragSelection.visited[cellKey]) return;
+
+        setDragSelection(prev => ({
+            ...prev,
+            visited: {
+                ...prev.visited,
+                [cellKey]: true
+            }
+        }));
+
+        setSelectedCellsByUser(prev => ({
+            ...prev,
+            [userId]: {
+                ...(prev[userId] || {}),
+                [dateISO]: dragSelection.action === 'select'
+            }
+        }));
+    };
+
+    const handleEndDragSelection = () => {
+        if (!dragSelection.active) return;
+
+        setDragSelection({
+            active: false,
+            action: null,
+            visited: {}
+        });
+    };
+
+    const getSelectedDatesForUser = (userId) => {
+        const map = selectedCellsByUser[userId] || {};
+        return Object.keys(map).filter(key => map[key]);
+    };
+
+    const handleClearSelectedDatesForUser = (userId) => {
+        setSelectedCellsByUser(prev => ({
+            ...prev,
+            [userId]: {}
+        }));
     };
 
 
@@ -174,6 +273,13 @@ export default function UserScheduler() {
             });
         }
     }, [daysRange]);
+
+    useEffect(() => {
+        if (!dragSelection.active) return;
+
+        window.addEventListener('mouseup', handleEndDragSelection);
+        return () => window.removeEventListener('mouseup', handleEndDragSelection);
+    }, [dragSelection.active]);
 
 
 
@@ -273,7 +379,6 @@ export default function UserScheduler() {
                                         {Object.entries(shifts).map((category) => {
 
                                             const [shift, subcategorys] = category;
-                                            console.log(shift);
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
                                             return subcategorys.total > 0 && (
                                                 <div key={`${dept}-${shift}`}>
@@ -309,6 +414,13 @@ export default function UserScheduler() {
                                                                                     user={user}
                                                                                     daysRange={daysRange}
                                                                                     onEditClick={setEditingUser}
+                                                                                    onOpenDynamicSchedule={handleOpenDynamicSchedule}
+                                                                                    selectedDateMap={selectedCellsByUser[user._id] || {}}
+                                                                                    selectedDates={getSelectedDatesForUser(user._id)}
+                                                                                    isDraggingSelection={dragSelection.active}
+                                                                                    onStartDragSelection={(dateISO, mouseButton) => handleStartDragSelection(user._id, dateISO, mouseButton)}
+                                                                                    onDragOverCell={(dateISO) => handleDragOverCell(user._id, dateISO)}
+                                                                                    onClearSelectedDates={() => handleClearSelectedDatesForUser(user._id)}
                                                                                     ref={(el) => (userRefs.current[user._id] = el)}
                                                                                 />
                                                                             )
@@ -340,6 +452,19 @@ export default function UserScheduler() {
                         onCancel={() => setEditingUser(null)}
                         departmentList={DEPARTMENTS}
                         positionList={POSITIONS}
+                    />
+                </div>
+            )}
+
+            {dynamicScheduleConfig?.user && (
+                <div className="fixed inset-0 z-[101] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <UserDynamicScheduleForm
+                        user={dynamicScheduleConfig.user}
+                        mode={dynamicScheduleConfig.mode}
+                        initialDate={dynamicScheduleConfig.dateObj}
+                        initialSelectedDates={dynamicScheduleConfig.selectedDates}
+                        onSave={handleSaveDynamicSchedule}
+                        onCancel={() => setDynamicScheduleConfig(null)}
                     />
                 </div>
             )}
