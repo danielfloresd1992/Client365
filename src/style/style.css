@@ -1890,3 +1890,167 @@ a:hover {
     border-radius: 5px;
     overflow: hidden;
 }
+
+
+/* ==========================
+   HEADER AMAZONAS365 THEME
+   ========================== */
+.header-main {
+    height: 56px;
+    padding: 0.45rem 0.9rem;
+    background: linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.22);
+    box-shadow: 0 10px 24px rgba(10, 46, 31, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.header-main__brand {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.header-main__brandInner {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.header-main__logo {
+    filter: brightness(1.02) saturate(0.95);
+}
+
+.header-main__title {
+    color: #f4f7e8;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.header-main__actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+}
+
+.header-main .header-buttonContain {
+    position: static;
+    min-width: unset;
+    height: auto;
+    background-color: transparent;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    overflow: visible;
+}
+
+.header-main .header-buttonContain:hover {
+    height: auto;
+    top: 0;
+    box-shadow: none;
+}
+
+.header-main .btn-item__btn-for-head {
+    border-radius: 9px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.14);
+    color: #f2fff8;
+    height: 36px;
+    padding: 0.35rem 0.55rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+.header-main .btn-item__white {
+    background: rgba(255, 255, 255, 0.86);
+    color: #3f552a;
+    border: 1px solid rgba(65, 89, 38, 0.2);
+}
+
+.header-main .btn-item__white:hover {
+    background: #ffffff;
+}
+
+.header-main__userName {
+    max-width: 190px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.header-main__login {
+    color: #f6faea;
+    padding: 0.38rem 0.7rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    font-size: 0.77rem;
+    font-weight: 600;
+    cursor: pointer;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+@media screen and (max-width: 1200px) {
+    .header-main__title {
+        display: none;
+    }
+
+    .header-main__logo {
+        width: 156px;
+        height: auto;
+    }
+}
+
+@media screen and (max-width: 767px) {
+    .header-main {
+        height: auto;
+        padding: 0.5rem 0.55rem;
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    .header-main__brand {
+        width: 100%;
+    }
+
+    .header-main__logo {
+        width: 140px;
+        height: auto;
+    }
+
+    .header-main__title {
+        font-size: 0.72rem;
+    }
+
+    .header-main__actions {
+        width: 100%;
+    }
+
+    .header-main .header-buttonContain {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.35rem;
+    }
+
+    .header-main .header-main__userBtn {
+        grid-column: 1 / -1;
+    }
+
+    .header-main .btn-item__btn-for-head {
+        font-size: 0.72rem;
+        height: 34px;
+    }
+
+    .header-main__userName {
+        max-width: 170px;
+    }
+}

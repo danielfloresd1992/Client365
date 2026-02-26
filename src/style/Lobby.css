@@ -1654,7 +1654,7 @@ footer a {
 
     .header-buttonContain {
         align-items: center;
-        display: none;
+        display: flex;
     }
 
 
@@ -1904,9 +1904,9 @@ footer a {
    LOBBY THEME: MINIMAL WHITE FUTURE
    ================================== */
 body .header {
-    background: rgba(255, 255, 255, 0.92);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--app-border);
+    background: linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%);
+    backdrop-filter: blur(4px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.25);
 }
 
 body .componentContain,
@@ -1921,6 +1921,10 @@ body .header-buttonContain {
 body .main-contain {
     border: 1px solid var(--app-border);
     box-shadow: var(--app-shadow-soft);
+}
+
+body .header-main .header-buttonContain {
+    background-color: transparent;
 }
 
 body .aside-contents,
@@ -2415,7 +2419,7 @@ body .btnPublic > p {
 }
 
 body .btnPublic:hover:not(:disabled) {
-    background-color: #f1f4f8;
+    background-color: #eef3e8;
 }
 
 body .btnPublic:disabled {
@@ -2429,7 +2433,11 @@ body .btnPublic-img {
 }
 
 body .__btn-blue {
-    background-color: #345f9c;
+    background-color: #4d7a1b;
+}
+
+body .__btn-blue:hover:not(:disabled) {
+    background-color: #4d7a1b;
 }
 
 body .__btn-blue > p,
@@ -2438,7 +2446,11 @@ body .__btn-blue .btnPublic-img {
 }
 
 body .__btn-red {
-    background-color: #9f3f4a;
+    background-color: #9a4f2f;
+}
+
+body .__btn-red:hover:not(:disabled) {
+    background-color: #9a4f2f;
 }
 
 body .__btn-red > p,
@@ -2447,11 +2459,19 @@ body .__btn-red .btnPublic-img {
 }
 
 body .__day {
-    background: linear-gradient(180deg, #5d8cb8 0%, #4a769e 100%);
+    background: linear-gradient(180deg, #7b9b45 0%, #637f36 100%);
+}
+
+body .__day:hover:not(:disabled) {
+    background: linear-gradient(180deg, #7b9b45 0%, #637f36 100%);
 }
 
 body .__night {
-    background: linear-gradient(180deg, #4b5c78 0%, #3c4a62 100%);
+    background: linear-gradient(180deg, #5f6e45 0%, #4e5c38 100%);
+}
+
+body .__night:hover:not(:disabled) {
+    background: linear-gradient(180deg, #5f6e45 0%, #4e5c38 100%);
 }
 
 body .__day > p,
@@ -2462,7 +2482,11 @@ body .__night .btnPublic-img {
 }
 
 body .__btn-green {
-    background-color: #2d7a63;
+    background-color: #3f7a22;
+}
+
+body .__btn-green:hover:not(:disabled) {
+    background-color: #3f7a22;
 }
 
 body .__btn-green > p,
@@ -2471,7 +2495,11 @@ body .__btn-green .btnPublic-img {
 }
 
 body .__btn-download {
-    background-color: #4e5f7f;
+    background-color: #6a744d;
+}
+
+body .__btn-download:hover:not(:disabled) {
+    background-color: #6a744d;
 }
 
 body .__btn-download > p,
