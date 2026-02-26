@@ -34,7 +34,7 @@ export default function AsideNav() {
 
 
     return (
-        <div className={`relative h-full transition-all duration-300 ${hiddenState ? 'w-[250px]' : 'w-[0px]'}`}>
+        <div className={`relative h-full transition-all duration-300 ${hiddenState ? 'w-[250px]' : 'w-[0px]'} max-[599px]:absolute max-[599px]:top-0 max-[599px]:left-0 max-[599px]:z-[200] max-[599px]:h-full`}>
             <aside className={`absolute top-0 left-0 h-full bg-white rounded-lg border transition-all duration-300 overflow-hidden flex flex-col justify-between ${hiddenState ? 'w-[250px] p-2 opacity-100' : 'w-[0px] p-0 opacity-0 border-transparent'}`}>
                 <div className='w-[232px] h-full flex flex-col justify-between'>
                     <div className='w-full'>

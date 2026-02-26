@@ -10,6 +10,10 @@ import { es } from 'date-fns/locale';
 import UserEditForm from './assets/user.update.form';
 import UserList from './assets/user.list';
 import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
+
+
+
+// network
 import { fetchUserData, userById, updateUserByRrhh } from '@/libs/ajaxClient/user.fecth';
 
 
@@ -27,6 +31,8 @@ const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'O
 
 
 export default function UserScheduler() {
+
+
     const dispatch = useDispatch();
     const [pivotDate, setPivotDate] = useState(new Date());
     const [userData, setUserData] = useState([]);
@@ -44,6 +50,8 @@ export default function UserScheduler() {
 
     const todayRef = useRef(null);
     const userRefs = useRef({});
+
+
 
     // 1. Memoized Date Range
     const daysRange = useMemo(() => {
@@ -100,15 +108,15 @@ export default function UserScheduler() {
 
             result[dept] = {
                 diurno: {
-                    default : [],
+                    default: [],
                     total: 0
                 },
                 nocturno: {
-                    default : [],
+                    default: [],
                     total: 0
                 },
                 'sin definir': {
-                    default : [],
+                    default: [],
                     total: 0
                 }
             };
@@ -127,11 +135,11 @@ export default function UserScheduler() {
 
                     const datail = user.jobInformation?.detail
 
-                    if(!datail || datail === ''){ 
+                    if (!datail || datail === '') {
                         result[dept][shift].default.push(user);
                     }
-                    else{
-                        if(result[dept][shift][datail]) result[dept][shift][datail].push(user);
+                    else {
+                        if (result[dept][shift][datail]) result[dept][shift][datail].push(user);
                         else result[dept][shift][datail] = [user];
                     }
                 } else {
@@ -143,6 +151,22 @@ export default function UserScheduler() {
 
         return result;
     }, [userData]);
+
+    const selectedGroupStats = useMemo(() => {
+        const selectedEntries = Object.entries(selectedCellsByUser)
+            .map(([userId, dateMap]) => [userId, Object.keys(dateMap || {}).filter((dateISO) => !!dateMap?.[dateISO])])
+            .filter(([, dates]) => dates.length > 0);
+
+        const totalUsers = selectedEntries.length;
+        const totalCells = selectedEntries.reduce((acc, [, dates]) => acc + dates.length, 0);
+
+        return {
+            hasSelection: totalCells > 0,
+            totalUsers,
+            totalCells,
+            selectedEntries,
+        };
+    }, [selectedCellsByUser]);
 
 
 
@@ -262,6 +286,19 @@ export default function UserScheduler() {
         }));
     };
 
+    const handleEditSelectedGroup = () => {
+        if (!selectedGroupStats.hasSelection) {
+            return;
+        }
+
+        dispatch(setConfigModal({
+            type: 'successfull',
+            title: 'Edición grupal',
+            description: `Se seleccionaron ${selectedGroupStats.totalCells} celdas en ${selectedGroupStats.totalUsers} usuario(s).`,
+            modalOpen: true,
+        }));
+    };
+
 
     // 4. Smooth Scroll to Today
     useEffect(() => {
@@ -283,6 +320,15 @@ export default function UserScheduler() {
 
 
 
+
+    const handdlerContexrMenu = e => {
+        e.preventDefault();
+        console.log("Click derecho detectado");
+    };
+
+
+
+    console.log(selectedCellsByUser);
 
 
     return (
@@ -334,6 +380,16 @@ export default function UserScheduler() {
                         >
                             Sig.
                         </button>
+                        <button
+                            onClick={handleEditSelectedGroup}
+                            disabled={!selectedGroupStats.hasSelection}
+                            className={`flex-1 sm:flex-none px-4 py-2 text-sm rounded-lg shadow-sm transition-all font-medium ${selectedGroupStats.hasSelection
+                                ? 'bg-blue-700 text-white hover:bg-indigo-700'
+                                : 'bg-gray-100 text-gray-400 border cursor-not-allowed'
+                                }`}
+                        >
+                            Editar grupo
+                        </button>
                     </div>
 
                 </div>
@@ -372,7 +428,9 @@ export default function UserScheduler() {
 
 
                         {/* BODY */}
-                        <div className='divide-y divide-gray-100'>
+                        <div className='divide-y divide-gray-100'
+                            onContextMenu={handdlerContexrMenu}
+                        >
                             {Object.entries(processedUsers).map(([dept, shifts]) => {
                                 return (
                                     <div key={dept} className="bg-white">
@@ -381,7 +439,12 @@ export default function UserScheduler() {
                                             const [shift, subcategorys] = category;
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
                                             return subcategorys.total > 0 && (
-                                                <div key={`${dept}-${shift}`}>
+                                                <div key={`${dept}-${shift}`}
+                                                    style={{
+                                                        backgroundColor: color
+                                                    }}
+                                                >
+
                                                     {/* Sticky Section Header */}
                                                     <div
                                                         className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
@@ -400,15 +463,15 @@ export default function UserScheduler() {
                                                                         style={{
                                                                             backgroundColor: '#ddd',
                                                                             color: 'black',
-                                                                            display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none': 'block'
+                                                                            display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none' : 'block'
                                                                         }}
                                                                     >
                                                                         {subcategory}
                                                                     </div>
                                                                     {
                                                                         listUser.length > 0 && listUser.map(user => {
-                                                                            
-                                                                            return(
+
+                                                                            return (
                                                                                 <UserList
                                                                                     key={user._id}
                                                                                     user={user}
@@ -428,12 +491,12 @@ export default function UserScheduler() {
                                                                     }
                                                                 </div>
                                                             )
-                                                            
+
                                                         })
                                                     }
                                                 </div>
                                             )
-                                            
+
                                         })}
                                     </div>
                                 )
@@ -442,7 +505,7 @@ export default function UserScheduler() {
                     </div>
                 </div>
             </div>
-            
+
             {/* Modal remains same but use conditional rendering carefully */}
             {editingUser && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">

@@ -1816,3 +1816,77 @@ hr {
         /* Antes -6px, 1.2deg */
     }
 }
+
+
+
+/* ===============================
+   THEME: MINIMAL WHITE + FUTURE
+   =============================== */
+:root {
+    --app-bg: #ffffff;
+    --app-surface: #ffffff;
+    --app-surface-soft: #f6f8fb;
+    --app-border: #e4e8ef;
+    --app-text: #3c4350;
+    --app-text-muted: #667085;
+    --app-accent: #5f6fff;
+    --app-shadow-soft: 0 8px 28px rgba(15, 23, 42, 0.06);
+}
+
+html,
+body {
+    background-color: var(--app-bg);
+    color: var(--app-text);
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-family: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+    letter-spacing: 0.01em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+b,
+a,
+p,
+span,
+label,
+li {
+    color: var(--app-text);
+}
+
+small,
+.text-muted,
+.__textGrayForList {
+    color: var(--app-text-muted);
+}
+
+a {
+    color: var(--app-text);
+    text-decoration: none;
+    transition: color .2s ease;
+}
+
+a:hover {
+    color: var(--app-accent);
+}
+
+.t-black {
+    color: var(--app-text);
+}
+
+.border10 {
+    border: 1px solid var(--app-border);
+    box-shadow: var(--app-shadow-soft);
+    background-color: var(--app-surface);
+    border-radius: 5px;
+    overflow: hidden;
+}

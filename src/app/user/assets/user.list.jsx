@@ -49,7 +49,7 @@ export default forwardRef(function UserList({
 
 
     return (
-        <div className='flex border-b border-gray-300 hover:bg-gray-50 transition-colors select-none' onDragStart={(e) => e.preventDefault()}>
+        <div className='flex border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors select-none' onDragStart={(e) => e.preventDefault()}>
 
             {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
             <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>

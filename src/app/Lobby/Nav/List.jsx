@@ -5,16 +5,19 @@ export default function List({ data }) {
 
 
     return (
-        <li style={{ order: data.order }}>
-            <a className='listRoute-a'>
-                <div>
+        <li style={{ order: data.order }} className='lobby-client-item'>
+            <a className='listRoute-a lobby-client-link'>
+                <div className='lobby-client-avatar'>
                     <img
-                        src={data?.image}
+                        src={data?.image || '/img/corporate-67.png'}
                         alt='ico-locality'
-                        className='w-[25px] h-[23px] bg-[#ddd]'
+                        className='lobby-client-avatar-img'
                     />
                 </div>
-                <p className='__textGrayForList' >{data.name}</p>
+                <div className='lobby-client-content'>
+                    <p className='__textGrayForList lobby-client-name'>{data?.name || 'Cliente sin nombre'}</p>
+                    <span className='lobby-client-meta'>Cliente</span>
+                </div>
             </a>
         </li>
 

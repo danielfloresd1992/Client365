@@ -13,6 +13,7 @@ export default function ListUser() {
     const user = dataSessionState?.dataSession;
 
     const [userState, setUserState] = useState([]);
+    const totalOnline = userState.length;
 
 
     useEffect(() => {
@@ -76,44 +77,51 @@ export default function ListUser() {
 
 
     return (
-        <div className='usersContain-divUsers scrolltheme1'>
-            {
-                userState.length > 0 ?
-                    (
-                        <>
-                            {
-                                userState.map(userClient => (
-                                    <div className='divUSerLive' key={userClient._id}>
-                                        <div className='divUSerLive-userContain'>
-                                            <div className='divUSerLive-divLive'>
+        <div className='lobby-live-wrap'>
+            <div className='lobby-live-head'>
+                <p className='lobby-live-subtitle'>Usuarios en línea</p>
+                <span className='lobby-live-count'>{totalOnline}</span>
+            </div>
+
+            <div className='usersContain-divUsers scrolltheme1 lobby-live-list'>
+                {
+                    userState.length > 0 ?
+                        (
+                            <>
+                                {
+                                    userState.map(userClient => (
+                                        <div className='divUSerLive lobby-live-item' key={userClient._id}>
+                                            <div className='divUSerLive-userContain'>
+                                                <div className='divUSerLive-divLive'>
+                                                </div>
+                                                <p className='divUSerLive-userName'>{`${userClient.name} ${userClient.surName}`.toLowerCase() === 'daniel flores' ? '...' : `${userClient.name} ${userClient.surName}`}</p>
+                                                {
+                                                    user?.admin === true && user._id !== userClient._id ?
+                                                        (
+                                                            <div className='toLeftItem'>
+                                                                <button
+                                                                    className='btn-item __btn-font-little lobby-live-close-btn'
+                                                                    onClick={() => closeUserAppManegerClient(userClient)}
+                                                                >Cerrar sesión</button>
+                                                            </div>
+                                                        )
+                                                        :
+                                                        (
+                                                            null
+                                                        )
+                                                }
                                             </div>
-                                            <p className='divUSerLive-userName'>{`${userClient.name} ${userClient.surName}`.toLowerCase() === 'daniel flores' ? '...' : `${userClient.name} ${userClient.surName}`}</p>
-                                            {
-                                                user?.admin === true && user._id !== userClient._id ?
-                                                    (
-                                                        <div className='toLeftItem'>
-                                                            <button
-                                                                className='btn-item __btn-font-little'
-                                                                onClick={() => closeUserAppManegerClient(userClient)}
-                                                            > Cerrar sessión </button>
-                                                        </div>
-                                                    )
-                                                    :
-                                                    (
-                                                        null
-                                                    )
-                                            }
                                         </div>
-                                    </div>
-                                ))
-                            }
-                        </>
-                    )
-                    :
-                    (
-                        null
-                    )
-            }
+                                    ))
+                                }
+                            </>
+                        )
+                        :
+                        (
+                            <p className='lobby-live-empty'>Sin usuarios conectados</p>
+                        )
+                }
+            </div>
         </div>
     );
 }

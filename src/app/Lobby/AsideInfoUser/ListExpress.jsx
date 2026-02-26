@@ -12,6 +12,7 @@ export default function ListUserExpress() {
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
     const [userState, setUserState] = useState([]);
+    const totalOnline = userState.length;
 
 
     useEffect(() => {
@@ -63,25 +64,32 @@ export default function ListUserExpress() {
 
 
     return (
-        <div className='usersContain-divUsers scrolltheme1'>
-            {
-                userState.length > 0 ?
-                    (
-                        userState.map((user, index) => (
-                            <div className='divUSerLive' key={index}>
-                                <div className='divUSerLive-userContain'>
-                                    <div className='divUSerLive-divLive'></div>
-                                    <p className='divUSerLive-userName'>{user.user.username}</p>
+        <div className='lobby-live-wrap'>
+            <div className='lobby-live-head'>
+                <p className='lobby-live-subtitle'>Usuarios en línea</p>
+                <span className='lobby-live-count'>{totalOnline}</span>
+            </div>
+
+            <div className='usersContain-divUsers scrolltheme1 lobby-live-list'>
+                {
+                    userState.length > 0 ?
+                        (
+                            userState.map((user, index) => (
+                                <div className='divUSerLive lobby-live-item' key={user?.sessionId || index}>
+                                    <div className='divUSerLive-userContain'>
+                                        <div className='divUSerLive-divLive'></div>
+                                        <p className='divUSerLive-userName'>{user?.user?.username || 'Usuario'}</p>
+                                    </div>
+                                    <div className='divUSerLive-localInfoCopntain'>
+                                        <a className='divUSerLive-localName' href='*'>{user?.localInfo?.localname || 'Local no definido'}</a>
+                                    </div>
                                 </div>
-                                <div className='divUSerLive-localInfoCopntain'>
-                                    <a className='divUSerLive-localName' href='*'>{user.localInfo.localname}</a>
-                                </div>
-                            </div>
-                        ))
-                    )
-                    :
-                    (null)
-            }
+                            ))
+                        )
+                        :
+                        (<p className='lobby-live-empty'>Sin usuarios conectados</p>)
+                }
+            </div>
         </div>
 
     );
