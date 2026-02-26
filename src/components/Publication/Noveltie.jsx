@@ -365,14 +365,14 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             <div className='p-[.6rem_.5rem] flex items-center justify-between flex-wrap gap-2'>
                                 <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
                                     <FiUser className='divContentNovelties-pDateImg' />
-                                    <p className='divContentNovelties-pDate'>Compartido por {noveltyState.userPublic.name} </p>
+                                    <p className='divContentNovelties-pDate'>Compartido por {noveltyState?.userPublic?.name} </p>
                                 </div>
                                 {
                                     typeof validationValue === 'boolean' ?
                                         (
                                             <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
                                                 <FiShield className='divContentNovelties-pDateImg' />
-                                                <p className='divContentNovelties-pDate'>Validado por {noveltyState.isValidate.for}</p>
+                                                <p className='divContentNovelties-pDate'>Validado por {noveltyState?.isValidate?.for}</p>
                                             </div>
                                         )
                                         :
