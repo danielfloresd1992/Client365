@@ -149,7 +149,7 @@ export default function Page() {
                             </div>
                         </div>
 
-                        <div className='rounded-2xl border border-slate-200 bg-[#636363] p-6 md:p-8 shadow-[0_16px_35px_rgba(56,88,20,0.10)]'>
+                        <div className='rounded-2xl border border-slate-200 bg-[#a1a1a1] p-6 md:p-8 shadow-[0_16px_35px_rgba(56,88,20,0.10)]'>
                             <Image src='/Jarvis365.png' width={520} height={160} alt='Amazonas365' priority className='w-full h-auto object-contain' />
                             <div className='mt-6 grid grid-cols-2 gap-3'>
                                 <div className='rounded-xl border border-[#dde8d0] bg-white p-4'>
@@ -225,8 +225,8 @@ export default function Page() {
                         </p>
 
                         <div className='mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4'>
-                            <div className='w-full flex gap-2'>
-                                <div className='w-[50%]'>
+                            <div className='w-full flex gap-2 flex-wrap'>
+                                <div className='w-[49%]'>
                                     <RevealBlock delay={100} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
                                         <h3 className='text-sm font-semibold text-slate-800'>Tendencia mensual de control (%)</h3>
                                         <LineChart
@@ -237,7 +237,7 @@ export default function Page() {
                                         />
                                     </RevealBlock>
                                 </div>
-                                <div className='w-[50%]'>
+                                <div className='w-[49%]'>
                                      <RevealBlock delay={180} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
                                         <h3 className='text-sm font-semibold text-slate-800'>Rendimiento por área</h3>
                                         <BarChart
@@ -249,28 +249,31 @@ export default function Page() {
                                     </RevealBlock>
                                  </div>
                                
+                                <div className='w-full flex justify-center'>
+                                    <div className='w-[40%]'>
+                                        <RevealBlock delay={260} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
+                                            <h3 className='text-sm font-semibold text-slate-800'>Distribución de gestión</h3>
+                                            <PieChart
+                                                height={220}
+                                                series={[
+                                                    {
+                                                        data: resourceDistribution,
+                                                        innerRadius: 45,
+                                                        outerRadius: 82,
+                                                        paddingAngle: 3,
+                                                        cornerRadius: 4,
+                                                        cx: 95,
+                                                        cy: 100,
+                                                    },
+                                                ]}
+                                            />
+                                        </RevealBlock>
+                                    </div>
+                                </div>
                             </div>
+
                            
 
-                            
-
-                            <RevealBlock delay={260} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
-                                <h3 className='text-sm font-semibold text-slate-800'>Distribución de gestión</h3>
-                                <PieChart
-                                    height={220}
-                                    series={[
-                                        {
-                                            data: resourceDistribution,
-                                            innerRadius: 45,
-                                            outerRadius: 82,
-                                            paddingAngle: 3,
-                                            cornerRadius: 4,
-                                            cx: 95,
-                                            cy: 100,
-                                        },
-                                    ]}
-                                />
-                            </RevealBlock>
                         </div>
                     </RevealBlock>
                 </section>

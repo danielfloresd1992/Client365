@@ -3,7 +3,7 @@ import Publications from './assets/Publications.jsx';
 
 
 
-export default function PublicationsBox() {
+export default function PublicationsBox({ filterSignal = null }) {
 
     //const dataFetchingNovelty = await getLastTeenNovelty();  // This is the server-side fetching
 
@@ -17,7 +17,7 @@ export default function PublicationsBox() {
             </header>
 
             <section className='lobby-feed-content'>
-                <Publications dataPreRender={null} />
+                <Publications dataPreRender={null} filterSignal={filterSignal} />
             </section>
         </main>
     );

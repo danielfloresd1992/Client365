@@ -21,10 +21,6 @@ export default function Footer() {
                     <div><a className='footer-social-link' href='https://www.linkedin.com/company/amazonas365/?originalSubdomain=es'><Image src='/ico/social/linkedin-48.png' width={40} height={40} alt="linkedin-amazonas365" className="icoImage" /></a></div>
                     <div><a className='footer-social-link' href='https://x.com/amazonas365?lang=es'><Image src='/ico/social/twitterx-50.png' width={40} height={40} alt="x-amazonas365" className="icoImage" /></a></div>
                 </div>
-
-                <div className='footer-copyright-bar'>
-                    <p className='__text-center'>Copyright © 2024 Amazonas 365 | Powered by Amazonas365 IT</p>
-                </div>
             </div>
 
         </footer>

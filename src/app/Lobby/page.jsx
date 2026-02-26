@@ -1,4 +1,5 @@
 'use client'
+import { useState } from 'react';
 import Nav from './Nav/Nav';
 import ZoomImg from '@/components/zoomImage/ZoomImg';
 import { ImgProvider } from '@/contexts/imgContext';
@@ -18,6 +19,27 @@ import SectionConfigVoice from '@/components/config_window/assets/config_voices'
 
 
 export default function Lobby() {
+
+    const [publicationFilterSignal, setPublicationFilterSignal] = useState(null);
+
+    const handleApplyPublicationFilter = (filterPayload) => {
+        setPublicationFilterSignal({
+            action: 'apply',
+            dateFrom: filterPayload?.dateFrom || '',
+            dateUntil: filterPayload?.dateUntil || '',
+            establishmentId: filterPayload?.establishmentId || '',
+            establishmentName: filterPayload?.establishmentName || '',
+            timestamp: Date.now()
+        });
+    };
+
+    const handleClearPublicationFilter = () => {
+        setPublicationFilterSignal({
+            action: 'clear',
+            timestamp: Date.now()
+        });
+    };
+
     return (
         <div
             style={{
@@ -35,8 +57,11 @@ export default function Lobby() {
         >
             <ImgProvider>
                 <Nav />
-                <PublicationsBox />
-                <AsideInfoUser />
+                <PublicationsBox filterSignal={publicationFilterSignal} />
+                <AsideInfoUser
+                    onApplyPublicationFilter={handleApplyPublicationFilter}
+                    onClearPublicationFilter={handleClearPublicationFilter}
+                />
 
 
                 <Aside_Eyelash position='r' title='Alertas' urlIco={'/ico/icons8-counter-50.png'} eyelash={0}>
