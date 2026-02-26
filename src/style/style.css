@@ -1089,9 +1089,10 @@ option:hover:before {
 
 .footer-component {
     width: 100%;
-    height: 500px;
-    background-color: #dadada;
+    min-height: 500px;
+    background: linear-gradient(145deg, #eef6e4 0%, #e3efd2 55%, #d9e8c0 100%);
     z-index: 1;
+    border-top: 1px solid #c8dbae;
 }
 
 .footer-component-hight {
@@ -1105,12 +1106,53 @@ option:hover:before {
 
 .footer-component-low {
     width: 100%;
-    height: 50%;
+    min-height: 50%;
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1rem;
+    padding: 1.5rem 1rem;
+}
+
+.footer-follow-title {
+    color: #365f00;
+    font-size: 1.1rem;
+    letter-spacing: 0.04em;
+}
+
+.footer-social {
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.footer-social-link {
+    width: 56px;
+    height: 56px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    background: linear-gradient(180deg, #ffffff 0%, #f3f8ea 100%);
+    border: 1px solid #c8dbae;
+    box-shadow: 0 6px 16px rgba(68, 104, 24, 0.16);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.footer-social-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(68, 104, 24, 0.24);
+}
+
+.footer-copyright-bar {
+    width: 100%;
+    margin-top: 1.25rem;
+    padding: 0.9rem 1rem;
+    background: linear-gradient(90deg, #4e8300 0%, #6c9e21 60%, #88b641 100%);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 
