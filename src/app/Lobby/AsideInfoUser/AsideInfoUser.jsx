@@ -21,12 +21,12 @@ export default function AsideInfoUser({ onApplyPublicationFilter, onClearPublica
 
     const applyFilter = () => {
         if (!dateFrom || !dateUntil) {
-            setFilterError('Selecciona fecha desde y hasta.');
+            setFilterError('Selecciona fecha y hora (desde y hasta).');
             return;
         }
 
-        if (new Date(`${dateFrom}T00:00:00`) > new Date(`${dateUntil}T23:59:59`)) {
-            setFilterError('La fecha desde no puede ser mayor que hasta.');
+        if (new Date(dateFrom) > new Date(dateUntil)) {
+            setFilterError('La fecha y hora desde no puede ser mayor que hasta.');
             return;
         }
 
@@ -54,12 +54,12 @@ export default function AsideInfoUser({ onApplyPublicationFilter, onClearPublica
         <aside className='componentAside border10 contentStatic'>
             <div className='aside-contents lobby-aside-filterSection'>
                 <div className='lobby-aside-filterBox'>
-                    <p className='lobby-aside-filterTitle'>Filtro de publicaciones</p>
+                    <p className='lobby-aside-filterTitle'>Consulta de alertas</p>
 
                     <label className='lobby-aside-filterField'>
-                        <span>Desde</span>
+                        <span>Desde (fecha y hora)</span>
                         <input
-                            type='date'
+                            type='datetime-local'
                             value={dateFrom}
                             onChange={(e) => setDateFrom(e.target.value)}
                             className='lobby-aside-filterInput'
@@ -67,15 +67,15 @@ export default function AsideInfoUser({ onApplyPublicationFilter, onClearPublica
                     </label>
 
                     <label className='lobby-aside-filterField'>
-                        <span>Hasta</span>
+                        <span>Hasta (fecha y hora)</span>
                         <input
-                            type='date'
+                            type='datetime-local'
                             value={dateUntil}
                             onChange={(e) => setDateUntil(e.target.value)}
                             className='lobby-aside-filterInput'
                         />
                     </label>
-
+                    
                     <label className='lobby-aside-filterField'>
                         <span>Establecimiento (opcional)</span>
                         <select
@@ -101,7 +101,7 @@ export default function AsideInfoUser({ onApplyPublicationFilter, onClearPublica
                         </button>
                         <button className='lobby-aside-filterBtn lobby-aside-filterBtn--clear' onClick={clearFilter}>
                             <FiX size={14} />
-                            Quitar filtro
+                            Limpiar
                         </button>
                     </div>
 

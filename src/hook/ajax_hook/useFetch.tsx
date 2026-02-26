@@ -112,18 +112,25 @@ export function useFetch<T = unknown>(url: string, options?: FetchOptions): any 
         ok: false
     });
 
-    const fetchData = useCallback(async (urlNew: string) => {
+
+    const fetchData = useCallback(async (urlNew?: string, config?: { replace?: boolean }) => {
         try {
             const response = options?.method === 'POST'
                 ? await axiosInstance.postForm(urlNew ? urlNew : url, options?.body)
                 : await axiosInstance.get(urlNew ? urlNew : url);
             setState(preState => {
+                const incomingData = Array.isArray(response?.data) ? response.data : [];
+
+                if (config?.replace) {
+                    return { data: [...incomingData], loading: false, error: null, ok: true }
+                }
+
                 if (Array.isArray(preState.data)) {
-                    return { data: [...preState.data, ...response.data], loading: false, error: null, ok: true }
+                    return { data: [...preState.data, ...incomingData], loading: false, error: null, ok: true }
 
                 }
                 else {
-                    return { data: [...response.data], loading: false, error: null, ok: true }
+                    return { data: [...incomingData], loading: false, error: null, ok: true }
                 }
             });
         }
@@ -131,7 +138,7 @@ export function useFetch<T = unknown>(url: string, options?: FetchOptions): any 
             console.log(err);
             setState({ data: null, loading: false, error: err, ok: false });
         }
-    }, [state]);
+    }, [url, options?.method, options?.body]);
 
 
     const setItem: (item: any, position: 'shift' | 'push') => void = useCallback((item, position) => {
@@ -143,8 +150,13 @@ export function useFetch<T = unknown>(url: string, options?: FetchOptions): any 
             else return [{ ...preState, data: [item] }]
         });
 
-    }, [state]);
+    }, []);
 
 
-    return { ...state, fetchData, setItem };
+    const resetData = useCallback(() => {
+        setState(preState => ({ ...preState, data: null, loading: false, error: null, ok: null }));
+    }, []);
+
+
+    return { ...state, fetchData, setItem, resetData };
 }
