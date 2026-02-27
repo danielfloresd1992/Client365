@@ -53,22 +53,22 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
 
 
     useEffect(() => {
-        if(filterSignal){
-            console.log(filterSignal);
+        if(!filterSignal) return;
+        paginateRef.current = paginateRef.current = 0;
+        if(filterSignal?.dateFrom && filterSignal.dateUntil){
             resetData()
             const before = new Date(filterSignal.dateFrom).toISOString();
             const after = new Date(filterSignal.dateUntil).toISOString();
             const establishment = filterSignal?.establishmentName !== '' ? `&establishment=${filterSignal?.establishmentName}` : ''
-
-            console.log(before)
-            console.log(after)
-
-            const estableshment = null;
-            paginateRef.current = paginateRef.current = 0;
             const quiery = `/user/publisher/paginate=${paginateRef.current}/items=10?before=${before}&after=${after}${establishment}`;
            fetchData(quiery);
-
         }
+
+        if(filterSignal.action === 'clear')  {
+            resetData();
+            fetchData(`/user/publisher/paginate=${paginateRef.current}/items=10`);
+        }
+
     }, [filterSignal]);
 
 
@@ -105,8 +105,6 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
     };
 
 
-    console.log(filterSignal)
-    console.log(data);
 
     //función para determinar el tipo de publicación
     const returnTypePublisher = useCallback((data, typePublishe) => {
@@ -142,7 +140,7 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
     }, [filterAlert])
 
 
-    console.log(data)
+
 
     //función para imprimir las publicaciones
     const printPublications = () => {
