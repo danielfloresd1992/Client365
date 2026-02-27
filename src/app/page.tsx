@@ -224,7 +224,7 @@ export default function Page() {
                             Visualiza tendencias, rendimiento por área y distribución del esfuerzo operativo para decisiones más rápidas.
                         </p>
 
-                        <div className='mt-6 grid grid-cols-1 xl:grid-cols-3 gap-4'>
+                        <div className='mt-6 w-full'>
                             <div className='w-full flex gap-2 flex-wrap'>
                                 <div className='w-[49%]'>
                                     <RevealBlock delay={100} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
