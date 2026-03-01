@@ -6,6 +6,28 @@ import { HiInformationCircle } from 'react-icons/hi';
 import { HiMail } from "react-icons/hi";
 import { fetchFileData } from '@/libs/ajaxClient/file.fecth';
 
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+const WORK_TYPE_OPTIONS = [
+    { value: 'laboral', label: 'Laboral' },
+    { value: 'extra', label: 'Extra' },
+    { value: 'descanso', label: 'Descanso' },
+];
+
+const buildDefaultScheduleByDay = (existingMap) => {
+    const result = {};
+    for (let i = 0; i <= 6; i++) {
+        const key = String(i);
+        const existing = existingMap?.[key] || existingMap?.get?.(key) || null;
+        result[key] = {
+            workType: existing?.workType || 'laboral',
+            shift: existing?.shift || 'Diurno',
+            startTime: existing?.startTime || '08:00',
+            endTime: existing?.endTime || '17:00',
+        };
+    }
+    return result;
+};
+
 
 
 export default function UserEditForm({ initialData, onSave=() => {}, onCancel, departmentList=[], positionList=[] }) {
@@ -14,6 +36,9 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     const  [ dataUser , setDataUser] = useState(initialData);
     const [hasJobInfo, setHasJobInfo] = useState(!!initialData?.jobInformation);
     const [hasSchedule, setHasSchedule] = useState(!!initialData?.workSchedule);
+    const [scheduleByDay, setScheduleByDay] = useState(() =>
+        buildDefaultScheduleByDay(initialData?.workSchedule?.scheduleByDay)
+    );
     const textErrorRef = useRef(null);
 
     
@@ -36,6 +61,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
             reset(initialData);
             setHasJobInfo(!!initialData.jobInformation);
             setHasSchedule(!!initialData.workSchedule);
+            setScheduleByDay(buildDefaultScheduleByDay(initialData?.workSchedule?.scheduleByDay));
         }
     }, [initialData, reset]);
 
@@ -43,16 +69,33 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     const onSubmit = (data) => {
         const payload = { ...data };
     
-        // Si la hora está vacía, la eliminamos para que no falle el Regex del backend
-        if (payload.workSchedule?.endTime === '') {
-            payload.workSchedule.endTime = undefined; 
-        }
-        // Aseguramos que solo viajen 5 caracteres (HH:mm)
-        if (payload.workSchedule?.endTime) {
-            payload.workSchedule.endTime = payload.workSchedule.endTime.substring(0, 5);
+        // Inyectar scheduleByDay en workSchedule (reemplaza startTime/endTime/restDays legados)
+        if (payload.workSchedule) {
+            payload.workSchedule.scheduleByDay = scheduleByDay;
+            // Limpiar campos legacy que ya no se usan
+            delete payload.workSchedule.startTime;
+            delete payload.workSchedule.endTime;
+            delete payload.workSchedule.restDays;
         }
 
         onSave(initialData._id, payload);
+    };
+
+    const updateDayField = (dayKey, field, value) => {
+        setScheduleByDay((prev) => {
+            const updated = { ...prev };
+            updated[dayKey] = { ...updated[dayKey], [field]: value };
+            // Si cambia a descanso, limpiar horarios
+            if (field === 'workType' && value === 'descanso') {
+                updated[dayKey].startTime = null;
+                updated[dayKey].endTime = null;
+            }
+            if (field === 'workType' && value !== 'descanso') {
+                updated[dayKey].startTime = updated[dayKey].startTime || '08:00';
+                updated[dayKey].endTime = updated[dayKey].endTime || '17:00';
+            }
+            return updated;
+        });
     };
 
 
@@ -271,99 +314,111 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                 </div>
 
                 <div className='border-t border-gray-200 pt-6 mt-6'>
-                    <h3 className='text-lg font-semibold text-gray-700 mb-4'>Horario de Trabajo</h3>
-                    
-                    <div className='grid grid-cols-1 md:grid-cols-3 gap-4'>
-                        {/* Tipo de Turno */}
-                        <div>
-                            <div className='mb-2 block'>
-                                <Label htmlFor='shiftType' value='Tipo de Turno' />
-                            </div>
-                            <Select 
-                                id='shiftType' 
-                                {...register('workSchedule.shiftType')}
-                                color={errors.workSchedule?.shiftType ? 'failure' : 'gray'}
-                            >
-                                <option className='text-[#000000]' value='Diurno'>Diurno</option>
-                                <option className='text-[#000000]' value='Nocturno'>Nocturno</option>
-                            </Select>
-                            </div>
+                    <h3 className='text-lg font-semibold text-gray-700 mb-4'>Horario por Día</h3>
 
-                            {/* Hora de Entrada */}
-                            <div>
-                            <div className='mb-2 block'>
-                                <Label htmlFor='startTime' value='Hora de Entrada' />
-                            </div>
-                            <TextInput 
-                                id='startTime' 
-                                type='time' 
-                                {...register('workSchedule.startTime')}
-                                color={errors.workSchedule?.startTime ? 'failure' : 'gray'}
-                                helperText={errors.workSchedule?.startTime?.message}
-                            />
-                        </div>
-
-                        {/* Hora de Salida */}
-                    <div>
+                    {/* Turno global por defecto */}
+                    <div className='mb-4 max-w-xs'>
                         <div className='mb-2 block'>
-                            <Label htmlFor='endTime' value='Hora de Salida' />
+                            <Label htmlFor='shiftType' value='Turno Global (por defecto)' />
                         </div>
-                        <TextInput 
-                            id='endTime' 
-                            type='time' 
-                            {...register('workSchedule.endTime')}
-                            color={errors.workSchedule?.endTime ? 'failure' : 'gray'}
-                            helperText={errors.workSchedule?.endTime?.message}
-                        />
+                        <Select
+                            id='shiftType'
+                            {...register('workSchedule.shiftType')}
+                            color={errors.workSchedule?.shiftType ? 'failure' : 'gray'}
+                        >
+                            <option value='Diurno'>Diurno</option>
+                            <option value='Nocturno'>Nocturno</option>
+                        </Select>
+                    </div>
+
+                    {/* Grid de scheduleByDay */}
+                    <div className='overflow-x-auto rounded-lg border border-gray-200'>
+                        <table className='w-full text-sm text-left'>
+                            <thead className='bg-gray-100 text-gray-600 uppercase text-xs'>
+                                <tr>
+                                    <th className='px-3 py-2'>Día</th>
+                                    <th className='px-3 py-2'>Tipo</th>
+                                    <th className='px-3 py-2'>Turno</th>
+                                    <th className='px-3 py-2'>Entrada</th>
+                                    <th className='px-3 py-2'>Salida</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {DAY_NAMES.map((dayName, idx) => {
+                                    const key = String(idx);
+                                    const day = scheduleByDay[key] || {};
+                                    const isDescanso = day.workType === 'descanso';
+                                    return (
+                                        <tr key={key} className={`border-t ${isDescanso ? 'bg-amber-50' : 'bg-white'}`}>
+                                            <td className='px-3 py-2 font-medium text-gray-700 whitespace-nowrap'>{dayName}</td>
+                                            <td className='px-3 py-2'>
+                                                <select
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
+                                                    value={day.workType || 'laboral'}
+                                                    onChange={(e) => updateDayField(key, 'workType', e.target.value)}
+                                                >
+                                                    {WORK_TYPE_OPTIONS.map((opt) => (
+                                                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                    ))}
+                                                </select>
+                                            </td>
+                                            <td className='px-3 py-2'>
+                                                <select
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
+                                                    value={day.shift || 'Diurno'}
+                                                    onChange={(e) => updateDayField(key, 'shift', e.target.value)}
+                                                    disabled={isDescanso}
+                                                >
+                                                    <option value='Diurno'>Diurno</option>
+                                                    <option value='Nocturno'>Nocturno</option>
+                                                </select>
+                                            </td>
+                                            <td className='px-3 py-2'>
+                                                <input
+                                                    type='time'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
+                                                    value={day.startTime || ''}
+                                                    onChange={(e) => updateDayField(key, 'startTime', e.target.value)}
+                                                    disabled={isDescanso}
+                                                />
+                                            </td>
+                                            <td className='px-3 py-2'>
+                                                <input
+                                                    type='time'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
+                                                    value={day.endTime || ''}
+                                                    onChange={(e) => updateDayField(key, 'endTime', e.target.value)}
+                                                    disabled={isDescanso}
+                                                />
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
-
-                {/* Días de Descanso (Array de números) */}
-                <div className='mt-6'>
-                    <h3 className='text-lg font-semibold text-gray-700 mb-4'>Días libres</h3>
-                    <Label value='Días de Descanso (Selecciona de 1 a 3 días)' className='mb-2 block' />
-                        <div className='flex flex-wrap gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200'>
-                            {['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'].map((day, index) => (
-                                <div key={day} className='flex items-center gap-2'>
-                                    <Checkbox 
-                                        id={`day-${index}`} 
-                                        // Registramos la posición específica
-                                        {...register(`workSchedule.restDays.${index}`)} 
-                                        // ¡IMPORTANTE!: Quitamos la propiedad value
-                                    />
-                                    <Label htmlFor={`day-${index}`} color='grey'>{day}</Label>
-                                </div>
-                            ))}
-                        </div>
-                        {errors.workSchedule?.restDays && (
-                        <p className='text-red-500 text-xs mt-2 font-medium'>
-                            {errors.workSchedule.restDays.message}
-                        </p>
-                        )}
-                    </div>
-                </div>
-                                    
-
+                {/* Flags globales del horario */}
                 <div className='w-full'>
-                     <div className='w-full flex-col items-center '>
+                    <div className='w-full flex-col items-center'>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='lateArrivalControl' {...register('workSchedule.lateArrivalControl')} />
                             <Label htmlFor='lateArrivalControl' className='flex' color='gray'>
                                 ¿Se le aplica la regla de llegada tarde?
-                            </Label> 
+                            </Label>
                         </div>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='lateArrivalTracking' {...register('workSchedule.lateArrivalTracking')} />
                             <Label htmlFor='lateArrivalTracking' className='flex' color='gray'>
                                 ¿Se debe hacer seguimiento/notificación?
-                            </Label> 
+                            </Label>
                         </div>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='outForkSchedule' {...register('workSchedule.outForkSchedule')} />
                             <Label htmlFor='outForkSchedule' className='flex' color='gray'>
                                 ¿Sacar usuario del horario?
-                            </Label> 
+                            </Label>
                         </div>
                     </div>
                 </div>

@@ -1,20 +1,24 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, useContext } from 'react';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
-import { addDays, subDays, eachDayOfInterval, format, isSameDay, secondsToMilliseconds } from 'date-fns';
+import { addMonths, subMonths, eachDayOfInterval, format, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 // Assets & Components
 import UserEditForm from './assets/user.update.form';
 import UserList from './assets/user.list';
 import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
+import UserGroupDynamicScheduleForm from './assets/user.group.dynamic.schedule.form';
 
 
+
+// Contexto de sesión (admin logueado)
+import { myUserContext } from '@/contexts/userContext';
 
 // network
-import { fetchUserData, userById, updateUserByRrhh } from '@/libs/ajaxClient/user.fecth';
+import { fetchUserData, userById, updateUserByRrhh, saveGroupDynamicSchedule } from '@/libs/ajaxClient/user.fecth';
 
 
 
@@ -27,17 +31,29 @@ const COLORS_DEPARTMENTS = [
     { name: 'Sin definir', diurno: '#bbbbbb', nocturno: "#bbb" },
 ];
 const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
+const GREEN_THEME_GRADIENT = 'linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%)';
 
+// Iconos SVG de Lupa para el Zoom
+const ZoomOutIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+);
+
+const ZoomInIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+);
 
 
 export default function UserScheduler() {
 
 
     const dispatch = useDispatch();
+    const { dataSessionState } = useContext(myUserContext);
     const [pivotDate, setPivotDate] = useState(new Date());
     const [userData, setUserData] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
     const [dynamicScheduleConfig, setDynamicScheduleConfig] = useState(null);
+    const [groupScheduleConfig, setGroupScheduleConfig] = useState(null);
+    const [zoomPercent, setZoomPercent] = useState(80);
     const [selectedCellsByUser, setSelectedCellsByUser] = useState({});
     const [dragSelection, setDragSelection] = useState({
         active: false,
@@ -46,17 +62,22 @@ export default function UserScheduler() {
     });
     const [isLoading, setIsLoading] = useState(false);
     const tableRef = useRef(null);
-    const inputZoomRef = useRef(null);
 
     const todayRef = useRef(null);
     const userRefs = useRef({});
 
 
+    const currentMonthLabel = useMemo(() => {
+        const label = format(pivotDate, 'MMM yyyy', { locale: es });
+        return label.charAt(0).toUpperCase() + label.slice(1);
+    }, [pivotDate]);
+
+
 
     // 1. Memoized Date Range
     const daysRange = useMemo(() => {
-        const startDate = subDays(pivotDate, 15);
-        const endDate = addDays(pivotDate, 15);
+        const startDate = startOfMonth(pivotDate);
+        const endDate = endOfMonth(pivotDate);
         return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
             fullDateISO: date.toISOString(),
             dayNumber: format(date, 'd'),
@@ -168,6 +189,28 @@ export default function UserScheduler() {
         };
     }, [selectedCellsByUser]);
 
+    const selectedUsersForGroupEdition = useMemo(() => {
+        if (!selectedGroupStats.hasSelection) return [];
+
+        const usersById = userData.reduce((acc, user) => {
+            acc[user._id] = user;
+            return acc;
+        }, {});
+
+        return selectedGroupStats.selectedEntries
+            .map(([userId, dates]) => {
+                const user = usersById[userId];
+                if (!user) return null;
+
+                return {
+                    userId,
+                    user,
+                    dates,
+                };
+            })
+            .filter(Boolean);
+    }, [selectedGroupStats, userData]);
+
 
 
 
@@ -202,11 +245,37 @@ export default function UserScheduler() {
         }));
     };
 
+    const handleSaveGroupDynamicSchedule = async (payload) => {
+        try {
+            // Inyectar el ID del admin logueado para auditoría (modifiedBy)
+            const adminUserId = dataSessionState?.dataSession?._id;
+            await saveGroupDynamicSchedule({ ...payload, adminUserId });
+            setGroupScheduleConfig(null);
+            setSelectedCellsByUser({});
+
+            dispatch(setConfigModal({
+                type: 'successfull',
+                title: 'Horario actualizado',
+                description: 'Se guardaron los cambios del grupo en el servidor',
+                modalOpen: true,
+            }));
+        } catch (error) {
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo guardar',
+                description: 'Hubo un problema al guardar el horario grupal. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+        }
+    };
 
 
-    const handdlerInputZoom = e => {
-        tableRef.current.style.zoom = e.target.value;
-        inputZoomRef.current.textContent = `Zoom: ${e.target.value}%`;
+
+    const handleZoomStep = (delta) => {
+        setZoomPercent((prev) => {
+            const next = Math.min(100, Math.max(50, prev + delta));
+            return next;
+        });
     };
 
     const handleOpenDynamicSchedule = ({ user, dateObj, mode, selectedDates = [] }) => {
@@ -291,12 +360,11 @@ export default function UserScheduler() {
             return;
         }
 
-        dispatch(setConfigModal({
-            type: 'successfull',
-            title: 'Edición grupal',
-            description: `Se seleccionaron ${selectedGroupStats.totalCells} celdas en ${selectedGroupStats.totalUsers} usuario(s).`,
-            modalOpen: true,
-        }));
+        setGroupScheduleConfig({
+            selectedUsers: selectedUsersForGroupEdition,
+            totalCells: selectedGroupStats.totalCells,
+            totalUsers: selectedGroupStats.totalUsers,
+        });
     };
 
 
@@ -328,70 +396,101 @@ export default function UserScheduler() {
 
 
 
-    console.log(selectedCellsByUser);
-
 
     return (
         <div className='w-full h-full p-6 bg-gray-50 flex flex-col'>
 
-            <div className='flex flex-col lg:flex-row justify-between items-center gap-4 mb-6 bg-white p-4 lg:p-6 rounded-xl shadow-sm border'>
+            <div className='flex flex-col gap-3 mb-4 bg-white p-3 sm:p-4 rounded-xl shadow-sm border'>
 
                 {/* SECCIÓN TÍTULO: Se centra en móvil/tablet, se alinea a la izquierda en desktop */}
-                <div className='text-center lg:text-left'>
-                    <h1 className='text-xl md:text-2xl font-bold text-gray-800 leading-tight'>Horario Operacional</h1>
-                    <p className='text-xs md:text-sm text-gray-500'>Gestión de turnos y personal</p>
-                </div>
-
-                {/* SECCIÓN CONTROLES: Agrupa Zoom y Botones */}
-                <div className='flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto'>
-
-                    {/* CONTROL DE ZOOM: Se expande si es necesario */}
-                    <div className='flex items-center justify-between sm:justify-start gap-3 bg-gray-50 px-4 py-2 rounded-lg border w-full sm:w-auto'>
-                        <span className='text-xs font-bold text-gray-600 whitespace-nowrap' ref={inputZoomRef}>
-                            Zoom: 0%
-                        </span>
-                        <input
-                            type="range"
-                            min="0.5"
-                            max="1"
-                            step="0.1"
-                            onChange={handdlerInputZoom}
-                            className="w-full sm:w-24 md:w-32 h-1.5 bg-blue-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-                        />
+                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-3'>
+                    <div className='text-left'>
+                        <h1 className='text-lg sm:text-xl font-bold text-gray-800 leading-tight'>Horario Operacional</h1>
+                        <p className='text-xs text-gray-500'>Gestión de turnos y personal</p>
                     </div>
 
-                    {/* GRUPO DE BOTONES: Ahora son más responsivos */}
-                    <div className='flex gap-2 w-full sm:w-auto justify-center'>
-                        <button
-                            onClick={() => setPivotDate(subDays(pivotDate, 15))}
-                            className='flex-1 sm:flex-none px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'
-                        >
-                            Ant.
-                        </button>
-                        <button
-                            onClick={() => setPivotDate(new Date())}
-                            className='flex-1 sm:flex-none px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-md transition-all font-medium'
-                        >
-                            Hoy
-                        </button>
-                        <button
-                            onClick={() => setPivotDate(addDays(pivotDate, 15))}
-                            className='flex-1 sm:flex-none px-3 py-2 text-sm bg-white border rounded-lg hover:bg-gray-50 shadow-sm transition-all'
-                        >
-                            Sig.
-                        </button>
-                        <button
-                            onClick={handleEditSelectedGroup}
-                            disabled={!selectedGroupStats.hasSelection}
-                            className={`flex-1 sm:flex-none px-4 py-2 text-sm rounded-lg shadow-sm transition-all font-medium ${selectedGroupStats.hasSelection
-                                ? 'bg-blue-700 text-white hover:bg-indigo-700'
-                                : 'bg-gray-100 text-gray-400 border cursor-not-allowed'
-                                }`}
-                        >
-                            Editar grupo
-                        </button>
-                    </div>
+                    {/* SECCIÓN CONTROLES: Agrupa Zoom y Botones */}
+                    <div className='w-full sm:w-auto overflow-x-auto pb-1 scrollbar-hide'>
+                        <div className='inline-flex items-center gap-2 sm:gap-3 min-w-max'>
 
+                            {/* Control de Zoom */}
+                            <div className='flex items-center bg-white border border-gray-200 rounded-lg shadow-sm h-8'>
+                                <button
+                                    type='button'
+                                    onClick={() => handleZoomStep(-10)}
+                                    className='h-full px-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-l-lg transition-colors flex items-center justify-center'
+                                    aria-label='Reducir zoom'
+                                >
+                                    <ZoomOutIcon />
+                                </button>
+                                <div className='h-4 w-[1px] bg-gray-200'></div>
+                                <span className='text-[11px] font-semibold text-gray-700 min-w-[45px] text-center select-none'>
+                                    {zoomPercent}%
+                                </span>
+                                <div className='h-4 w-[1px] bg-gray-200'></div>
+                                <button
+                                    type='button'
+                                    onClick={() => handleZoomStep(10)}
+                                    className='h-full px-2.5 text-gray-500 hover:text-gray-900 hover:bg-gray-50 rounded-r-lg transition-colors flex items-center justify-center'
+                                    aria-label='Aumentar zoom'
+                                >
+                                    <ZoomInIcon />
+                                </button>
+                            </div>
+
+                            {/* Control de Fecha */}
+                            <div className='flex items-center bg-white border border-gray-200 rounded-lg shadow-sm h-8'>
+                                <button
+                                    onClick={() => setPivotDate(subMonths(pivotDate, 1))}
+                                    className='h-full px-2.5 sm:px-3 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-l-lg transition-colors font-medium'
+                                    aria-label='Mes anterior'
+                                >
+                                    Ant.
+                                </button>
+                                <div className='h-4 w-[1px] bg-gray-200'></div>
+                                <div className='px-2 sm:px-3 text-xs font-bold text-gray-800 flex items-center justify-center min-w-[80px] sm:min-w-[90px] select-none capitalize'>
+                                    {currentMonthLabel}
+                                </div>
+                                <div className='h-4 w-[1px] bg-gray-200'></div>
+                                <button
+                                    onClick={() => setPivotDate(addMonths(pivotDate, 1))}
+                                    className='h-full px-2.5 sm:px-3 text-xs text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-r-lg transition-colors font-medium'
+                                    aria-label='Mes siguiente'
+                                >
+                                    Sig.
+                                </button>
+                            </div>
+
+                            {/* Botón Hoy */}
+                            <button
+                                onClick={() => setPivotDate(new Date())}
+                                className='h-8 px-3 sm:px-4 text-xs text-white rounded-lg shadow-sm transition-all font-medium hover:shadow-md hover:brightness-105 active:scale-95'
+                                style={{ background: GREEN_THEME_GRADIENT }}
+                            >
+                                Hoy
+                            </button>
+
+                            <div className='hidden sm:block h-6 w-[1px] bg-gray-300 ml-1'></div>
+
+                            {/* Botón Editar Grupo */}
+                            <button
+                                onClick={handleEditSelectedGroup}
+                                disabled={!selectedGroupStats.hasSelection}
+                                className={`h-8 px-3 sm:px-4 text-xs rounded-lg transition-all font-semibold sm:ml-1 flex items-center gap-1.5 ${selectedGroupStats.hasSelection
+                                    ? 'text-white hover:brightness-105 hover:shadow-md active:scale-95 border-none'
+                                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                                    }`}
+                                style={selectedGroupStats.hasSelection ? { background: GREEN_THEME_GRADIENT } : undefined}
+                            >
+                                <span>Editar grupo</span>
+                                {selectedGroupStats.hasSelection && (
+                                    <span className='bg-white/30 text-white rounded-full px-1.5 py-0.5 text-[10px]'>
+                                        {selectedGroupStats.totalCells}
+                                    </span>
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -400,7 +499,7 @@ export default function UserScheduler() {
             <div className='flex-1 bg-white rounded-xl shadow-lg border overflow-hidden'>
                 <div className='h-full overflow-auto'>
 
-                    <div className='inline-block min-w-full align-middle' ref={tableRef} style={{ zoom: 0.8 }}>
+                    <div className='inline-block min-w-full align-middle' ref={tableRef} style={{ zoom: zoomPercent / 100 }}>
 
                         {/* HEADER */}
                         <div className='sticky top-0 z-30 bg-white border-b'>
@@ -412,12 +511,12 @@ export default function UserScheduler() {
                                     <div
                                         key={day.fullDateISO}
                                         ref={day.isToday ? todayRef : null}
-                                        className={`flex-shrink-0 w-24 text-center p-2 border-r transition-colors ${day.isToday ? 'bg-blue-50 ring-2 ring-inset ring-blue-500' : ''}`}
+                                        className={`flex-shrink-0 w-24 text-center p-2 border-r transition-colors ${day.isToday ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500' : ''}`}
                                     >
                                         <div className={`text-[10px] uppercase font-bold ${['sáb', 'dom'].includes(day.dayName) ? 'text-red-500' : 'text-gray-400'}`}>
                                             {day.monthName} {day.dayName}
                                         </div>
-                                        <div className={`text-lg font-bold ${day.isToday ? 'text-blue-700' : 'text-gray-800'}`}>
+                                        <div className={`text-lg font-bold ${day.isToday ? 'text-emerald-700' : 'text-gray-800'}`}>
                                             {day.dayNumber}
                                         </div>
                                     </div>
@@ -452,7 +551,7 @@ export default function UserScheduler() {
                                                             backgroundColor: color
                                                         }}
                                                     >
-                                                        {dept} — <span className="text-blue-600">{shift}</span>
+                                                        {dept} — <span className="text-emerald-700">{shift}</span>
                                                     </div>
                                                     {
                                                         Object.entries(subcategorys).map(([subcategory, listUser]) => {
@@ -528,6 +627,18 @@ export default function UserScheduler() {
                         initialSelectedDates={dynamicScheduleConfig.selectedDates}
                         onSave={handleSaveDynamicSchedule}
                         onCancel={() => setDynamicScheduleConfig(null)}
+                    />
+                </div>
+            )}
+
+            {groupScheduleConfig?.selectedUsers?.length > 0 && (
+                <div className="fixed inset-0 z-[102] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <UserGroupDynamicScheduleForm
+                        selectedUsers={groupScheduleConfig.selectedUsers}
+                        totalCells={groupScheduleConfig.totalCells}
+                        totalUsers={groupScheduleConfig.totalUsers}
+                        onSave={handleSaveGroupDynamicSchedule}
+                        onCancel={() => setGroupScheduleConfig(null)}
                     />
                 </div>
             )}

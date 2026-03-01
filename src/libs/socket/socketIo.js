@@ -2,7 +2,7 @@
 import { io } from 'socket.io-client';
 
 
-let connectionString = process.env.NEXT_PUBLIC_SOCKET_JARVIS || 'https://72.68.60.201:3007';
+let connectionString = process.env.NEXT_PUBLIC_SOCKET_JARVIS;
 
 
 

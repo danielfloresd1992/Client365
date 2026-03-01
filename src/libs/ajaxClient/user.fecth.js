@@ -2,14 +2,14 @@ import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 
 
 
-export const fetchUserData = async () => {  
+export const fetchUserData = async () => {
     try {
         const response = await axiosInstance.get('/user/AllById?inabilited=false');
         return response.data;
     } catch (error) {
         console.error('Error fetching user data:', error);
         throw error;
-    }       
+    }
 };
 
 
@@ -17,13 +17,13 @@ export const fetchUserData = async () => {
 
 export const userById = async (id) => {
     try {
-        const response = await axiosInstance.get(`/user?id=${id}`);    
+        const response = await axiosInstance.get(`/user?id=${id}`);
         return response.data;
-    } 
+    }
     catch (error) {
         console.error(`Error fetching user data for ID ${id}:`, error);
         throw error;
-    }   
+    }
 };
 
 
@@ -38,7 +38,7 @@ export const getAttendanceByDate = async (dni, dateISO) => {
     try {
         const response = await axiosInstance.get(`/user/attendance/${dni}?date=${dateISO}`);
         return response.data;
-    } 
+    }
     catch (error) {
         throw error;
     }
@@ -50,11 +50,22 @@ export const getAttendanceByDate = async (dni, dateISO) => {
 
 export const updateUserByRrhh = async (id, data) => {
     try {
-        const response = await axiosInstance.put(`/user/${id}`,data);
+        const response = await axiosInstance.put(`/user/${id}`, data);
         return response.data;
-    } 
+    }
     catch (error) {
         console.log(error);
+        throw error;
+    }
+}
+
+
+export const saveGroupDynamicSchedule = async (payload) => {
+    try {
+        const response = await axiosInstance.post('/user/schedule/dynamic/group', payload);
+        return response.data;
+    }
+    catch (error) {
         throw error;
     }
 }
