@@ -8,7 +8,7 @@ import { setConfigModal } from '@/store/slices/globalModal';
 import Login from './login';
 import CreatUser from '../../../components/forms/CreateUser';
 import LegaceLoginForm from '../../../components/forms/legaceLoginForm';
-import '@/components/forms/form.style.css'
+import '../auth.css'
 
 //login
 import useAuthOnServer from '@/hook/auth'
@@ -29,7 +29,7 @@ export default function ContentForm() {
     const errorState = false;
     const status = dataSessionState.errorHttp.message !== 'Your session has expired' ? dataSessionState.errorHttp.status : 0
 
-    
+
 
     useEffect(() => {
         if (errorState) {
@@ -56,14 +56,14 @@ export default function ContentForm() {
 
 
     const loginUser = async data => {
-        
+
         dispatch(setConfigModal({
             type: 'await',
             title: 'Iniciando sessión',
             description: 'Espere...',
             modalOpen: true,
         }));
-    
+
         const { email, password } = data;
 
         signIn({ email, password }, () => {

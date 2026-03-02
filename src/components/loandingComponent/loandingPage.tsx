@@ -1,7 +1,7 @@
 'use client';
 import { useContext, useRef, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 
 import { myUserContext } from '@/contexts/userContext';
@@ -9,7 +9,8 @@ import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import { setClient } from '@/store/slices/Client';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch';
 import { SessionState } from '@/types/submitAuth';
-import { ContinuousColorLegend } from '@mui/x-charts';
+import { isPublicRoute, isLoginRoute, DEFAULT_AUTHENTICATED_ROUTE } from '@/libs/auth/routes.config';
+import { setSessionMarker, removeSessionMarker } from '@/libs/auth/sessionMarker';
 
 
 
@@ -25,6 +26,7 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
 
     const router = useRouter();
     const pathName = usePathname();
+    const searchParams = useSearchParams();
 
     
     const sessionCheckAttempted = useRef(false);
@@ -39,7 +41,9 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
 
 
 
-    // Efecto principal para verificar la sesión
+    // Efecto principal para verificar la sesión con el backend
+    // El middleware ya protege las rutas a nivel servidor,
+    // pero este check valida que la sesión siga activa en el backend
     useEffect(() => {
         if (sessionCheckAttempted.current) return;
         sessionCheckAttempted.current = true;
@@ -80,7 +84,10 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
                 dataState.errorHttp.error = '';
                 dataState.errorHttp.error_connection = false;
                 dataState.stateSession  = 'authenticated';
-                dataState.dataSession = dataSession
+                dataState.dataSession = dataSession;
+                setSessionMarker(); // Sincronizar cookie marcadora
+            } else {
+                removeSessionMarker(); // Sesión inválida, limpiar marcador
             }
 
             setState(dataState);
@@ -109,27 +116,30 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
 
     
     useEffect(() => {
-      
+        if (redirectAttempted.current) return;
         
         // Manejar redirecciones basadas en estado de autenticación
+        // Nota: El middleware ya bloquea a nivel servidor, esto es la segunda capa (client-side)
         if (dataSessionState.stateSession === 'authenticated') {
-            if (pathName === '/' || pathName === '/auth') {
-                router.replace('/Lobby');
+            if (isLoginRoute(pathName)) {
+                // Si hay un callbackUrl (el middleware lo puso), ir ahí. Si no, al Lobby
+                const callbackUrl = searchParams.get('callbackUrl');
+                router.replace(callbackUrl || DEFAULT_AUTHENTICATED_ROUTE);
                 redirectAttempted.current = true;
             }
         } 
         else if (dataSessionState.stateSession === 'unauthenticated') {
-            if(pathName == '/auth' || pathName == '/user'){
-                
+            if (isPublicRoute(pathName)) {
+                // Ya está en ruta pública, no redirigir
                 redirectAttempted.current = true;
             }    
-            else if(pathName !== '/') {
+            else {
                 router.replace('/');
                 redirectAttempted.current = true;
             }
         }
             
-    }, [dataSessionState]);
+    }, [dataSessionState, pathName, searchParams]);
 
 
 

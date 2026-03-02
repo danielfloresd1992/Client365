@@ -1,90 +1,112 @@
 'use client';
-import { useDispatch } from 'react-redux';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
-import FormLayaut from '../../../components/forms/FormLayaut';
 import { useForm } from 'react-hook-form';
-import { setConfigModal } from '@/store/slices/globalModal';
-import LoandingData from '@/components/loandingComponent/loanding';
-
-
-
 
 
 export default function Login({ eventSubmit, errorHttp, setType }) {
 
-
     const [visibilityState, setVisibilityState] = useState(true);
-    const { register, handleSubmit, reset } = useForm();
-
+    const { register, handleSubmit } = useForm();
 
     const PATH_VISIBILITY = '/ico/visibility/icons8-visible-48.png';
     const PATH_NO_VISIBILITY = '/ico/visibility/icons8-invisible-48.png';
 
 
-
-
-
     const printErrorAuth = (errorHttp) => {
-        if (errorHttp === 404) return 'El correo es invalido o no existe';
+        if (errorHttp === 404) return 'El correo es inválido o no existe';
         if (errorHttp === 403) return 'Credenciales inválidas';
         if (errorHttp === 401) return 'Clave inválida';
-        if (errorHttp >= 500) return 'Error server internal'
-        return ''
+        if (errorHttp >= 500) return 'Error interno del servidor';
+        return '';
     };
 
-
-
+    const errorMessage = printErrorAuth(errorHttp);
 
     return (
-        <FormLayaut setSubmit={handleSubmit(eventSubmit)} style={{ position: 'relative', minHeight: '300px' }} maxWidth={false}>
-        
-                <div className='__width-complete flex justify-center padding-[1rem]'>
-                        <Image src='/logo-page-removebg.png' alt='ico-lgo-jarvis' width={60} height={50} />
+        <form onSubmit={handleSubmit(eventSubmit)} className='auth-card auth-form-enter'>
+            {/* Logo */}
+            <div className='auth-logo'>
+                <Image src='/logo-page-removebg.png' alt='Jarvis365' width={64} height={56} priority />
+                <h1 className='auth-logo__title'>Bienvenido</h1>
+                <p className='auth-logo__subtitle'>Inicia sesión en tu cuenta de Jarvis365</p>
+            </div>
+
+            {/* Fields */}
+            <div className='auth-fields'>
+                {/* Email */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Correo electrónico</label>
+                    <div className={`auth-input-wrapper ${errorHttp === 404 ? 'auth-input-wrapper--error' : ''}`}>
+                        <input
+                            className='auth-input'
+                            placeholder='ejemplo@correo.com'
+                            type='email'
+                            required
+                            autoComplete='email'
+                            {...register('email')}
+                        />
+                        <Image src='/ico/mail.png' width={20} height={20} alt='mail' className='auth-input-icon' />
+                    </div>
                 </div>
 
-                <div className='__width-complete __padding1rem __center_center columns __oneGap'>
-                    <label className='form-label'>
-                     
-                        <div className='__width-complete flex content-input'>
-                            <input
-                                className='form-input'
-                                placeholder='Email'
-                                type='email'
-                                required={true}
-                                style={{ backgroundImage: 'unset' }}
-                                {...register('email')}
-                            />
-                            <Image src='/ico/mail.png' width={25} height={15} alt='logo-mail' className='absolute right-0' />
-                        </div>
-                    </label>
-
-                    <label className='form-label'>
-                        <div className='__width-complete flex content-input'>
-                            <input
-                                className='form-input'
-                                placeholder='password'
-                                type={visibilityState ? 'password' : 'text'}
-                                id='user'
-                                required={true}
-                                style={{ backgroundImage: 'unset' }}
-                                {...register('password')}
-                            />
-                            <Image className='absolute right-0 z-10 __pointer' onClick={() => setVisibilityState(!visibilityState)} src={visibilityState ? PATH_VISIBILITY : PATH_NO_VISIBILITY} width={25} height={20} alt='logo-mail' />
-                        </div>
-                    </label>
-                    <span className='__text-center' style={{ fontSize: '0.9rem', color: 'red' }}>{printErrorAuth(errorHttp)}</span>
+                {/* Password */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Contraseña</label>
+                    <div className={`auth-input-wrapper ${errorHttp === 401 ? 'auth-input-wrapper--error' : ''}`}>
+                        <input
+                            className='auth-input'
+                            placeholder='••••••••'
+                            type={visibilityState ? 'password' : 'text'}
+                            required
+                            autoComplete='current-password'
+                            {...register('password')}
+                        />
+                        <Image
+                            className='auth-input-icon auth-input-icon--action'
+                            onClick={() => setVisibilityState(!visibilityState)}
+                            src={visibilityState ? PATH_VISIBILITY : PATH_NO_VISIBILITY}
+                            width={20}
+                            height={20}
+                            alt={visibilityState ? 'Mostrar' : 'Ocultar'}
+                        />
+                    </div>
                 </div>
 
+                {/* Error */}
+                {errorMessage && (
+                    <div className='auth-error'>{errorMessage}</div>
+                )}
+            </div>
 
-                <div className='__width-complete __center_center columns' style={{ gap: '1rem' }}>
-                    <button className='btn-item'>Iniciar sesión</button>
-                    <a href='' className='text-sm'>¿Haz olvidado la contraseña?</a>
-                    <p onClick={() => setType('createUser')} className='__pointer text-sm' style={{ textDecoration: 'underline' }}>Registarse en Jarvis365</p>
+            {/* Actions */}
+            <div className='auth-actions'>
+                <button type='submit' className='auth-btn auth-btn--primary'>
+                    Iniciar sesión
+                </button>
 
-                    <button className='btn-item btn-item_back-transparent' type='button' onClick={(e) => setType('updateUserAndLogin')}>Actualizar mis datos</button>
+                <button type='button' className='auth-btn auth-btn--ghost'>
+                    ¿Olvidaste tu contraseña?
+                </button>
+
+                <div className='auth-divider'>
+                    <span className='auth-divider__line' />
+                    <span className='auth-divider__text'>o</span>
+                    <span className='auth-divider__line' />
                 </div>
-    
-        </FormLayaut>
+
+                <button type='button' className='auth-btn auth-btn--secondary' onClick={() => setType('createUser')}>
+                    Crear cuenta nueva
+                </button>
+            </div>
+
+            {/* Footer */}
+            <p className='auth-footer-text'>
+                ¿Usuario anterior? {' '}
+                <span className='auth-link' onClick={() => setType('updateUserAndLogin')}>
+                    Actualizar mis datos
+                </span>
+            </p>
+        </form>
     );
 }

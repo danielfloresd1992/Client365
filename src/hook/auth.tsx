@@ -6,7 +6,7 @@ import { myUserContext } from '@/contexts/userContext';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch'
 //types 
 import { DataToCreateUserBasic, SessionState, SessionContextProps, ReturFunc, ErrorAuth } from '@/types/submitAuth';
-
+import { setSessionMarker, removeSessionMarker } from '@/libs/auth/sessionMarker';
 
 
 // fetchins
@@ -41,10 +41,12 @@ export default function useAuthOnServer(): ReturFunc {
                     setDataResult.stateSession = 'unauthenticated';
                     setDataResult.dataSession = null
                 }
+                removeSessionMarker();
             }
             else {
                 setDataResult.stateSession = 'authenticated';
                 setDataResult.dataSession = dataRes;
+                setSessionMarker(); // Marcar sesión en el dominio de Next.js
                 if(typeof callback === 'function') callback()
             }
 
@@ -56,6 +58,7 @@ export default function useAuthOnServer(): ReturFunc {
 
 
     const logOut = (): void => {
+        removeSessionMarker(); // Eliminar cookie marcadora
         closeSession(error => {
             if (error) throw console.log(error);
 

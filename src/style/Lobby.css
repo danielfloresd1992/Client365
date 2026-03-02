@@ -1058,8 +1058,8 @@ footer a {
 
 
 .divContentNovelties-pDateImg__for-header {
-    height: 30px;
-    width: 30px;
+    height: 38px;
+    width: 38px;
     filter: brightness(10);
 }
 
@@ -2506,7 +2506,7 @@ body .btnPublic:last-child {
     border-right: none;
 }
 
-body .btnPublic > p {
+body .btnPublic>p {
     color: var(--app-text);
     font-size: .74rem;
     letter-spacing: .01em;
@@ -2534,7 +2534,7 @@ body .__btn-blue:hover:not(:disabled) {
     background-color: #4d7a1b;
 }
 
-body .__btn-blue > p,
+body .__btn-blue>p,
 body .__btn-blue .btnPublic-img {
     color: #fff;
 }
@@ -2547,7 +2547,7 @@ body .__btn-red:hover:not(:disabled) {
     background-color: #9a4f2f;
 }
 
-body .__btn-red > p,
+body .__btn-red>p,
 body .__btn-red .btnPublic-img {
     color: #fff;
 }
@@ -2568,8 +2568,8 @@ body .__night:hover:not(:disabled) {
     background: linear-gradient(180deg, #5f6e45 0%, #4e5c38 100%);
 }
 
-body .__day > p,
-body .__night > p,
+body .__day>p,
+body .__night>p,
 body .__day .btnPublic-img,
 body .__night .btnPublic-img {
     color: #fff;
@@ -2583,7 +2583,7 @@ body .__btn-green:hover:not(:disabled) {
     background-color: #3f7a22;
 }
 
-body .__btn-green > p,
+body .__btn-green>p,
 body .__btn-green .btnPublic-img {
     color: #fff;
 }
@@ -2596,7 +2596,7 @@ body .__btn-download:hover:not(:disabled) {
     background-color: #6a744d;
 }
 
-body .__btn-download > p,
+body .__btn-download>p,
 body .__btn-download .btnPublic-img {
     color: #fff;
 }

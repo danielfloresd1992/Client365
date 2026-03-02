@@ -21,7 +21,7 @@ const Config_window = dynamic(() => import('@/components/config_window/Config_wi
 
 import FixedBottomBar from '@/components/Footer/FixedBottomBar';
 
-import Modal from "../components/useModal/Modal";
+import Modal from "../components/modals/Modal";
 import Favicon from '/public/favicon.ico';
 
 //redux

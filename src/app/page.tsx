@@ -149,16 +149,45 @@ export default function Page() {
                             </div>
                         </div>
 
-                        <div className='rounded-2xl border border-slate-200 bg-[#a1a1a1] p-6 md:p-8 shadow-[0_16px_35px_rgba(56,88,20,0.10)]'>
-                            <Image src='/Jarvis365.png' width={520} height={160} alt='Amazonas365' priority className='w-full h-auto object-contain' />
-                            <div className='mt-6 grid grid-cols-2 gap-3'>
-                                <div className='rounded-xl border border-[#dde8d0] bg-white p-4'>
-                                    <p className='text-xs uppercase tracking-wide text-slate-500'>Cobertura</p>
-                                    <p className='mt-1 text-xl font-bold text-slate-800'>24/7</p>
+                        <div className='relative'>
+                            {/* Decorative glow behind the card */}
+                            <div className='absolute -inset-4 rounded-3xl bg-gradient-to-br from-[#4e8300]/20 via-[#82c91e]/10 to-transparent blur-2xl pointer-events-none' />
+
+                            <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-white/80 backdrop-blur-xl p-6 md:p-8 shadow-[0_24px_48px_rgba(56,88,20,0.12),0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden'>
+                                {/* Accent strip */}
+                                <div className='absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#4e8300] via-[#6cae1f] to-[#a3d977]' />
+
+                                {/* Logo */}
+                                <div className='flex justify-center items-center py-4'>
+                                    <Image src='/Jarvis365.png' width={520} height={160} alt='Amazonas365' priority className='w-full max-w-[380px] h-auto object-contain drop-shadow-lg' />
                                 </div>
-                                <div className='rounded-xl border border-[#dde8d0] bg-white p-4'>
-                                    <p className='text-xs uppercase tracking-wide text-slate-500'>Gestión</p>
-                                    <p className='mt-1 text-xl font-bold text-slate-800'>365 días</p>
+
+                                {/* Tagline */}
+                                <p className='text-center text-sm text-slate-500 font-medium tracking-wide mt-2 mb-5'>
+                                    Plataforma integral de supervisión empresarial
+                                </p>
+
+                                {/* Stats */}
+                                <div className='grid grid-cols-3 gap-3'>
+                                    <div className='rounded-xl border border-[#dde8d0] bg-gradient-to-b from-white to-[#f8fbf4] p-4 text-center transition-transform hover:scale-[1.03]'>
+                                        <p className='text-2xl font-bold text-[#4e8300]'>24/7</p>
+                                        <p className='mt-1 text-xs uppercase tracking-wider text-slate-500'>Cobertura</p>
+                                    </div>
+                                    <div className='rounded-xl border border-[#dde8d0] bg-gradient-to-b from-white to-[#f8fbf4] p-4 text-center transition-transform hover:scale-[1.03]'>
+                                        <p className='text-2xl font-bold text-[#4e8300]'>365</p>
+                                        <p className='mt-1 text-xs uppercase tracking-wider text-slate-500'>Días al año</p>
+                                    </div>
+                                    <div className='rounded-xl border border-[#dde8d0] bg-gradient-to-b from-white to-[#f8fbf4] p-4 text-center transition-transform hover:scale-[1.03]'>
+                                        <p className='text-2xl font-bold text-[#4e8300]'>100%</p>
+                                        <p className='mt-1 text-xs uppercase tracking-wider text-slate-500'>Objetivo</p>
+                                    </div>
+                                </div>
+
+                                {/* Decorative dots */}
+                                <div className='absolute -bottom-3 -right-3 w-24 h-24 opacity-[0.04]'>
+                                    <svg viewBox='0 0 100 100' fill='currentColor' className='text-[#4e8300]'>
+                                        {[...Array(25)].map((_, i) => <circle key={i} cx={10 + (i % 5) * 20} cy={10 + Math.floor(i / 5) * 20} r='3' />)}
+                                    </svg>
                                 </div>
                             </div>
                         </div>
@@ -238,7 +267,7 @@ export default function Page() {
                                     </RevealBlock>
                                 </div>
                                 <div className='w-[49%]'>
-                                     <RevealBlock delay={180} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
+                                    <RevealBlock delay={180} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
                                         <h3 className='text-sm font-semibold text-slate-800'>Rendimiento por área</h3>
                                         <BarChart
                                             height={220}
@@ -247,8 +276,8 @@ export default function Page() {
                                             grid={{ horizontal: true }}
                                         />
                                     </RevealBlock>
-                                 </div>
-                               
+                                </div>
+
                                 <div className='w-full flex justify-center'>
                                     <div className='w-[40%]'>
                                         <RevealBlock delay={260} className='rounded-xl border border-slate-200 bg-[#fbfdf9] p-4'>
@@ -272,8 +301,102 @@ export default function Page() {
                                 </div>
                             </div>
 
-                           
 
+
+                        </div>
+                    </RevealBlock>
+                </section>
+
+                {/* ── Reportes365 Section ──────────────────────────────────── */}
+                <section className='w-full px-4 md:px-8 lg:px-12 pb-12'>
+                    <RevealBlock className='max-w-6xl mx-auto rounded-2xl border border-[#c8ddb4] bg-gradient-to-br from-[#f7fbf2] via-white to-[#f0f7e8] p-6 md:p-10 overflow-hidden relative'>
+                        {/* Decorative background shapes */}
+                        <div className='absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-[#4e8300]/[0.05] to-transparent rounded-full -translate-y-1/3 translate-x-1/3 pointer-events-none' />
+                        <div className='absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#82c91e]/[0.05] to-transparent rounded-full translate-y-1/3 -translate-x-1/3 pointer-events-none' />
+
+                        <div className='relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-center'>
+                            {/* Left — Info */}
+                            <div className='space-y-5'>
+                                <span className='inline-flex items-center gap-2 rounded-full border border-[#c8ddb4] bg-[#eef6e4] px-4 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#4e8300]'>
+                                    <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' /></svg>
+                                    Nueva plataforma
+                                </span>
+
+                                <h2 className='text-2xl md:text-3xl font-bold text-slate-800 leading-tight'>
+                                    Reportes365: documenta y gestiona con precisión
+                                </h2>
+
+                                <p className='text-sm md:text-base text-slate-600 leading-relaxed'>
+                                    Nuestra plataforma de reportes te permite crear, editar y entregar documentos de gestión directamente desde la operación.
+                                    Conecta supervisión, evidencia y análisis en un solo lugar para decisiones más rápidas.
+                                </p>
+
+                                <div className='grid grid-cols-2 gap-3'>
+                                    {['Reportes de novedades', 'Documentos configurables', 'Exportación a PDF', 'Gestión en tiempo real'].map((feat) => (
+                                        <div key={feat} className='flex items-start gap-2'>
+                                            <span className='mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-[#eef6e4] flex items-center justify-center'>
+                                                <svg className='w-3 h-3 text-[#4e8300]' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={3}><path strokeLinecap='round' strokeLinejoin='round' d='M5 13l4 4L19 7' /></svg>
+                                            </span>
+                                            <span className='text-sm text-slate-700'>{feat}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <a
+                                    href='http://localhost:5174/'
+                                    target='_blank'
+                                    rel='noreferrer'
+                                    className='inline-flex items-center gap-2 rounded-lg bg-[#4e8300] px-6 py-3 text-sm font-semibold text-white hover:bg-[#3f6b00] transition-all hover:shadow-lg hover:shadow-[#4e8300]/20 hover:-translate-y-0.5'
+                                >
+                                    Ir a Reportes365
+                                    <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M14 5l7 7m0 0l-7 7m7-7H3' /></svg>
+                                </a>
+                            </div>
+
+                            {/* Right — Visual preview card */}
+                            <div className='relative'>
+                                <div className='absolute -inset-3 rounded-2xl bg-gradient-to-br from-[#4e8300]/10 via-[#82c91e]/5 to-transparent blur-xl pointer-events-none' />
+                                <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-white/90 backdrop-blur-md shadow-[0_20px_50px_rgba(56,88,20,0.10)] p-6 space-y-4'>
+                                    {/* Mock header */}
+                                    <div className='flex items-center gap-3'>
+                                        <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-[#4e8300] to-[#6cae1f] flex items-center justify-center shadow-md'>
+                                            <svg className='w-5 h-5 text-white' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' /></svg>
+                                        </div>
+                                        <div>
+                                            <p className='text-sm font-bold text-slate-800'>Reportes365</p>
+                                            <p className='text-xs text-slate-500'>Plataforma de documentos</p>
+                                        </div>
+                                        <span className='ml-auto inline-flex items-center rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[10px] font-bold text-[#4e8300] uppercase tracking-wide'>Activo</span>
+                                    </div>
+
+                                    {/* Mock document rows */}
+                                    <div className='space-y-2.5'>
+                                        {['Reporte de novedades — Sede Norte', 'Informe mensual — Operaciones', 'Documento de entrega — Turno AM'].map((doc, idx) => (
+                                            <div key={idx} className='flex items-center gap-3 rounded-lg border border-slate-100 bg-[#fbfdf9] px-3 py-2.5'>
+                                                <div className={`w-2 h-2 rounded-full ${idx === 0 ? 'bg-[#4e8300]' : idx === 1 ? 'bg-[#f59e0b]' : 'bg-slate-300'}`} />
+                                                <p className='text-xs text-slate-600 flex-1'>{doc}</p>
+                                                <svg className='w-3.5 h-3.5 text-slate-400' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 5l7 7-7 7' /></svg>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Mock stats bar */}
+                                    <div className='flex gap-3 pt-2 border-t border-slate-100'>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-[#4e8300]'>12</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Creados</p>
+                                        </div>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-[#f59e0b]'>3</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Pendientes</p>
+                                        </div>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-slate-700'>98%</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Completado</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </RevealBlock>
                 </section>

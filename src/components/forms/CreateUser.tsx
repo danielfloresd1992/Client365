@@ -1,13 +1,10 @@
 
 
 'use client';
-import React, { useState, useRef, useEffect, ReactElement } from 'react';
-//import { useDispatch } from 'react-redux';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import FormLayaut from './FormLayaut';
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import validateSecurityPass from '@/libs/script/validateSecurityPass';
-//import fetchSaveNewUser from '@/libs/ajaxClient/fetchSaveNewUser';
 
 import sendTextJarvis from '@/libs/sendMsmJarvis';
 
@@ -18,31 +15,6 @@ import { NumbeTeUser } from '@/types/dataBasic';
 
 //fetching
 import { handdlerCreateUserFetch, handdlerUpdateUserFetch } from '@/libs/ajaxClient/authFetch';
-
-
-
-
-const styleDoubleInputLayaut: React.CSSProperties = {
-    width: '100%',
-    display: 'flex',
-    gap: '1rem',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    flexWrap: 'nowrap',
-    alignContent: 'stretch',
-    flexDirection: 'row'
-};
-
-
-const styleForm: React.CSSProperties = {
-    gap: '2rem',
-    minWidth: '650px',
-    padding: '2rem 1rem'
-};
-
-
-const buttonSendCodeStyle: React.CSSProperties = { width: '120px', height: '40px', fontSize: '.8rem', backgroundColor: '#ddd', color: '#000' }
-
 
 
 
@@ -135,248 +107,233 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
 
 
     return (
-        <FormLayaut control={control} setSubmit={handleSubmit(sumbit)} style={styleForm} maxWidth={true}>
+        <form onSubmit={handleSubmit(sumbit)} className='auth-card auth-card--wide auth-form-enter'>
 
-            <div className="__width-complete">
-                <h1 className='__text-center' style={{ fontWeight: '500', fontSize: '1.5rem' }}>{update ? 'Actualize sus datos' : 'Registro de usuario'}</h1>
-                <hr />
+            {/* Header */}
+            <div className='auth-section-header'>
+                <h1 className='auth-section-header__title'>{update ? 'Actualiza tus datos' : 'Crear cuenta'}</h1>
+                <div className='auth-section-header__divider' />
             </div>
 
-            <div className='__width-complete __padding1rem __center_center columns __oneGap'>
+            <div className='auth-fields'>
 
-
-                <label className='form-label'>
-                    <p className='form-label-p.intro'>Correo</p>
-                    <div className='__width-complete flex content-input'>
+                {/* Email */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Correo electrónico</label>
+                    <div className={`auth-input-wrapper ${errors.email ? 'auth-input-wrapper--error' : ''}`}>
                         <input
-                            className='form-input'
+                            className='auth-input'
                             type='email'
-                            id='user'
-                            style={{ backgroundImage: 'unset' }}
+                            placeholder='ejemplo@correo.com'
+                            autoComplete='email'
                             {...register('email', { required: { value: true, message: 'El correo es requerido' } })}
                         />
-                        <Image className='absolute right-0' src='/ico/mail.png' width={25} height={25} alt='logo-mail' />
+                        <Image className='auth-input-icon' src='/ico/mail.png' width={20} height={20} alt='mail' />
                     </div>
-                </label>
+                    {errors.email?.message && <span className='auth-error'>{errors.email.message}</span>}
+                </div>
 
-                <span className='textError'>{errors.email?.message}</span>
-
-                {
-                    update ?
-                        <label className='form-label'>
-                            <p className='form-label-p.intro'>Password legace</p>
-                            <div className='__width-complete flex content-input'>
-                                <input
-                                    className='form-input'
-                                    type='text'
-                                    id='user'
-                                    disabled={update ? true : false}
-                                    style={{ backgroundImage: 'unset' }}
-                                    {...register('password', { required: { value: true, message: 'El correo es requerido' } })}
-                                />
-                                <Image className='absolute right-0' src='/ico/mail.png' width={25} height={25} alt='logo-mail' />
-                            </div>
-                        </label>
-                        :
-                        null
-                }
-
-                <div style={styleDoubleInputLayaut}>
-                    <div className='__width-complete __center_center columns'>
-                        <label className='form-label'>
-                            <p className='form-label-p.intro'>Contraseña</p>
-                            <div className='__width-complete flex content-input'>
-                                <input
-                                    className='form-input'
-                                    type={visibilityState ? 'password' : 'text'}
-                                    style={{ backgroundImage: 'unset' }}
-
-                                    {...register(update ? 'newPassword' : 'password',
-                                        {
-                                            required: { value: true, message: 'La contraseña es requerida' },
-
-                                            validate: (value) => {
-                                                const validateesult = validateSecurityPass(value);
-                                                setLevelSecurityPasswordState(validateesult);
-                                                return validateesult.pass;
-                                            }
-                                        }
-                                    )}
-                                />
-                                <Image className='absolute right-0 z-10 __pointer' onClick={() => setVisibilityState(!visibilityState)} src={visibilityState ? PATH_VISIBILITY : PATH_NO_VISIBILITY} width={25} height={25} alt='logo-mail' />
-                            </div>
-                        </label>
-
-                        <div className='__width-complete __center_center columns __oneGap'>
-                            <div className='__width-complete __align-center __oneGap'>
-                                <div className='__width-complete' style={{ backgroundColor: levelSecurityPasswordState?.color ? levelSecurityPasswordState?.color : 'gray', height: '8px', borderRadius: '5px' }}></div>
-                                <div className='__width-complete' style={{ backgroundColor: levelSecurityPasswordState?.color ? levelSecurityPasswordState?.color : 'gray', height: '8px', borderRadius: '5px' }}></div>
-                                <div className='__width-complete' style={{ backgroundColor: levelSecurityPasswordState?.color ? levelSecurityPasswordState?.color : 'gray', height: '8px', borderRadius: '5px' }}></div>
-                                <div className='__width-complete' style={{ backgroundColor: levelSecurityPasswordState?.color ? levelSecurityPasswordState?.color : 'gray', height: '8px', borderRadius: '5px' }}></div>
-                            </div>
-                            {
-                                levelSecurityPasswordState ?
-                                    <>
-                                        <p style={levelSecurityPasswordState.level === 4 ? { fontSize: '.8rem', color: 'green' } : { fontSize: '.8rem', color: 'red' }} ref={textPasswordSecurity}>{levelSecurityPasswordState.msm}</p>
-                                        {levelSecurityPasswordState.pass ? <Image src='/ico/candado-50.png' width={25} height={250} alt='lock' /> : null}
-                                    </>
-                                    :
-                                    null
-                            }
-                            <span className='textError __text-center'>{errors.password?.message}</span>
-                            <p ref={textPasswordSecurity}></p>
+                {/* Legacy password (update mode) */}
+                {update && (
+                    <div className='auth-input-group'>
+                        <label className='auth-input-label'>Contraseña anterior</label>
+                        <div className='auth-input-wrapper'>
+                            <input
+                                className='auth-input'
+                                type='text'
+                                disabled
+                                {...register('password', { required: { value: true, message: 'La contraseña es requerida' } })}
+                            />
                         </div>
                     </div>
-                    <div className='__width-complete __center_center columns'>
-                        <label className='form-label'>
-                            <p className='form-label-p.intro'>Confirmar contraseña</p>
-                            <div className='__width-complete flex content-input'>
-                                <input
-                                    className='form-input'
-                                    type={'confirmPassword'}
-                                    {...register('confirmPassword', {
-                                        required: 'La confirmación de contraseña es obligatoria',
-                                        validate: (value) => value === getValues(update ? 'newPassword' : 'password') || 'Las contraseñas no coinciden'
-                                    })}
+                )}
 
+                {/* Password + Confirm password */}
+                <div className='auth-double-col'>
+                    <div className='auth-input-group' style={{ flex: 1 }}>
+                        <label className='auth-input-label'>Contraseña</label>
+                        <div className={`auth-input-wrapper ${errors.password || errors.newPassword ? 'auth-input-wrapper--error' : ''}`}>
+                            <input
+                                className='auth-input'
+                                type={visibilityState ? 'password' : 'text'}
+                                placeholder='••••••••'
+                                autoComplete='new-password'
+                                {...register(update ? 'newPassword' : 'password', {
+                                    required: { value: true, message: 'La contraseña es requerida' },
+                                    validate: (value) => {
+                                        const validateResult = validateSecurityPass(value);
+                                        setLevelSecurityPasswordState(validateResult);
+                                        return validateResult.pass;
+                                    }
+                                })}
+                            />
+                            <Image
+                                className='auth-input-icon auth-input-icon--action'
+                                onClick={() => setVisibilityState(!visibilityState)}
+                                src={visibilityState ? PATH_VISIBILITY : PATH_NO_VISIBILITY}
+                                width={20} height={20}
+                                alt={visibilityState ? 'Mostrar' : 'Ocultar'}
+                            />
+                        </div>
+                        {/* Security bars */}
+                        <div className='auth-security-bars'>
+                            {[0, 1, 2, 3].map(i => (
+                                <div
+                                    key={i}
+                                    className='auth-security-bar'
+                                    style={{
+                                        background: levelSecurityPasswordState?.level && levelSecurityPasswordState.level > i
+                                            ? levelSecurityPasswordState.color || '#e2e8d8'
+                                            : '#e2e8d8'
+                                    }}
                                 />
-                            </div>
-                        </label>
-                        <span className='textError __text-center'>{errors.confirmPassword?.message}</span>
+                            ))}
+                        </div>
+                        {levelSecurityPasswordState?.msm && (
+                            <p className='auth-security-text' style={{ color: levelSecurityPasswordState.level === 4 ? '#4e8300' : '#ef4444' }}>
+                                {levelSecurityPasswordState.msm}
+                            </p>
+                        )}
+                        {errors.password?.message && <span className='auth-error'>{errors.password.message}</span>}
+                    </div>
+
+                    <div className='auth-input-group' style={{ flex: 1 }}>
+                        <label className='auth-input-label'>Confirmar contraseña</label>
+                        <div className={`auth-input-wrapper ${errors.confirmPassword ? 'auth-input-wrapper--error' : ''}`}>
+                            <input
+                                className='auth-input'
+                                type='password'
+                                placeholder='••••••••'
+                                autoComplete='new-password'
+                                {...register('confirmPassword', {
+                                    required: 'La confirmación es obligatoria',
+                                    validate: (value) => value === getValues(update ? 'newPassword' : 'password') || 'Las contraseñas no coinciden'
+                                })}
+                            />
+                        </div>
+                        {errors.confirmPassword?.message && <span className='auth-error'>{errors.confirmPassword.message}</span>}
                     </div>
                 </div>
 
-
-                <div className='__width-complete'>
-                    <label className='form-label'>
-                        <p className='form-label-p.intro'>Telefono</p>
-                        <div className='__width-complete flex content-input'>
+                {/* Phone */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Teléfono</label>
+                    <div className='auth-double-col'>
+                        <div className={`auth-input-wrapper ${errors.code_tel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: '0 0 140px' }}>
                             <select
-                                className='form-input'
-                                style={{ width: '35%' }}
-                                defaultValue={''}
-                                {...register('code_tel', { required: { value: true, message: 'El código de operadora es requerido' } })}
+                                className='auth-select'
+                                defaultValue=''
+                                {...register('code_tel', { required: { value: true, message: 'Código requerido' } })}
                             >
-                                <option value={''} disabled={true}>--Codigo--</option>
+                                <option value='' disabled>Código</option>
                                 <option value='414'>0414</option>
                                 <option value='424'>0424</option>
                                 <option value='416'>0416</option>
                                 <option value='426'>0426</option>
                                 <option value='412'>0412</option>
                             </select>
-
-
+                        </div>
+                        <div className={`auth-input-wrapper ${errors.tel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: 1 }}>
                             <input
-                                className='form-input'
+                                className='auth-input'
                                 type='tel'
-                                style={{ width: '65%' }}
+                                placeholder='1234567'
                                 {...register('tel', {
                                     required: { value: true, message: 'El número es requerido' },
-                                    minLength: { value: 7, message: 'El numero debe tener una lingitud de 7' },
-                                    maxLength: { value: 7, message: 'El numero debe tener una lingitud de 7' },
+                                    minLength: { value: 7, message: 'Debe tener 7 dígitos' },
+                                    maxLength: { value: 7, message: 'Debe tener 7 dígitos' },
                                 })}
                             />
-                            <Image
-                                src='/ico/telefono-celular-64.png'
-                                draggable={false}
-                                className='absolute right-0 z-10'
-                                width={25}
-                                height={25}
-                                alt='logo-mail'
-                            />
+                            <Image src='/ico/telefono-celular-64.png' draggable={false} className='auth-input-icon' width={20} height={20} alt='phone' />
                         </div>
-                    </label>
-                </div>
-                {
-                    errors.code_tel?.message ? <span className='textError' >{errors.code_tel?.message}</span> : null
-                }
-                {
-                    errors.tel?.message ? <span className='textError' >{errors.tel?.message}</span> : null
-                }
-
-                <label className='form-label'>
-                    <p className='form-label-p.intro'>Confirmar número telefono</p>
-                    <div className='__width-complete flex content-input' style={{ padding: '1rem 0' }}>
-
-                        <button className='btn-item' type='button' style={buttonSendCodeStyle} onClick={sendCode}>Enviar código</button>
-                        <input
-                            className='form-input'
-                            type='text'
-                            style={{ backgroundImage: 'unset', padding: '0 2rem' }}
-                            {...register('codeConfirmTel', {
-                                required: { value: true, message: 'El código es obligatorio' },
-                                validate: (value) => {
-
-                                    if (value === CODE_FOR_CONFIRM_NUMBER.current) {
-
-                                    }
-                                    else {
-                                        setError('codeConfirmTel', { message: 'El codigo es inválido' })
-                                        return 'El codigo es inválido'
-                                    }
-
-                                }
-                            })}
-                        />
-                    </div> {
-
-                    }
-                    <span className='textError' >{errors.codeConfirmTel?.message}</span>
-                </label>
-
-
-                <label className='form-label'>
-                    <p className='form-label-p.intro'>User</p>
-                    <div className='__width-complete flex content-input'>
-                        <input
-                            className='form-input'
-                            type='text'
-                            disabled={update ? true : false}
-                            style={{ backgroundImage: 'unset' }}
-                            {...register('user', { required: { value: true, message: 'Un username es requerido' } })}
-                        />
-
                     </div>
-                    <span className='textError' >{errors.user?.message}</span>
-                </label>
+                    {errors.code_tel?.message && <span className='auth-error'>{errors.code_tel.message}</span>}
+                    {errors.tel?.message && <span className='auth-error'>{errors.tel.message}</span>}
+                </div>
 
-                <div style={styleDoubleInputLayaut}>
-                    <label className='form-label'>
-                        <p className='form-label-p.intro'>Nombre</p>
-                        <div className='__width-complete flex content-input'>
+                {/* Verify phone code */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Verificar teléfono</label>
+                    <div className='auth-double-col' style={{ alignItems: 'flex-start' }}>
+                        <button className='auth-btn auth-btn--secondary auth-btn--small' type='button' onClick={sendCode} style={{ flexShrink: 0 }}>
+                            Enviar código
+                        </button>
+                        <div className={`auth-input-wrapper ${errors.codeConfirmTel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: 1 }}>
                             <input
-                                className='form-input'
+                                className='auth-input'
                                 type='text'
-                                disabled={update ? true : false}
-                                style={{ backgroundImage: 'unset' }}
-                                {...register('name', { required: { value: true, message: 'El nombre del usuario es requerido' } })}
+                                placeholder='Código de 6 dígitos'
+                                {...register('codeConfirmTel', {
+                                    required: { value: true, message: 'El código es obligatorio' },
+                                    validate: (value) => {
+                                        if (value !== CODE_FOR_CONFIRM_NUMBER.current) {
+                                            setError('codeConfirmTel', { message: 'El código es inválido' });
+                                            return 'El código es inválido';
+                                        }
+                                    }
+                                })}
                             />
-
                         </div>
-                        <span className='textError' >{errors.name?.message}</span>
-                    </label>
+                    </div>
+                    {errors.codeConfirmTel?.message && <span className='auth-error'>{errors.codeConfirmTel.message}</span>}
+                </div>
 
-                    <label className='form-label'>
-                        <p className='form-label-p.intro'>Apellido</p>
-                        <div className='__width-complete flex content-input'>
+                {/* Username */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Usuario</label>
+                    <div className={`auth-input-wrapper ${errors.user ? 'auth-input-wrapper--error' : ''}`}>
+                        <input
+                            className='auth-input'
+                            type='text'
+                            placeholder='nombre_de_usuario'
+                            disabled={!!update}
+                            {...register('user', { required: { value: true, message: 'El usuario es requerido' } })}
+                        />
+                    </div>
+                    {errors.user?.message && <span className='auth-error'>{errors.user.message}</span>}
+                </div>
+
+                {/* Name + Surname */}
+                <div className='auth-double-col'>
+                    <div className='auth-input-group' style={{ flex: 1 }}>
+                        <label className='auth-input-label'>Nombre</label>
+                        <div className={`auth-input-wrapper ${errors.name ? 'auth-input-wrapper--error' : ''}`}>
                             <input
-                                className='form-input'
+                                className='auth-input'
                                 type='text'
-                                disabled={update ? true : false}
-                                style={{ backgroundImage: 'unset' }}
-                                {...register('surName', { required: { value: true, message: 'El primer apellido del usuario es requerido' } })}
+                                placeholder='Tu nombre'
+                                disabled={!!update}
+                                {...register('name', { required: { value: true, message: 'El nombre es requerido' } })}
                             />
-
                         </div>
-                        <span className='textError' >{errors.surName?.message}</span>
-                    </label>
+                        {errors.name?.message && <span className='auth-error'>{errors.name.message}</span>}
+                    </div>
+                    <div className='auth-input-group' style={{ flex: 1 }}>
+                        <label className='auth-input-label'>Apellido</label>
+                        <div className={`auth-input-wrapper ${errors.surName ? 'auth-input-wrapper--error' : ''}`}>
+                            <input
+                                className='auth-input'
+                                type='text'
+                                placeholder='Tu apellido'
+                                disabled={!!update}
+                                {...register('surName', { required: { value: true, message: 'El apellido es requerido' } })}
+                            />
+                        </div>
+                        {errors.surName?.message && <span className='auth-error'>{errors.surName.message}</span>}
+                    </div>
                 </div>
             </div>
 
-            <div className='__width-complete __center_center columns' style={{ gap: '1.5rem' }}>
-                <button className='btn-item'>{update ? '¡Actualizar ya!' : 'Registrarme'}</button>
-                <p onClick={() => setType('login')} className='__pointer' style={{ textDecoration: 'underline' }}>Ya eres parte de Jarvis365</p>
+            {/* Actions */}
+            <div className='auth-actions'>
+                <button type='submit' className='auth-btn auth-btn--primary'>
+                    {update ? '¡Actualizar ya!' : 'Crear cuenta'}
+                </button>
+                <p className='auth-footer-text'>
+                    ¿Ya tienes cuenta? {' '}
+                    <span className='auth-link' onClick={() => setType('login')}>Iniciar sesión</span>
+                </p>
             </div>
-        </FormLayaut>
+        </form>
     );
 }

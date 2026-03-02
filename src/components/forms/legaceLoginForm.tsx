@@ -3,12 +3,6 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { isAxiosError } from 'axios';
 import { requestDataLegace } from '@/libs/ajaxClient/authFetch';
-import IP from '@/libs/ajaxClient/dataFecth';
-
-//components
-import FormLayaut from './FormLayaut';
-
-
 
 //types
 import { ILegacePropsForm, LegaceDataUser } from '@/types/submitAuth';
@@ -43,48 +37,57 @@ export default function LegaceLoginForm({ componentUpdateUser }: ILegacePropsFor
 
     if (legaceDataState) return componentUpdateUser(legaceDataState);
     else return (
-        <FormLayaut setSubmit={handleSubmit(submit)} style={null} maxWidth={false}>
-            <div className="__width-complete">
-                <h1 className='__text-center' style={{ fontWeight: '500', fontSize: '1.5rem' }}>Ingrese sus datos</h1>
+        <form onSubmit={handleSubmit(submit)} className='auth-card auth-form-enter'>
+            {/* Header */}
+            <div className='auth-section-header'>
+                <h1 className='auth-section-header__title'>Verificar datos anteriores</h1>
+                <div className='auth-section-header__divider' />
+                <p className='auth-logo__subtitle' style={{ marginTop: '0.5rem' }}>Ingresa tus credenciales del sistema anterior</p>
             </div>
 
-            <div className='__width-complete __padding1rem __center_center columns __oneGap'>
-                <label className='form-label'>
-                    <p className='form-label-p.intro'>UserName</p>
-                    <div className='__width-complete flex content-input'>
+            <div className='auth-fields'>
+                {/* Username */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Usuario</label>
+                    <div className='auth-input-wrapper'>
                         <input
-                            className='form-input'
-                            type='user'
-                            required={true}
-                            style={{ backgroundImage: 'unset' }}
+                            className='auth-input'
+                            type='text'
+                            placeholder='Tu usuario anterior'
+                            required
                             {...register('user')}
                         />
                     </div>
-                </label>
+                </div>
 
-                <label className='form-label'>
-                    <p className='form-label-p.intro'>Contraseña</p>
-                    <div className='__width-complete flex content-input'>
+                {/* Password */}
+                <div className='auth-input-group'>
+                    <label className='auth-input-label'>Contraseña</label>
+                    <div className='auth-input-wrapper'>
                         <input
-                            className='form-input'
-                            type={'password'}
-                            id='user'
-                            required={true}
-                            style={{ backgroundImage: 'unset' }}
+                            className='auth-input'
+                            type='password'
+                            placeholder='••••••••'
+                            required
                             {...register('password')}
                         />
                     </div>
-                </label>
-                <span className='__text-center' style={{ fontSize: '0.9rem', color: 'red' }}>{errorTextState ? errorTextState : ''}</span>
+                </div>
+
+                {/* Error */}
+                {errorTextState && (
+                    <div className='auth-error'>{errorTextState}</div>
+                )}
             </div>
 
-
-            <div className='__width-complete __center_center columns' style={{ gap: '1rem' }}>
-                <button className='btn-item'>Consultar</button>
-
-                <p onClick={() => router.push('/')} className='__pointer text-sm' style={{ textDecoration: 'underline' }}>Volver?</p>
+            {/* Actions */}
+            <div className='auth-actions'>
+                <button type='submit' className='auth-btn auth-btn--primary'>Consultar</button>
+                <button type='button' className='auth-btn auth-btn--ghost' onClick={() => router.push('/')}>
+                    ← Volver al inicio
+                </button>
             </div>
-        </FormLayaut>
+        </form>
     )
 
 }
