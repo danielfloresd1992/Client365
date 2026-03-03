@@ -10,7 +10,6 @@ import { setClient } from '@/store/slices/Client';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch';
 import { SessionState } from '@/types/submitAuth';
 import { isPublicRoute, isLoginRoute, DEFAULT_AUTHENTICATED_ROUTE } from '@/libs/auth/routes.config';
-import { setSessionMarker, removeSessionMarker } from '@/libs/auth/sessionMarker';
 
 
 
@@ -38,22 +37,10 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
     }, false);
 
 
-    // Guardar callbackUrl en sessionStorage al llegar (antes de que el usuario
-    // navegue a /auth y lo pierda de la URL)
-    useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const cbUrl = new URLSearchParams(window.location.search).get('callbackUrl');
-        if (cbUrl && cbUrl.startsWith('/')) {
-            sessionStorage.setItem('jarvis_callbackUrl', cbUrl);
-        }
-    }, []);
 
 
-
-
-    // Efecto principal para verificar la sesión con el backend
-    // El middleware ya protege las rutas a nivel servidor,
-    // pero este check valida que la sesión siga activa en el backend
+    // Efecto principal: verificar la sesión contra el backend (la única fuente de verdad)
+    // Sin middleware, este es el único mecanismo de protección de rutas
     useEffect(() => {
         if (sessionCheckAttempted.current) return;
         sessionCheckAttempted.current = true;
@@ -95,9 +82,8 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
                 dataState.errorHttp.error_connection = false;
                 dataState.stateSession  = 'authenticated';
                 dataState.dataSession = dataSession;
-                setSessionMarker(); // Sincronizar cookie marcadora
             } else {
-                removeSessionMarker(); // Sesión inválida, limpiar marcador
+                // Sesión inválida
             }
 
             setState(dataState);
@@ -128,36 +114,17 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
     useEffect(() => {
         if (redirectAttempted.current) return;
         
-        // Manejar redirecciones basadas en estado de autenticación
-        // Nota: El middleware ya bloquea a nivel servidor, esto es la segunda capa (client-side)
+        // Redirecciones basadas en estado de autenticación (client-side, sin middleware)
         if (dataSessionState.stateSession === 'authenticated') {
             if (isLoginRoute(pathName)) {
-                // Leer callbackUrl: primero de la URL actual, luego de sessionStorage
-                const rawFromUrl = typeof window !== 'undefined'
-                    ? new URLSearchParams(window.location.search).get('callbackUrl')
-                    : null;
-                const rawFromStorage = typeof window !== 'undefined'
-                    ? sessionStorage.getItem('jarvis_callbackUrl')
-                    : null;
-                const rawCallbackUrl = rawFromUrl || rawFromStorage;
-                const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/')
-                    ? rawCallbackUrl
-                    : DEFAULT_AUTHENTICATED_ROUTE;
-
-                // Limpiar sessionStorage
-                if (typeof window !== 'undefined') sessionStorage.removeItem('jarvis_callbackUrl');
-
-                // Usar window.location para redirección fiable (evita problemas con router.replace en producción)
-                window.location.href = callbackUrl;
+                // Usuario autenticado en página de login → ir al Lobby
+                router.replace(DEFAULT_AUTHENTICATED_ROUTE);
                 redirectAttempted.current = true;
             }
         } 
         else if (dataSessionState.stateSession === 'unauthenticated') {
-            if (isPublicRoute(pathName)) {
-                // Ya está en ruta pública, no redirigir
-                return;
-            }    
-            else {
+            if (!isPublicRoute(pathName)) {
+                // Usuario no autenticado en ruta protegida → ir al login
                 router.replace('/');
                 redirectAttempted.current = true;
             }

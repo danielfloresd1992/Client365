@@ -67,15 +67,7 @@ export default function ContentForm() {
         const { email, password } = data;
 
         signIn({ email, password }, () => {
-            // Usar callbackUrl guardado en sessionStorage, o /Lobby por defecto
-            const savedCallback = typeof window !== 'undefined'
-                ? sessionStorage.getItem('jarvis_callbackUrl')
-                : null;
-            const destination = savedCallback && savedCallback.startsWith('/')
-                ? savedCallback
-                : '/Lobby';
-            if (typeof window !== 'undefined') sessionStorage.removeItem('jarvis_callbackUrl');
-            window.location.href = destination;
+            router.replace('/Lobby');
         });
     };
 

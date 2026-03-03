@@ -29,15 +29,55 @@ export default function Modal(){
 
     const returnHeaderModal = typeAlert => {
         if(selectModal.modalOpen) closeScroll();
-
-        if(typeAlert === 'error'){
-            return(
-                <>
-                    <img src='data:image/png;base64,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' style={{ width: '60px' }} />
-                    <h2 style={{ color: '#8f8f8f', textAlign: 'center' }}>{ selectModal.title }</h2>
-                </>
+        // Branded SVG logo (top)
+        const LogoSVG = (
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ marginBottom: 8 }}>
+                <circle cx="20" cy="20" r="20" fill="#4e8300" />
+                <text x="50%" y="55%" textAnchor="middle" fill="#fff" fontSize="18" fontWeight="bold" fontFamily="sans-serif" dy=".3em">365</text>
+            </svg>
+        );
+        // SVG icons for each type
+        const icons = {
+            error: (
+                <span className="modal-icon modal-icon--error">
+                    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#fee2e2"/><path d="M10 10l12 12M22 10L10 22" stroke="#dc2626" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+            ),
+            warning: (
+                <span className="modal-icon modal-icon--warning">
+                    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#fef3c7"/><path d="M16 10v8M16 22h.01" stroke="#d97706" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+            ),
+            successfull: (
+                <span className="modal-icon modal-icon--success">
+                    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#dcfce7"/><path d="M10 17l4 4 8-8" stroke="#16a34a" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+            ),
+            close_session: (
+                <span className="modal-icon modal-icon--session">
+                    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#dbeafe"/><path d="M12 16h8M16 12v8" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+            ),
+            exit: (
+                <span className="modal-icon modal-icon--exit">
+                    <svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="16" fill="#fef3c7"/><path d="M10 16h12" stroke="#d97706" strokeWidth="2" strokeLinecap="round"/></svg>
+                </span>
+            ),
+            await: (
+                <span className="modal-spinner-wrapper">
+                    <span className="modal-spinner"></span>
+                </span>
             )
-        }
+        };
+        // Header layout
+        return (
+            <div className="modal-header">
+                {LogoSVG}
+                {icons[typeAlert]}
+                <h2 className="modal-title">{selectModal.title}</h2>
+            </div>
+        );
+    };
         else if(typeAlert === 'warning'){
             return(
                 <>
@@ -102,69 +142,55 @@ export default function Modal(){
     };
 
 
-    return(
-      
-        <div className='boxModal-Component' style={ selectModal.modalOpen ?  { display: 'flex' } : { display: 'none' } }>
-            <div className='boxModal' style={ selectModal.type === 'await' ? { justifyContent: 'center' } : { justifyContent: 'space-between' }}>
-                <div className='boxModal-contentItems'>
-                    <div className='boxModal-headerItems'>
-                        {
-                            returnHeaderModal(selectModal.type)
-                        }
+    // Modal type for color coding
+    const typeClass = selectModal.type === 'error' ? 'modal-card--error'
+        : selectModal.type === 'warning' ? 'modal-card--warning'
+        : selectModal.type === 'successfull' ? 'modal-card--success'
+        : selectModal.type === 'close_session' ? 'modal-card--session'
+        : selectModal.type === 'await' ? 'modal-card--await'
+        : selectModal.type === 'exit' ? 'modal-card--exit'
+        : '';
+
+    return (
+        <div className="modal-overlay modal-overlay--visible" style={selectModal.modalOpen ? { opacity: 1, visibility: 'visible' } : { opacity: 0, visibility: 'hidden' }}>
+            <div className={`modal-card ${typeClass}`}>
+                {returnHeaderModal(selectModal.type)}
+                {selectModal.type === 'await' ? null : (
+                    <div className="modal-body">
+                        <p className="modal-description">{selectModal.description}</p>
                     </div>
-                </div>
-                {
-                    selectModal.type === 'await'  || selectModal.type === 'exit'?
-                        (
-                            null
-                        )
-                        :
-                        (
+                )}
+                {(selectModal.type !== 'await' && selectModal.type !== 'exit') && (
+                    <div className="modal-actions">
+                        {typeof selectModal.isCallback === 'function' ? (
                             <>
-                                <div className='boxModal-contentItems'>
-                                    <p className='boxModal-description'>{ selectModal.description }</p>
-                                </div>
-                                <div className='boxModal-contentItems'>
-                                    {
-                                        typeof selectModal.isCallback === 'function' ? 
-                                        (
-                                            <>
-                                                <button
-                                                    className='btn-item'
-                                                    onClick={ () => {
-                                                        selectModal.isCallback();
-                                                        openScroll();
-                                                        close();
-                                                    }}
-                                                > Aceptar 
-                                                </button>
-                                                <button
-                                                    className='btn-item'
-                                                    onClick={ () => {
-                                                        close();
-                                                        openScroll();
-                                                    }}
-                                                    style={{ backgroundColor: '#afafaf' }}
-                                                > Cancelar 
-                                                </button>
-                                            </>
-                                        )
-                                        :
-                                        (
-                                            <button
-                                                className='btn-item'
-                                                onClick={ () => {
-                                                    close();
-                                                    openScroll();
-                                                }}
-                                            > Cerrar
-                                            </button>
-                                        )
-                                    }
-                                </div>
+                                <button
+                                    className="modal-btn modal-btn--primary"
+                                    onClick={() => {
+                                        selectModal.isCallback();
+                                        openScroll();
+                                        close();
+                                    }}
+                                >Aceptar</button>
+                                <button
+                                    className="modal-btn modal-btn--secondary"
+                                    onClick={() => {
+                                        close();
+                                        openScroll();
+                                    }}
+                                >Cancelar</button>
                             </>
-                        )
-                }
+                        ) : (
+                            <button
+                                className="modal-btn modal-btn--primary"
+                                onClick={() => {
+                                    close();
+                                    openScroll();
+                                }}
+                            >Cerrar</button>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
