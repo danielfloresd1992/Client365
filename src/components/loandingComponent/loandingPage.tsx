@@ -1,7 +1,7 @@
 'use client';
 import { useContext, useRef, useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
 
 import { myUserContext } from '@/contexts/userContext';
@@ -26,7 +26,6 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
 
     const router = useRouter();
     const pathName = usePathname();
-    const searchParams = useSearchParams();
 
     
     const sessionCheckAttempted = useRef(false);
@@ -123,7 +122,9 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
         if (dataSessionState.stateSession === 'authenticated') {
             if (isLoginRoute(pathName)) {
                 // Si hay un callbackUrl (el middleware lo puso), ir ahí. Si no, al Lobby
-                const callbackUrl = searchParams.get('callbackUrl');
+                const callbackUrl = typeof window !== 'undefined'
+                    ? new URLSearchParams(window.location.search).get('callbackUrl')
+                    : null;
                 router.replace(callbackUrl || DEFAULT_AUTHENTICATED_ROUTE);
                 redirectAttempted.current = true;
             }
@@ -139,7 +140,7 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
             }
         }
             
-    }, [dataSessionState, pathName, searchParams]);
+    }, [dataSessionState, pathName, router]);
 
 
 
