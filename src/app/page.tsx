@@ -343,7 +343,7 @@ export default function Page() {
                                 </div>
 
                                 <a
-                                    href='http://localhost:5174/'
+                                    href='https://jarvis365reporte.netlify.app/'
                                     target='_blank'
                                     rel='noreferrer'
                                     className='inline-flex items-center gap-2 rounded-lg bg-[#4e8300] px-6 py-3 text-sm font-semibold text-white hover:bg-[#3f6b00] transition-all hover:shadow-lg hover:shadow-[#4e8300]/20 hover:-translate-y-0.5'
@@ -393,6 +393,104 @@ export default function Page() {
                                         <div className='flex-1 text-center'>
                                             <p className='text-lg font-bold text-slate-700'>98%</p>
                                             <p className='text-[10px] text-slate-500 uppercase'>Completado</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </RevealBlock>
+                </section>
+
+                {/* ── JarvisExpress showcase ── */}
+                <section className='w-full px-4 md:px-8 lg:px-12 pb-10'>
+                    <RevealBlock className='relative max-w-6xl mx-auto overflow-hidden rounded-3xl border border-[#c8ddb4]/50 bg-gradient-to-br from-[#f4f9ef] via-white to-[#eef6e4] p-6 md:p-10 lg:p-14'>
+                        {/* Decorative shapes */}
+                        <div className='absolute top-0 right-0 w-72 h-72 bg-gradient-to-bl from-[#4e8300]/[0.06] to-transparent rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none' />
+                        <div className='absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-[#82c91e]/[0.05] to-transparent rounded-full translate-y-1/3 -translate-x-1/3 pointer-events-none' />
+
+                        <div className='relative grid grid-cols-1 lg:grid-cols-2 gap-8 items-center'>
+                            {/* Left — Info */}
+                            <div className='space-y-5'>
+                                <span className='inline-flex items-center gap-2 rounded-full border border-[#c8ddb4] bg-[#eef6e4] px-4 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#4e8300]'>
+                                    <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 10V3L4 14h7v7l9-11h-7z' /></svg>
+                                    Plataforma operativa
+                                </span>
+
+                                <h2 className='text-2xl md:text-3xl font-bold text-slate-800 leading-tight'>
+                                    JarvisExpress: control operativo en tiempo real
+                                </h2>
+
+                                <p className='text-sm md:text-base text-slate-600 leading-relaxed'>
+                                    La plataforma que conecta cada punto de operación con supervisión en vivo.
+                                    Gestiona alertas, novedades, multimedia y estándares de calidad desde un único panel intuitivo y rápido.
+                                </p>
+
+                                <div className='grid grid-cols-2 gap-3'>
+                                    {['Alertas en tiempo real', 'Bandeja multimedia', 'Arrastrar y soltar imágenes', 'Estándares de calidad'].map((feat) => (
+                                        <div key={feat} className='flex items-start gap-2'>
+                                            <span className='mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-[#eef6e4] flex items-center justify-center'>
+                                                <svg className='w-3 h-3 text-[#4e8300]' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={3}><path strokeLinecap='round' strokeLinejoin='round' d='M5 13l4 4L19 7' /></svg>
+                                            </span>
+                                            <span className='text-sm text-slate-700'>{feat}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <a
+                                    href='https://jarvis-express.netlify.app/'
+                                    target='_blank'
+                                    rel='noreferrer'
+                                    className='inline-flex items-center gap-2 rounded-lg bg-[#4e8300] px-6 py-3 text-sm font-semibold text-white hover:bg-[#3f6b00] transition-all hover:shadow-lg hover:shadow-[#4e8300]/20 hover:-translate-y-0.5'
+                                >
+                                    Ir a JarvisExpress
+                                    <svg className='w-4 h-4' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M14 5l7 7m0 0l-7 7m7-7H3' /></svg>
+                                </a>
+                            </div>
+
+                            {/* Right — Visual preview card */}
+                            <div className='relative'>
+                                <div className='absolute -inset-3 rounded-2xl bg-gradient-to-br from-[#4e8300]/10 via-[#82c91e]/5 to-transparent blur-xl pointer-events-none' />
+                                <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-white/90 backdrop-blur-md shadow-[0_20px_50px_rgba(56,88,20,0.10)] p-6 space-y-4'>
+                                    {/* Mock header */}
+                                    <div className='flex items-center gap-3'>
+                                        <div className='w-10 h-10 rounded-xl bg-gradient-to-br from-[#4e8300] to-[#6cae1f] flex items-center justify-center shadow-md'>
+                                            <svg className='w-5 h-5 text-white' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M13 10V3L4 14h7v7l9-11h-7z' /></svg>
+                                        </div>
+                                        <div>
+                                            <p className='text-sm font-bold text-slate-800'>JarvisExpress</p>
+                                            <p className='text-xs text-slate-500'>Panel de operaciones</p>
+                                        </div>
+                                        <span className='ml-auto inline-flex items-center rounded-full bg-[#eef6e4] px-2.5 py-0.5 text-[10px] font-bold text-[#4e8300] uppercase tracking-wide'>En línea</span>
+                                    </div>
+
+                                    {/* Mock operations feed */}
+                                    <div className='space-y-2.5'>
+                                        {[
+                                            { label: 'Alerta — Novedad sede Centro', color: 'bg-red-400' },
+                                            { label: 'Imagen recibida — Turno PM', color: 'bg-[#4e8300]' },
+                                            { label: 'Calidad aprobada — Cocina Norte', color: 'bg-[#f59e0b]' },
+                                        ].map((item, idx) => (
+                                            <div key={idx} className='flex items-center gap-3 rounded-lg border border-slate-100 bg-[#fbfdf9] px-3 py-2.5'>
+                                                <div className={`w-2 h-2 rounded-full ${item.color}`} />
+                                                <p className='text-xs text-slate-600 flex-1'>{item.label}</p>
+                                                <svg className='w-3.5 h-3.5 text-slate-400' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth={2}><path strokeLinecap='round' strokeLinejoin='round' d='M9 5l7 7-7 7' /></svg>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Mock stats bar */}
+                                    <div className='flex gap-3 pt-2 border-t border-slate-100'>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-[#4e8300]'>24</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Alertas</p>
+                                        </div>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-[#f59e0b]'>8</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Pendientes</p>
+                                        </div>
+                                        <div className='flex-1 text-center'>
+                                            <p className='text-lg font-bold text-slate-700'>100%</p>
+                                            <p className='text-[10px] text-slate-500 uppercase'>Operativo</p>
                                         </div>
                                     </div>
                                 </div>
