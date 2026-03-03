@@ -1,5 +1,5 @@
 'use client';
-import { useContext, useRef, useEffect, useState } from 'react';
+import { useContext, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -36,6 +36,17 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
         resource: '/localforCort',
         method: 'get',
     }, false);
+
+
+    // Guardar callbackUrl en sessionStorage al llegar (antes de que el usuario
+    // navegue a /auth y lo pierda de la URL)
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const cbUrl = new URLSearchParams(window.location.search).get('callbackUrl');
+        if (cbUrl && cbUrl.startsWith('/')) {
+            sessionStorage.setItem('jarvis_callbackUrl', cbUrl);
+        }
+    }, []);
 
 
 
@@ -121,18 +132,30 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
         // Nota: El middleware ya bloquea a nivel servidor, esto es la segunda capa (client-side)
         if (dataSessionState.stateSession === 'authenticated') {
             if (isLoginRoute(pathName)) {
-                // Si hay un callbackUrl (el middleware lo puso), ir ahí. Si no, al Lobby
-                const callbackUrl = typeof window !== 'undefined'
+                // Leer callbackUrl: primero de la URL actual, luego de sessionStorage
+                const rawFromUrl = typeof window !== 'undefined'
                     ? new URLSearchParams(window.location.search).get('callbackUrl')
                     : null;
-                router.replace(callbackUrl || DEFAULT_AUTHENTICATED_ROUTE);
+                const rawFromStorage = typeof window !== 'undefined'
+                    ? sessionStorage.getItem('jarvis_callbackUrl')
+                    : null;
+                const rawCallbackUrl = rawFromUrl || rawFromStorage;
+                const callbackUrl = rawCallbackUrl && rawCallbackUrl.startsWith('/')
+                    ? rawCallbackUrl
+                    : DEFAULT_AUTHENTICATED_ROUTE;
+
+                // Limpiar sessionStorage
+                if (typeof window !== 'undefined') sessionStorage.removeItem('jarvis_callbackUrl');
+
+                // Usar window.location para redirección fiable (evita problemas con router.replace en producción)
+                window.location.href = callbackUrl;
                 redirectAttempted.current = true;
             }
         } 
         else if (dataSessionState.stateSession === 'unauthenticated') {
             if (isPublicRoute(pathName)) {
                 // Ya está en ruta pública, no redirigir
-                redirectAttempted.current = true;
+                return;
             }    
             else {
                 router.replace('/');
