@@ -943,7 +943,10 @@
 
 /****/
 .divContentNovelties-textContain {
+    height: 32px;
     display: flex;
+    justify-content: end;
+    align-items: center;
     flex-direction: column;
     gap: .2rem;
 }
@@ -1042,6 +1045,7 @@ footer a {
 
 
 .divContentNovelties-pDate {
+    color: #000;
     display: flex;
     align-items: center;
     gap: 0.4rem;
@@ -2527,7 +2531,7 @@ body .btnPublic-img {
 }
 
 body .__btn-blue {
-    background-color: #4d7a1b;
+    background-image: var(--gradient-verde);
 }
 
 body .__btn-blue:hover:not(:disabled) {
@@ -2540,7 +2544,7 @@ body .__btn-blue .btnPublic-img {
 }
 
 body .__btn-red {
-    background-color: #9a4f2f;
+    background-color: #ff5656;
 }
 
 body .__btn-red:hover:not(:disabled) {
@@ -2553,15 +2557,16 @@ body .__btn-red .btnPublic-img {
 }
 
 body .__day {
-    background: linear-gradient(180deg, #7b9b45 0%, #637f36 100%);
+    background-color: #7dd6ff;
+    color: #414141;
 }
 
 body .__day:hover:not(:disabled) {
-    background: linear-gradient(180deg, #7b9b45 0%, #637f36 100%);
+    background-color: #7dd6ff;
 }
 
 body .__night {
-    background: linear-gradient(180deg, #5f6e45 0%, #4e5c38 100%);
+    background: linear-gradient(180deg, #0b0972 0%, #0036c9 100%);
 }
 
 body .__night:hover:not(:disabled) {
@@ -2576,11 +2581,11 @@ body .__night .btnPublic-img {
 }
 
 body .__btn-green {
-    background-color: #3f7a22;
+    background-image: var(--gradient-verde);
 }
 
 body .__btn-green:hover:not(:disabled) {
-    background-color: #3f7a22;
+    background-image: var(--gradient-verde);
 }
 
 body .__btn-green>p,
@@ -2589,11 +2594,11 @@ body .__btn-green .btnPublic-img {
 }
 
 body .__btn-download {
-    background-color: #6a744d;
+    background-color: #785586;
 }
 
 body .__btn-download:hover:not(:disabled) {
-    background-color: #6a744d;
+    background-color: #75428a;
 }
 
 body .__btn-download>p,

@@ -1873,7 +1873,10 @@ hr {
     --app-text-muted: #667085;
     --app-accent: #5f6fff;
     --app-shadow-soft: 0 8px 28px rgba(15, 23, 42, 0.06);
+    --gradient-verde: linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%);
 }
+
+
 
 html,
 body {

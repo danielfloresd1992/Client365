@@ -54,7 +54,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     useEffect(() => {
 
-        if (data.isNewData) {
+        if (data.isNewData && !noveltyState) {
             getNovelty();
         }
         else {
@@ -70,6 +70,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             if (isSubscribed) {
                 const { doc, user } = data;
                 if (data.userSessionId !== user.idUser && doc._id === noveltyState?._id) {
+                    console.error(doc)
                     setNoveltyState(doc);
                 }
             }
@@ -115,7 +116,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
-                        setNoveltyState({ ...noveltyState, ...dataParams });
+                 
                     }
                 })
                 .catch(err => {
@@ -249,7 +250,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     return (
         <div
             onClick={() => {
-                if (process.env.NODE_ENV === 'development') console.log(noveltyState);
+              if (process.env.NODE_ENV === 'development') console.log(noveltyState);
             }}
             className={data.isNewData ? 'divContentNovelties start' : 'divContentNovelties'}
             ref={ref}
@@ -360,18 +361,32 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             />
 
 
-
+    
 
                             <div className='p-[.6rem_.5rem] flex items-center justify-between flex-wrap gap-2'>
+
                                 <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
-                                    <FiUser className='divContentNovelties-pDateImg' />
-                                    <p className='divContentNovelties-pDate'>Compartido por {noveltyState?.userPublic?.name} </p>
+                                    {/* DATOS RELACIONADOS DE LA PERSONA QUE PUBLICO LA ALERTA */}
+                                    {
+                                        noveltyState?.sharedByUser?.user?.id?.img ?
+                                            <img className='w-[25px] h-[25px] object-cover rounded-full' src={noveltyState?.sharedByUser?.user?.id?.img} alt='ico-user' />
+                                            :
+                                            <FiUser className='divContentNovelties-pDateImg' />
+
+                                    }
+                                    <p className='divContentNovelties-pDate'>Compartido por {noveltyState?.sharedByUser?.user.nameUser} </p>
                                 </div>
                                 {
                                     typeof validationValue === 'boolean' ?
                                         (
                                             <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
-                                                <FiShield className='divContentNovelties-pDateImg' />
+                                                {
+                                                    noveltyState?.validationResult?.validatedByUser?.user?.id?.img ?
+                                                        <img className='w-[25px] h-[25px] object-cover rounded-full' src={noveltyState?.validationResult?.validatedByUser?.user?.id?.img} alt='ico-user' />
+                                                        :
+                                                        <FiShield className='divContentNovelties-pDateImg' />
+                                                }
+
                                                 <p className='divContentNovelties-pDate'>Validado por {noveltyState?.isValidate?.for}</p>
                                             </div>
                                         )
@@ -455,7 +470,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                     <FiSun className='btnPublic-img' />
                                     <p className='__textGrayForList'
                                         style={{
-                                            color: noveltyState.shift === 'day' ? '#fff' : 'unset'
+                                            color: noveltyState.shift === 'day' ? 'rgb(73 73 73)' : 'unset'
                                         }}
                                     >Turno día</p>
                                 </button>
@@ -472,7 +487,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                     <FiMoon className='btnPublic-img' />
                                     <p className='__textGrayForList'
                                         style={{
-                                            color: noveltyState.shift === 'night' ? '#fff' : 'unset'
+                                            color: noveltyState.shift === 'night' ? 'white' : 'unset'
                                         }}
                                     >Turno noche</p>
                                 </button>
