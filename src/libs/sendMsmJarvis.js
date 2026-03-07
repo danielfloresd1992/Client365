@@ -4,6 +4,7 @@ import axios from 'axios';
 let connectionString = process.env.NEXT_PUBLIC_SOCKET_AVA_CHAT || 'https://72.68.60.201:3009';
 
 
+
 export default function sendTextJarvis(text, number, boolean, mentionsId, img) {
     return new Promise((resolve, reject) => {
         const formData = new FormData();

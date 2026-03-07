@@ -230,15 +230,23 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 >
                     <div className='w-full flex flex-col-reverse gap-[.4rem]'>
                         {
-                            data?.result && groupConsecutiveMessages(data?.result).map((group, index) => (
-                                <div className='w-full flex flex-col gap-[.2rem]' key={index}>
-                                    {
-                                        group.toReversed().map((item: Tmsm, indexMsm: number) => (
-                                            <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} deleteProp={deleteMsm} />
-                                        ))
-                                    }
-                                </div>
-                            ))
+                            data?.result && groupConsecutiveMessages(data?.result).map((group, index) => {
+                                try {
+                                    return (
+                                        <div className='w-full flex flex-col gap-[.2rem]' key={index}>
+                                            {
+                                                Array.isArray(group) && group.toReversed().map((item: Tmsm, indexMsm: number) => (
+                                                    <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} deleteProp={deleteMsm} />
+                                                ))
+                                            }
+                                        </div>
+                                    )
+                                }
+                                catch (error) {
+                                    console.log(error);
+                                    return null;
+                                }
+                            })
                         }
                     </div>
                     <div className='w-full flex items-center justify-center p-[.5rem]'>

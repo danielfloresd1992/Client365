@@ -13,6 +13,7 @@ export async function handdlerCreateUserFetch(data: DateToCreateComplete, callba
         callback(null, data);
     }
     catch (err: unknown) {
+        console.log(err);
         callback(err, null);
     }
 }
@@ -37,6 +38,7 @@ export async function requestDataLegace(data: Pick<LegaceDataUser, 'user' & 'pas
         callback(null, response.data);
     }
     catch (err) {
+        console.log(err);
         callback(err, null);
     }
 };
