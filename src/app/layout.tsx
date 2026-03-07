@@ -46,7 +46,8 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
     return (
         <html lang="en">
             <Head>
-                <meta name="google-site-verification" content="tnPQy_iWErCY9GT9NhJlLBKrQ16kuOo1SSIKyNKiWks" />
+                <meta name="robots" content="noindex, nofollow"></meta>
+                <meta name="google-site-verification" content="y0qtg0BfcGqooJZXzWhcf5_0W04rodr3hPdyLLr8qN0" />
             </Head>
             <body className={`${inter.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
                 <SessionProvider>
