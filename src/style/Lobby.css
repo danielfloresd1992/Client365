@@ -2689,12 +2689,17 @@ body .lobby-aside-filterField>span {
 body .lobby-aside-filterInput {
     height: 34px;
     border-radius: 8px;
-    border: 1px solid #d6deea;
+    border: 1px solid #28b10e;
     background-color: #fff;
     padding: .35rem .5rem;
     font-size: .78rem;
     color: var(--app-text);
 }
+
+body .lobby-aside-filterInput:focus {
+    outline: none
+}
+
 
 body .lobby-aside-filterActions {
     display: grid;
