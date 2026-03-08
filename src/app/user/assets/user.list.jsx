@@ -62,7 +62,7 @@ export default forwardRef(function UserList({
             <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
                 <div className='w-full flex items-center gap-3'>
 
-                    <div className={`min-w-[50px] w-[50px] h-[50px] rounded-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm border border-gray-200 ml-2 overflow-hidden`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Te quiero mucho💝' : userState?.dni}>
+                    <div className={`min-w-[56px] w-[50px] h-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm border border-gray-200 overflow-hidden`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Eres marron!' : userState?.dni}>
                         <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
                     </div>
 
@@ -304,9 +304,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     const returFreeDay = (override = false) => {
         return (
-            <div className='w-full h-full flex justify-center items-center flex-col bg-green-400'>
-                <span className="text-white text-[12px] font-black uppercase tracking-wider text-">LIBRE</span>
-                {override && <span className="text-[10px] text-white font-bold mt-0.5">✦ Agisnado</span>}
+            <div className='w-full h-full flex justify-center items-center flex-col bg-[#a4efd3]'>
+                <span className="text-[12px] font-black uppercase tracking-wider text-[#313131]">LIBRE</span>
+                {override && <span className="text-[10px] text-black font-bold mt-0.5">✦ Agisnado</span>}
             </div>
         );
     }
@@ -315,12 +315,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const InOut = (checkIn, checkOut, isExtra = false) => {
         return (
             <div className="flex flex-col gap-0.5 max-w-[85px] mx-auto w-full text-[11px]">
-                <div className={`flex justify-between items-center rounded px-1.5 border ${isExtra ? 'bg-indigo-50/60 border-indigo-200' : 'bg-teal-50/60 border-teal-200'}`}>
-                    <span className={`text-[9px] font-bold ${isExtra ? 'text-indigo-500' : 'text-teal-500'}`}>E</span>
+                <div className={`flex justify-between items-center rounded`}>
                     <span className="text-gray-700 font-extrabold text-[12px]">{checkIn || '--:--'}</span>
-                </div>
-                <div className={`flex justify-between items-center rounded px-1.5 border ${isExtra ? 'bg-indigo-50/60 border-indigo-200' : 'bg-teal-50/60 border-teal-200'}`}>
-                    <span className={`text-[9px] font-bold ${isExtra ? 'text-indigo-500' : 'text-teal-500'}`}>S</span>
+                    -
                     <span className="text-gray-700 font-extrabold text-[12px]">{checkOut || '--:--'}</span>
                 </div>
             </div>
@@ -350,12 +347,12 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         return !config?.checkIn ?
             (
                 <>
-                    <div className='flex justify-between items-center border-b border-gray-100 pb-0.5 text-[11px] font-semibold'>
-                        <span className={isNocturno ? 'text-indigo-500' : 'text-blue-600'}>E</span>
-                        <span className='text-gray-700 font-bold'>{dayConfig?.startTime || '--:--'}</span>
+                    <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-teal-600`}>
+                        Guardia
                     </div>
-                    <div className='flex justify-between items-center pt-0.5 text-[11px] font-semibold'>
-                        <span className={isNocturno ? 'text-indigo-500' : 'text-orange-600'}>S</span>
+                    <div className='flex justify-center items-center pt-0.5 text-[11px] font-semibold'>
+                         <span className='text-gray-700 font-bold'>{dayConfig?.startTime || '--:--'}</span>
+                         -
                         <span className='text-gray-700 font-bold'>{dayConfig?.endTime || '--:--'}</span>
                     </div>
                 </>
@@ -375,7 +372,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     {isNocturno && (
                         <span className='text-[8px] text-slate-500 font-medium mt-0.5 text-center'>🌙 Nocturno</span>
                     )}
-                    
+
                 </div>
             );
     };
@@ -388,11 +385,11 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     const preMarkedHour = (data) => {
 
-        const isExtra = data.override?.workType === 'extra';
-
+        const isExtra = data.scheduleOverride.workType === 'extra';
+        console.warn(data);
         console.log(data.override);
 
-        if (data.override?.workType === 'descanso') {
+        if (data.scheduleOverride.workType === 'descanso') {
             return returFreeDay(true);
         }
 
@@ -401,8 +398,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
         return (
             <>
-                <div className={`text-[9px] font-black uppercase tracking-widest text-center mb-0.5 ${isExtra ? 'text-[#ffe600] bg-[#000]' : 'text-teal-600'}`}>
-                    {isExtra ? '✦ EXTRA' : '✦ LABORAL'}
+                <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${isExtra ? 'text-[#ffe600] bg-[#000]' : 'text-teal-600'}`}>
+                    {isExtra ? '✦ EXTRA' : '✦ Guardia'}
                 </div>
                 {InOut(checkIn, checkOut, isExtra)}
             </>
