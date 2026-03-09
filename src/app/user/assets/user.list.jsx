@@ -400,7 +400,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const configOverride = config?.scheduleOverride
         const extra = config?.scheduleOverride?.workType === 'extra';
         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-        if (dayFree) return returFreeDay();
+        if (dayFree && !extra) return returFreeDay();
         // if (!dayConfig) return returnEmpyt();
 
         return !config?.checkIn ?
@@ -496,7 +496,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         :
                         override ? preMarkedHour(attendanceData) : markedHour(attendanceData)
             }
-            
+
         </div>
     );
 
