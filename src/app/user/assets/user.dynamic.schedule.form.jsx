@@ -106,9 +106,9 @@ export default function UserDynamicScheduleForm({ user, onSave, onCancel, mode =
                                             checked={selectedDays.includes(day.iso)}
                                             onChange={() => toggleDay(day.iso)}
                                         />
-                                        <Label htmlFor={`day-${day.iso}`} className='text-xs cursor-pointer'>
+                                        <label htmlFor={`day-${day.iso}`} className='text-xs cursor-pointer text-[#000000]'>
                                             {day.label}
-                                        </Label>
+                                        </label>
                                     </div>
                                 ))}
                             </div>

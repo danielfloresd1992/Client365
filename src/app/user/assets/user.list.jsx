@@ -1,4 +1,6 @@
 import { useState, useEffect, useImperativeHandle, forwardRef, useContext, useMemo } from 'react';
+import useContextMenuPosition from '@/hook/useContextMenuPosition';
+import ContextMenu from '@/components/ContextMenu';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
@@ -54,58 +56,106 @@ export default forwardRef(function UserList({
 
     if (user.workSchedule.outForkSchedule) return null;
 
+    // Context menu state
+    const {
+        position: contextMenuPosition,
+        handleContextMenu,
+        closeMenu: closeContextMenu
+    } = useContextMenuPosition();
+    const [contextMenuUser, setContextMenuUser] = useState(null);
+
+    // Handler para click derecho
+    const onUserContextMenu = (e) => {
+        handleContextMenu(e);
+        setContextMenuUser(user);
+    };
+
+
 
     return (
-        <div className='flex border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors select-none' onDragStart={(e) => e.preventDefault()}>
+        <>
+            <div
+                className='flex border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors select-none'
+                onDragStart={(e) => e.preventDefault()}
+                onContextMenu={onUserContextMenu}
+            >
 
-            {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
-            <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
-                <div className='w-full flex items-center gap-3'>
+                {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
+                <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
+                    <div className='w-full flex items-center gap-3'>
 
-                    <div className={`min-w-[56px] w-[50px] h-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm border border-gray-200 overflow-hidden`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Eres marron!' : userState?.dni}>
-                        <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
+                        <div className={`min-w-[56px] w-[50px] h-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm border border-gray-200 overflow-hidden`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Eres marron!' : userState?.dni}>
+                            <img className='w-full h-full object-cover' src={remplazeUrl(userState?.img) || '/ico/icons8-usuario-masculino-en-círculo-96.png'} alt='user-profile-ico' />
+                        </div>
+
+                        <div className="flex flex-col flex-1 min-w-0 py-2">
+                            <p className='font-black text-[15px] md:text-[16px] text-gray-900 leading-tight truncate'>{userState?.name}</p>
+                            <p className='font-bold text-[12px] md:text-[13px] text-gray-600 leading-tight truncate'>{userState?.surName}</p>
+                            <p className='text-[10px] md:text-[11px] font-bold text-gray-400 mt-1 truncate uppercase tracking-widest'>{userState?.jobInformation?.position || 'Sin definir'}</p>
+                        </div>
+                        <button
+                            onClick={() => {
+                                onClearSelectedDates?.();
+                                onEditClick(userState);
+                            }}
+                            className='absolute top-[5px] right-[5px] pointer'>
+                            <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
+                        </button>
                     </div>
 
-                    <div className="flex flex-col flex-1 min-w-0 py-2">
-                        <p className='font-black text-[15px] md:text-[16px] text-gray-900 leading-tight truncate'>{userState?.name}</p>
-                        <p className='font-bold text-[12px] md:text-[13px] text-gray-600 leading-tight truncate'>{userState?.surName}</p>
-                        <p className='text-[10px] md:text-[11px] font-bold text-gray-400 mt-1 truncate uppercase tracking-widest'>{userState?.jobInformation?.position || 'Sin definir'}</p>
-                    </div>
-                    <button
-                        onClick={() => {
-                            onClearSelectedDates?.();
-                            onEditClick(userState);
-                        }}
-                        className='absolute top-[5px] right-[5px] pointer'>
-                        <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
-                    </button>
                 </div>
 
-            </div>
-
-            {/* CELDAS DE DATOS (Iteramos los días de nuevo para este usuario) */}
-            {user && daysRange.map((day) => {
-                return (
-                    <div
-                        key={`${user._id}-${day.fullDateISO}`}
-                        onMouseDown={(event) => onStartDragSelection?.(day.fullDateISO, event.button)}
-                        onMouseEnter={() => onDragOverCell?.(day.fullDateISO)}
-                        className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center cursor-pointer
+                {/* CELDAS DE DATOS (Iteramos los días de nuevo para este usuario) */}
+                {user && daysRange.map((day) => {
+                    return (
+                        <div
+                            key={`${user._id}-${day.fullDateISO}`}
+                            onMouseDown={(event) => onStartDragSelection?.(day.fullDateISO, event.button)}
+                            onMouseEnter={() => onDragOverCell?.(day.fullDateISO)}
+                            className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center cursor-pointer
                             ${day.isToday ? 'bg-blue-50/20' : ''}
                             ${selectedDateMap[day.fullDateISO] ? 'ring-2 ring-inset ring-indigo-500 bg-indigo-100/70' : ''}`}
+                        >
+                            {/* Invocamos al hijo pasándole los datos necesarios */}
+                            <AttendanceCell
+                                user={user}
+                                userId={user._id}
+                                dni={user.dni}
+                                dateObj={day.dateObj}
+                                scheduleByDay={userState?.workSchedule?.scheduleByDay}
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+
+            <ContextMenu
+                position={contextMenuPosition}
+                open={!!contextMenuPosition}
+                onClose={closeContextMenu}
+            >
+                <div className='flex flex-col'>
+                    <button
+                        className='text-left px-4 py-2 hover:bg-gray-100 rounded'
+                        onClick={() => {
+                            closeContextMenu();
+                            onEditClick?.(contextMenuUser);
+                        }}
                     >
-                        {/* Invocamos al hijo pasándole los datos necesarios */}
-                        <AttendanceCell
-                            user={user}
-                            userId={user._id}
-                            dni={user.dni}
-                            dateObj={day.dateObj}
-                            scheduleByDay={userState?.workSchedule?.scheduleByDay}
-                        />
-                    </div>
-                );
-            })}
-        </div>
+                        Editar usuario
+                    </button>
+                    <button
+                        className='text-left px-4 py-2 hover:bg-gray-100 rounded'
+                        onClick={() => {
+                            closeContextMenu();
+                            onOpenDynamicSchedule?.({ user: contextMenuUser, mode: 'view' });
+                        }}
+                    >
+                        Ver horario
+                    </button>
+                </div>
+            </ContextMenu>
+        </>
     );
 });
 
@@ -245,10 +295,6 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         };
     }, [attendanceCacheKey, dni, inView, isPast, isToday, requestDateISO]);
 
-    if (attendanceData?.scheduleOverride) {
-        console.log(attendanceData)
-        console.log(attendanceData?.scheduleOverride);
-    }
 
     // 1. ESTADO CARGANDO (Barra de espera)
     if (status === 'loading') {
@@ -301,6 +347,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const latesText = <div className='text-[9px] text-red-600 text-center font-black uppercase mt-1 tracking-widest leading-none'>Tarde</div>
 
 
+    const extraHtml =  <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
+
 
     const returFreeDay = (override = false) => {
         return (
@@ -334,15 +382,20 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         );
     };
 
+
+
+
     //19 478 095
 
 
     const markedHour = (config) => {
 
-        console.log(override);
+
+
+        const extra = config?.scheduleOverride?.workType === 'extra';
 
         if (dayConfig?.workType === 'descanso') return returFreeDay();
-        if (!dayConfig) return returnEmpyt();
+        // if (!dayConfig) return returnEmpyt();
 
         return !config?.checkIn ?
             (
@@ -351,16 +404,18 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         Guardia
                     </div>
                     <div className='flex justify-center items-center pt-0.5 text-[11px] font-semibold'>
-                         <span className='text-gray-700 font-bold'>{dayConfig?.startTime || '--:--'}</span>
-                         -
+                        <span className='text-gray-700 font-bold'>{dayConfig?.startTime || '--:--'}</span>
+                        -
                         <span className='text-gray-700 font-bold'>{dayConfig?.endTime || '--:--'}</span>
                     </div>
                 </>
             )
             :
             (
-                <div className="flex flex-col gap-1 w-full max-w-[85px] mx-auto">
-
+                <div className="flex flex-col gap-1 w-full max-w-[85px] mx-auto" style={{ backgroundColor: extra ? '#dddddd' : 'transparent' }}>
+                    {
+                        config?.checkIn && extra && extraHtml
+                    }
                     <div className="flex justify-between items-center bg-gray-50/80 rounded px-1.5 shadow-sm border border-gray-100">
                         <span className="text-[10px] font-black text-emerald-600 tracking-tighter">IN</span>
                         <span className="text-[13px] md:text-[14px] text-gray-800 font-extrabold tracking-tight">{formatTimeVE(config?.checkIn)}</span>
@@ -393,6 +448,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             return returFreeDay(true);
         }
 
+        console.log(data.checkIn)
         const checkIn = data.checkIn ? formatTimeVE(data.checkIn) : override?.startTime;
         const checkOut = data.checkOut ? formatTimeVE(data.checkOut) : override?.endTime;
 
@@ -414,9 +470,10 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     return (
         <div ref={ref}
-            onDoubleClick={() => {
+            onClick={() => {
                 console.log(attendanceData);
-                console.log(override);
+                console.log(dayConfig);
+
             }}
             title={overrideTooltip}
             className={`w-full h-full flex flex-col justify-center ${isToday ? 'bg-blue-50/30' : ''} ${overrideTooltip ? 'cursor-help' : ''}`}
@@ -429,7 +486,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     </div>
                     :
 
-                    override ? preMarkedHour(attendanceData) : markedHour(attendanceData)
+                    isToday || isPast ? markedHour(attendanceData)
+                        :
+                        override ? preMarkedHour(attendanceData) : markedHour(attendanceData)
             }
             {isLate && latesText}
         </div>

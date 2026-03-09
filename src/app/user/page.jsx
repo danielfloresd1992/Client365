@@ -480,7 +480,10 @@ export default function UserScheduler() {
                                     ? 'text-white hover:brightness-105 hover:shadow-md active:scale-95 border-none'
                                     : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
                                     }`}
-                                style={selectedGroupStats.hasSelection ? { background: GREEN_THEME_GRADIENT } : undefined}
+                                style={{
+                                        backgroundColor: '#29c50c',
+                                        color: 'white'
+                                }}
                             >
                                 <span>Editar grupo</span>
                                 {selectedGroupStats.hasSelection && (
