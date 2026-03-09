@@ -1,3 +1,4 @@
+'use client';
 import { useState, useCallback } from 'react';
 
 /**
@@ -5,19 +6,19 @@ import { useState, useCallback } from 'react';
  * @returns {Object} { position, handleContextMenu, closeMenu }
  */
 export default function useContextMenuPosition() {
-  const [position, setPosition] = useState(null);
+    const [position, setPosition] = useState(null);
 
-  const handleContextMenu = useCallback((event) => {
-    event.preventDefault();
-    setPosition({
-      x: event.clientX,
-      y: event.clientY,
-    });
-  }, []);
+    const handleContextMenu = useCallback((event) => {
+        event.preventDefault();
+        setPosition({
+            x: event.clientX,
+            y: event.clientY,
+        });
+    }, []);
 
-  const closeMenu = useCallback(() => {
-    setPosition(null);
-  }, []);
+    const closeMenu = useCallback(() => {
+        setPosition(null);
+    }, []);
 
-  return { position, handleContextMenu, closeMenu };
+    return { position, handleContextMenu, closeMenu };
 }

@@ -14,6 +14,7 @@ const attendanceCache = new Map();
 const attendanceRequestCache = new Map();
 
 
+
 export default forwardRef(function UserList({
     user,
     daysRange,
@@ -33,14 +34,11 @@ export default forwardRef(function UserList({
 
 
 
-
-
     const remplazeUrl = (url) => {
         if (!url) return null;
         return url;
         return 'https://amazona365.ddns.net:3006' + url.split('https://amazona365.ddns.net')[1]
     };
-
 
 
 
@@ -54,7 +52,6 @@ export default forwardRef(function UserList({
     }));
 
 
-    if (user.workSchedule.outForkSchedule) return null;
 
     // Context menu state
     const {
@@ -62,6 +59,9 @@ export default forwardRef(function UserList({
         handleContextMenu,
         closeMenu: closeContextMenu
     } = useContextMenuPosition();
+
+
+
     const [contextMenuUser, setContextMenuUser] = useState(null);
 
     // Handler para click derecho
@@ -69,6 +69,9 @@ export default forwardRef(function UserList({
         handleContextMenu(e);
         setContextMenuUser(user);
     };
+
+
+    if (user.workSchedule.outForkSchedule) return null;
 
 
 
@@ -347,7 +350,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const latesText = <div className='text-[9px] text-red-600 text-center font-black uppercase mt-1 tracking-widest leading-none'>Tarde</div>
 
 
-    const extraHtml =  <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
+    const extraHtml = <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
 
 
     const returFreeDay = (override = false) => {
