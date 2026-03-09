@@ -350,7 +350,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const latesText = <div className='text-[9px] text-red-600 text-center font-black uppercase mt-1 tracking-widest leading-none'>Tarde</div>
 
 
-    const extraHtml = <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
+    const extraHtml = <div className='bg-black'>
+        <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
+    </div>
 
 
     const returFreeDay = (override = false) => {
@@ -395,9 +397,10 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
 
+        const configOverride = config?.scheduleOverride
         const extra = config?.scheduleOverride?.workType === 'extra';
-
-        if (dayConfig?.workType === 'descanso') return returFreeDay();
+        const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
+        if (dayFree) return returFreeDay();
         // if (!dayConfig) return returnEmpyt();
 
         return !config?.checkIn ?
@@ -430,7 +433,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     {isNocturno && (
                         <span className='text-[8px] text-slate-500 font-medium mt-0.5 text-center'>🌙 Nocturno</span>
                     )}
-
+                    {isLate && latesText}
                 </div>
             );
     };
@@ -493,7 +496,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         :
                         override ? preMarkedHour(attendanceData) : markedHour(attendanceData)
             }
-            {isLate && latesText}
+            
         </div>
     );
 
