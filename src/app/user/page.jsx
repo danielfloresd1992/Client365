@@ -485,7 +485,7 @@ export default function UserScheduler() {
                                         color: 'white'
                                 }}
                             >
-                                <span>Editar grupo</span>
+                                <span className='text-white'>Editar grupo</span>
                                 {selectedGroupStats.hasSelection && (
                                     <span className='bg-white/30 text-white rounded-full px-1.5 py-0.5 text-[10px]'>
                                         {selectedGroupStats.totalCells}
