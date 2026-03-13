@@ -84,7 +84,7 @@ export default forwardRef(function UserList({
             >
 
                 {/* COLUMNA PEGAJOSA (NOMBRE DEL USUARIO) */}
-                <div className='sticky left-0 z-9 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
+                <div className='sticky left-0 z-10 w-48 min-w-[12rem] bg-white border-r border-gray-300 flex items-center flex-col gap-2'>
                     <div className='w-full flex items-center gap-3'>
 
                         <div className={`min-w-[56px] w-[50px] h-full ${userState?.img ? '' : 'bg-slate-200'} flex items-center justify-center text-xs font-bold text-slate-600 shadow-sm border border-gray-200 overflow-hidden`} title={dataSessionState?.dataSession?.name === 'Sorielis' && userState?.name === 'Sorielis' ? 'Eres marron!' : userState?.dni}>
@@ -283,7 +283,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     setStatus('data');
                 } else {
                     setAttendanceData(null);
-                    setStatus('empty');
+                  //  setStatus('empty');
                 }
             } catch (error) {
                 if (!isMounted) return;
@@ -396,8 +396,6 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     const markedHour = (config, toDay) => {
 
-
-
         const configOverride = config?.scheduleOverride
         const extra = config?.scheduleOverride?.workType === 'extra';
         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
@@ -407,7 +405,6 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
         if (dayFree && !extra) return returFreeDay();
-
         if (!config?.checkIn && !config?.checkOut && !config && !toDay) return returnEmpyt();
 
 
@@ -455,19 +452,11 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const preMarkedHour = (config) => {
 
         const extra = config?.scheduleOverride?.workType === 'extra';
-         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-        console.warn(config);
-
-
-        
-        
-        
-
-        
+        const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
         const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
         const checkEnd = config?.scheduleOverride?.endTime || dayConfig?.endTime;  
         
-        
+
         if (dayFree) return returFreeDay(true);
         if (dayFree && !extra) return returFreeDay();
 
@@ -481,10 +470,6 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             </>
         )
     };
-
-
-
-
 
 
 
