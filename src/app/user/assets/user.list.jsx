@@ -283,7 +283,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     setStatus('data');
                 } else {
                     setAttendanceData(null);
-                  //  setStatus('empty');
+                    setStatus('empty');
                 }
             } catch (error) {
                 if (!isMounted) return;
