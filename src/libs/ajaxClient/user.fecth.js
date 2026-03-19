@@ -60,9 +60,36 @@ export const updateUserByRrhh = async (id, data) => {
 }
 
 
+/**
+ * Solicita el reporte individual de asistencia de un empleado.
+ * @param {string} userId - ObjectId del empleado.
+ * @param {string} from   - Fecha inicio en formato YYYY-MM-DD.
+ * @param {string} to     - Fecha fin en formato YYYY-MM-DD.
+ * @returns {{ status, user, records, summary, period }}
+ */
 export const getAttendanceReport = async (userId, from, to) => {
     try {
         const response = await axiosInstance.get(`/user/attendance/report?userId=${userId}&from=${from}&to=${to}`);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+};
+
+
+/**
+ * Solicita el reporte global de asistencia para TODOS los empleados activos.
+ * Usa una única aggregation en el servidor para evitar N consultas individuales.
+ * @param {string} from - Fecha inicio en formato YYYY-MM-DD.
+ * @param {string} to   - Fecha fin en formato YYYY-MM-DD.
+ * @returns {{ status, period, totals, employees[] }}
+ *   employees[] tiene: { _id, name, surName, dni, jobInformation,
+ *                        lateWeekday, lateWeekend, extraDays, totalPresent, img }
+ */
+export const getGlobalAttendanceReport = async (from, to) => {
+    try {
+        const response = await axiosInstance.get(`/user/attendance/global-report?from=${from}&to=${to}`);
         return response.data;
     }
     catch (error) {
