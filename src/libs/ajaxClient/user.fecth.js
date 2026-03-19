@@ -60,6 +60,17 @@ export const updateUserByRrhh = async (id, data) => {
 }
 
 
+export const getAttendanceReport = async (userId, from, to) => {
+    try {
+        const response = await axiosInstance.get(`/user/attendance/report?userId=${userId}&from=${from}&to=${to}`);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+};
+
+
 export const saveGroupDynamicSchedule = async (payload) => {
     try {
         const response = await axiosInstance.post('/user/schedule/dynamic/group', payload);
