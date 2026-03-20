@@ -389,6 +389,13 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     };
 
 
+    const returnLack = () => {
+        return(
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#f00] cursor-help">
+                <span className="text-white font-bold text-[13px] tracking-wider text-center">Falta</span>
+            </div>
+        );
+    }
 
 
     //19 478 095
@@ -399,14 +406,14 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const configOverride = config?.scheduleOverride
         const extra = config?.scheduleOverride?.workType === 'extra';
         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-
+        const lackOfWork = config?.scheduleOverride?.workType === 'falta'
         const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
         const endTime = config?.scheduleOverride?.endTime || dayConfig?.endTime;
 
+        if (lackOfWork) return returnLack();
 
         if (dayFree && !extra) return returFreeDay();
         if (!config?.checkIn && !config?.checkOut && !config && !toDay) return returnEmpyt();
-
 
         return !config?.checkIn ?
             (
