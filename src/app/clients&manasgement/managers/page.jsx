@@ -5,13 +5,16 @@
  */
 import { Suspense } from 'react';
 import LoandingData from '@/components/loandingComponent/loanding';
-import ManagerLayaut from './assets/ManagerLayaut';
+//import ManagerLayaut from './assets/ManagerLayaut';
 
 
 export default function ManagersPage() {
     return (
         <Suspense fallback={<LoandingData title='Cargando gerentes' />}>
-            <ManagerLayaut />
+            {
+
+                //<ManagerLayaut />
+            }
         </Suspense>
     );
 }
