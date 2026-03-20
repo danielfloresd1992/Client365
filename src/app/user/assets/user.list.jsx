@@ -464,7 +464,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const checkEnd = config?.scheduleOverride?.endTime || dayConfig?.endTime;  
         
 
-        if (dayFree) return returFreeDay(true);
+
         if (dayFree && !extra) return returFreeDay();
 
 
