@@ -25,7 +25,7 @@ export default function Content() {
             <Aside clients={data} />
             <Section spaceToSubtract={300}>
 
-                {
+                {/*
                     groupClients && Object.entries(groupClients).map(([key, clientGroup]) => {
 
                         return (
@@ -43,7 +43,7 @@ export default function Content() {
                         )
 
                     })
-                }
+                */}
 
 
             </Section>
