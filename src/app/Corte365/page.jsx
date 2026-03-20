@@ -1,16 +1,5 @@
-import LocalForm from '@/app/Corte365/LocalForm';
+import CorteForm from './CorteForm';
 
-
-export default function formlocal(){
-
-
-    return(
-        <>
-            <form className='form-corte'>
-                
-                <LocalForm />
-                   
-            </form>
-        </>
-    );
+export default function Corte365Page() {
+    return <CorteForm />;
 }

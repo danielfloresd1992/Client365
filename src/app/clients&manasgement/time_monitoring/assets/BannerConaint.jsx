@@ -1,29 +1,23 @@
 'use client';
-import AsideGreen from '@/components/aside/aside_green/aside_layaut';
-
-import BannerBetween from '@/components/Header/BannerBetween';
-import Image from 'next/image';
-import ButtonForBanner from '@/components/buttons/ButtonForBanner';
-
-
-export default function BannerContain({ openClone, reset, establishment = '' }){
+import SharedAside, {
+    AsideSection,
+    AsideActionButton,
+} from '../../assets/SharedAside';
 
 
-    return(
-        <AsideGreen
+export default function BannerContain({ openClone, reset, establishment = '' }) {
 
-            title='Gestion de horario'
-            urlIco='/ico/icons8-reloj-50.png'
+    return (
+        <SharedAside
+            title='Gestión de horario'
+            subtitle={establishment ? establishment.name : 'Horario del local'}
+            icon='/ico/icons8-reloj-50.png'
+            footerText={establishment ? `Local: ${establishment.name}` : null}
         >
-
-            <div className='w-full'>
-                <h3 className='color-white'>{ establishment ? `: ${establishment.name}` : ''}</h3>
-            </div>
-            
-            <div className='w-full'>
-                <ButtonForBanner ico='/ico/icons8-repetir-50.png' value='Resetear' actionButton={ reset } />
-                <ButtonForBanner ico='/ico/icons8-agregar-base-de-datos-50.png' value='Clonar horario' actionButton={ openClone } />
-            </div>
-        </AsideGreen>
+            <AsideSection label='Acciones'>
+                <AsideActionButton icon='/ico/icons8-repetir-50.png' label='Resetear' onClick={reset} />
+                <AsideActionButton icon='/ico/icons8-agregar-base-de-datos-50.png' label='Clonar horario' onClick={openClone} />
+            </AsideSection>
+        </SharedAside>
     );
 }

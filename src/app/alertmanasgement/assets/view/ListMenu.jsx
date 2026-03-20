@@ -235,7 +235,7 @@ function ListMenu({ setMenu, resetNoveltie, modal, newMENU, resetAddManuState })
             }}
         >
             {/* ── Cabecera: ícono + título + contador de alertas ─────────────── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center',   height: '50px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <FaBell size={20} color='#d97706' />
                     <span style={{ fontWeight: 700, fontSize: '16px', color: '#111827' }}>
@@ -263,6 +263,7 @@ function ListMenu({ setMenu, resetNoveltie, modal, newMENU, resetAddManuState })
                 overflowX:     'auto',
                 paddingBottom: '4px',
                 flexWrap:      'nowrap',
+                height: '40px'
             }}>
                 {/* Pill especial "Todos" */}
                 <button
@@ -320,7 +321,7 @@ function ListMenu({ setMenu, resetNoveltie, modal, newMENU, resetAddManuState })
             </div>
 
             {/* ── Lista de tarjetas ───────────────────────────────────────────── */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' , height: 'calc(100% - 90px)', padding: '20px 0' , overflowY: 'auto'}}>
                 {listMenuHtml.length > 0
                     ? listMenuHtml
                     : (

@@ -1,58 +1,76 @@
 'use client';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useDispatch } from 'react-redux';
-import useAxios from '@/hook/useAxios';
+/**
+ * FormFranchise.jsx
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Formulario para crear una nueva franquicia.
+ * Envía POST /franchise con { name, location, lang }.
+ *
+ * Usa react-hook-form para la gestión del formulario y el componente
+ * InputBorderBlue del proyecto para mantener consistencia en los inputs.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+import { useForm }        from 'react-hook-form';
+import { useDispatch }    from 'react-redux';
+import useAxios           from '@/hook/useAxios';
 import { setConfigModal } from '@/store/slices/globalModal';
-import { setTypeForm } from '@/store/slices/typeForm';
-import InputBorderBlue from '@/components/inpust/InputBorderBlue';
-
-
+import { setTypeForm }    from '@/store/slices/typeForm';
+import InputBorderBlue    from '@/components/inpust/InputBorderBlue';
 
 
 export default function FormFranchise() {
 
-    const { register, watch, handleSubmit } = useForm();
-    const dispatch = useDispatch();
-    const { requestAction } = useAxios();
+    const { register, handleSubmit } = useForm();
+    const dispatch                   = useDispatch();
+    const { requestAction }          = useAxios();
 
 
+    /** Envía los datos al servidor */
     const sendData = data => {
-        requestAction({ url: `/franchise`, body: data, action: 'POST' })
-            .then(response => {
-                if (response.status === 200) {
-                    dispatch(
-                        setConfigModal({
-                            modalOpen: true,
-                            title: 'Enviado con éxito',
-                            description: 'Se creo la franquicia',
-                            isCallback: null,
-                            type: 'successfull'
-                        })
-                    );
+        requestAction({ url: '/franchise', body: data, action: 'POST' })
+            .then(res => {
+                if (res.status === 200) {
+                    dispatch(setConfigModal({
+                        modalOpen: true, title: 'Franquicia creada',
+                        description: 'La franquicia fue registrada exitosamente',
+                        isCallback: null, type: 'successfull',
+                    }));
                     dispatch(setTypeForm(null));
                 }
             })
             .catch(err => {
-                console.log(err);
-                dispatch(
-                    setConfigModal({
-                        modalOpen: true,
-                        title: 'Error',
-                        description: 'A ocurrido un error al enviar los datos',
-                        isCallback: null,
-                        type: 'error'
-                    })
-                );
+                console.error(err);
+                dispatch(setConfigModal({
+                    modalOpen: true, title: 'Error',
+                    description: 'Ocurrió un error al crear la franquicia',
+                    isCallback: null, type: 'error',
+                }));
             });
     };
 
 
-
     return (
-        <>
-            <form className='__margin-top form_complete_andScroll bgWhite __border-smoothed __padding1rem __flexRowFlex __oneGap' onSubmit={handleSubmit(sendData)}>
-                <h2 className='text_center'>Fomulario para la nueva franquicia</h2>
+        <div className='bg-white rounded-2xl shadow-xl overflow-hidden'>
+
+            {/* ── Header ────────────────────────────────────────────────── */}
+            <div className='bg-gradient-to-r from-emerald-600 to-emerald-500 px-6 py-5'>
+                <div className='flex items-center gap-3'>
+                    <div className='w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center'>
+                        <img
+                            src='/ico/icons8-franquicia-50.png'
+                            alt='franquicia'
+                            className='w-5 h-5'
+                            style={{ filter: 'brightness(10)' }}
+                        />
+                    </div>
+                    <div>
+                        <h2 className='text-white font-bold text-base'>Nueva Franquicia</h2>
+                        <p className='text-emerald-100 text-xs'>Registra un grupo de establecimientos</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Formulario ────────────────────────────────────────────── */}
+            <form onSubmit={handleSubmit(sendData)} className='p-6 flex flex-col gap-5'>
 
                 <InputBorderBlue
                     textLabel='Nombre de la franquicia'
@@ -60,41 +78,43 @@ export default function FormFranchise() {
                     name='name'
                 />
 
-
                 <InputBorderBlue
-                    textLabel='Direción de la franquicia'
+                    textLabel='Ubicación de la franquicia'
                     type='select'
                     register={register}
                     name='location'
-                    childSelect={[{
-                        value: 'Venezuela',
-                        text: 'Venezuela'
-                    },
-                    {
-                        value: 'Confidencial',
-                        text: 'Confidencial'
-                    },
-                    {
-                        value: 'USA',
-                        text: 'USA'
-                    },
-                    {
-                        value: 'Colombia',
-                        text: 'Colombia'
-                    }]}
+                    childSelect={[
+                        { value: 'Venezuela',    text: 'Venezuela'    },
+                        { value: 'Confidencial', text: 'Confidencial' },
+                        { value: 'USA',          text: 'USA'          },
+                        { value: 'Colombia',     text: 'Colombia'     },
+                    ]}
                 />
 
-
                 <InputBorderBlue
-                    textLabel='Seleccione su lenguaje de orige'
+                    textLabel='Idioma de origen'
                     type='select'
                     register={register}
                     name='lang'
-                    childSelect={[{ value: 'es', text: 'Castellano' }, { value: 'en', text: 'Ingles' }]}
+                    childSelect={[
+                        { value: 'es', text: 'Castellano' },
+                        { value: 'en', text: 'Inglés'     },
+                    ]}
                 />
 
-                <button className='btn-item' style={{ padding: '1rem 0' }}> Guardar </button>
+                {/* ── Submit ─────────────────────────────────────────── */}
+                <button
+                    type='submit'
+                    className='
+                        w-full py-3 rounded-xl
+                        bg-emerald-600 text-white font-semibold text-sm
+                        hover:bg-emerald-700 active:scale-[0.99]
+                        transition-all duration-200 mt-2
+                    '
+                >
+                    Crear franquicia
+                </button>
             </form>
-        </>
-    )
+        </div>
+    );
 }

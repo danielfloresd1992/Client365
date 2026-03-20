@@ -291,7 +291,7 @@ function Form({
                 id='menu-render'
             >
                 {/* ── Cabecera del panel: ícono + título + botón reset ───────── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <FaBell size={20} color='#d97706' />
                         <span style={{ fontWeight: 700, fontSize: '16px', color: '#111827' }}>
