@@ -131,9 +131,11 @@ function getBaseScheduleLabel(scheduleByDay, shiftType) {
     if (!scheduleByDay) return shiftType || 'Sin definir';
     const workingDays = [];
     const times = new Set();
+    // Tipos que no tienen horario de entrada/salida — se excluyen del resumen de horas
+    const noTimeTypes = new Set(['descanso', 'permiso', 'vacaciones', 'falta']);
     for (let d = 0; d <= 6; d++) {
         const rule = scheduleByDay[String(d)];
-        if (rule && rule.workType !== 'descanso' && rule.startTime) {
+        if (rule && !noTimeTypes.has(rule.workType) && rule.startTime) {
             workingDays.push(DAY_NAMES[d]);
             if (rule.endTime) times.add(`${rule.startTime} – ${rule.endTime}`);
         }
@@ -197,8 +199,17 @@ function buildDayList(reportData) {
                 if (record.isExtraDay || effectiveWorkType === 'extra') status = 'Franco tr.';
                 else if (record.isLate) status = 'Retardo';
                 else status = 'Presente';
-            } else if (override?.workType === 'descanso') {
+            } else if (effectiveWorkType === 'descanso') {
                 status = 'Descanso';
+            } else if (effectiveWorkType === 'permiso') {
+                // Permiso autorizado: no se marca ausente aunque no haya checkIn
+                status = 'Permiso';
+            } else if (effectiveWorkType === 'vacaciones') {
+                // Período vacacional: se muestra como estado propio
+                status = 'Vacaciones';
+            } else if (effectiveWorkType === 'falta') {
+                // Falta pre-registrada: ausencia sin justificación documentada
+                status = 'Falta';
             } else if (record?.status === 'ausente') {
                 status = 'Ausente';
             } else {
@@ -210,9 +221,10 @@ function buildDayList(reportData) {
             // Etiqueta del tipo de jornada para la columna "Tipo"
             let tipo = 'Laboral';
             if (effectiveWorkType === 'extra' || record?.isExtraDay) tipo = 'Franco trab.';
-            else if (effectiveWorkType === 'descanso')  tipo = 'Descanso';
-            else if (effectiveWorkType === 'permiso')   tipo = 'Permiso';
+            else if (effectiveWorkType === 'descanso')   tipo = 'Descanso';
+            else if (effectiveWorkType === 'permiso')    tipo = 'Permiso';
             else if (effectiveWorkType === 'vacaciones') tipo = 'Vacaciones';
+            else if (effectiveWorkType === 'falta')      tipo = 'Falta';
 
             // Nota del admin (adminNotes del registro, o último mensaje del override)
             const noteText = record?.adminNotes
@@ -240,10 +252,11 @@ function buildDayList(reportData) {
  * Diseño inspirado en el PDF de referencia CORP365/Amazonas365.
  *
  * @param {{ user, summary, period }} reportData
- * @param {Array<DayEntry>} dayList - Lista construida por buildDayList()
+ * @param {Array<DayEntry>} dayList  - Lista construida por buildDayList()
+ * @param {string}          logoUrl  - URL absoluta del logo (window.location.origin + ruta)
  * @returns {string} HTML completo como string
  */
-function buildIndividualPrintHTML(reportData, dayList) {
+function buildIndividualPrintHTML(reportData, dayList, logoUrl) {
     const { user, summary, period } = reportData;
     const gen = new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
     const fromStr = new Date(period.from).toLocaleDateString('es-VE', { timeZone: 'UTC' });
@@ -305,7 +318,11 @@ tr:nth-child(even) td{background:#fafafa}
 @media print{@page{size:A4 landscape;margin:10mm}body{padding:0}}
 </style></head><body>
 <div class="hdr">
-  <div><div class="corp">Amazonas365</div><div class="corp-sub">Gestión de Recursos Humanos</div></div>
+  <div>
+    <!-- Logo Amazonas 365 embebido por URL absoluta para funcionar en ventana nueva -->
+    <img src="${logoUrl}" alt="Amazonas 365" style="height:38px;width:auto;display:block;margin-bottom:2px" />
+    <div class="corp-sub">Gestión de Recursos Humanos</div>
+  </div>
   <div class="rt"><h2>Reporte de Asistencia</h2><p>Período: ${fromStr} – ${toStr}</p><p>Generado: ${gen}</p></div>
 </div>
 <div class="sec">
@@ -342,7 +359,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="ti"><div class="tl">Total retardos</div><div class="tv" style="color:#e65100">${formatMinutes(summary.lateMinutes) || '0min'}</div></div>
   <div class="ti"><div class="tl">Horas esperadas</div><div class="tv">${Math.floor(summary.expectedMinutes/60)}h ${String(summary.expectedMinutes%60).padStart(2,'0')}m</div></div>
 </div>
-<div class="foot">Amazonas365 · Gestión de Recursos Humanos · Documento confidencial</div>
+<div class="foot">Amazonas 365 · Gestión de Recursos Humanos · Documento confidencial</div>
 <script>window.onload=()=>window.print();</script>
 </body></html>`;
 }
@@ -350,12 +367,14 @@ tr:nth-child(even) td{background:#fafafa}
 /**
  * Construye el HTML completo del reporte GLOBAL para impresión/PDF.
  * Genera una tabla con todos los empleados y sus totales consolidados.
+ * El PDF se orienta en LANDSCAPE para que quepan todas las columnas.
  *
  * @param {{ totals, period, employees[] }} globalData - Respuesta del endpoint global
  * @param {string} searchFilter - Texto de filtro activo (se anota en el PDF)
+ * @param {string} logoUrl      - URL absoluta del logo Amazonas 365
  * @returns {string} HTML completo como string
  */
-function buildGlobalPrintHTML(globalData, searchFilter) {
+function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     const { totals, period, employees } = globalData;
     const gen = new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
     const fromStr = new Date(period.from).toLocaleDateString('es-VE', { timeZone: 'UTC' });
@@ -370,9 +389,10 @@ function buildGlobalPrintHTML(globalData, searchFilter) {
           )
         : employees;
 
-    // Color para celdas numéricas: rojo si > 0, gris si = 0
+    // Helpers de color para celdas numéricas
     const lateColor  = n => n > 0 ? 'color:#b71c1c;font-weight:700' : 'color:#bbb';
     const extraColor = n => n > 0 ? 'color:#1565c0;font-weight:700' : 'color:#bbb';
+    const faltaColor = n => n > 0 ? 'color:#c62828;font-weight:700' : 'color:#bbb';
 
     // Agrupar por departamento para separar secciones en el PDF
     const byDept = {};
@@ -382,22 +402,30 @@ function buildGlobalPrintHTML(globalData, searchFilter) {
         byDept[dept].push(e);
     });
 
-    // Construir filas agrupadas con encabezados de departamento
+    // Construir filas agrupadas con encabezados de departamento.
+    // Los empleados inactivos se marcan con "(Inactivo)" junto al nombre.
     let rows = '';
     let rowIndex = 0;
     Object.entries(byDept).forEach(([dept, emps]) => {
-        rows += `<tr><td colspan="7" style="background:#e8f5e9;font-weight:700;font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#2e7d32;padding:4px 6px">${dept}</td></tr>`;
+        // Fila separadora de departamento (agrupa visualmente en el PDF)
+        rows += `<tr><td colspan="9" style="background:#e8f5e9;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d32;padding:4px 6px;border-bottom:1px solid #c8e6c9">${dept}</td></tr>`;
         emps.forEach(e => {
             rowIndex++;
-            const bg = rowIndex % 2 === 0 ? 'background:#fafafa' : '';
+            // Filas alternas para facilitar lectura horizontal
+            const bg       = rowIndex % 2 === 0 ? 'background:#fafafa' : 'background:#fff';
+            const inactTag = e.inabilited ? ' <span style="color:#e53935;font-size:7.5px;font-weight:700">(Inactivo)</span>' : '';
+            const falta    = e.faltaCount || 0;
+            // Las 4 columnas numéricas van centradas
             rows += `<tr style="${bg}">
-              <td>${rowIndex}</td>
-              <td style="font-weight:600">${e.surName}, ${e.name}</td>
-              <td>${e.dni || '—'}</td>
-              <td>${e.jobInformation?.position || '—'}</td>
-              <td style="${lateColor(e.lateWeekday)}">${e.lateWeekday}</td>
-              <td style="${lateColor(e.lateWeekend)}">${e.lateWeekend}</td>
-              <td style="${extraColor(e.extraDays)}">${e.extraDays}</td>
+              <td style="text-align:center;color:#999;font-size:9px">${rowIndex}</td>
+              <td style="font-weight:600">${e.surName}, ${e.name}${inactTag}</td>
+              <td style="color:#555">${e.dni || '—'}</td>
+              <td style="color:#555">${dept}</td>
+              <td style="color:#555">${e.jobInformation?.position || '—'}</td>
+              <td style="text-align:center;${lateColor(e.lateWeekday)}">${e.lateWeekday}</td>
+              <td style="text-align:center;${lateColor(e.lateWeekend)}">${e.lateWeekend}</td>
+              <td style="text-align:center;${extraColor(e.extraDays)}">${e.extraDays}</td>
+              <td style="text-align:center;${faltaColor(falta)}">${falta}</td>
             </tr>`;
         });
     });
@@ -405,42 +433,156 @@ function buildGlobalPrintHTML(globalData, searchFilter) {
     return `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
 <title>Reporte Global – ${fromStr} al ${toStr}</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#222;padding:18px}
-.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #4CAF50;padding-bottom:10px;margin-bottom:14px}
-.corp{font-size:19px;font-weight:900;color:#2e7d32}.corp-sub{font-size:9.5px;color:#555;margin-top:2px}
-.rt h2{font-size:14px;font-weight:700;text-align:right}.rt p{font-size:9.5px;color:#666;margin-top:2px;text-align:right}
-.sg{display:flex;gap:8px;margin-bottom:14px}
-.card{flex:1;border:1px solid #ddd;border-radius:5px;padding:7px 10px;text-align:center}
-.cv{font-size:16px;font-weight:900}
-.cv.g{color:#2e7d32}.cv.r{color:#b71c1c}.cv.b{color:#1565c0}
-.cl{font-size:8px;color:#777;text-transform:uppercase;margin-top:2px}
-table{width:100%;border-collapse:collapse}
-th{background:#f0f0f0;font-weight:700;padding:5px 6px;border:1px solid #ccc;font-size:9.5px;text-align:left;white-space:nowrap}
-td{padding:4px 6px;border:1px solid #ddd;font-size:10px}
-.foot{text-align:center;font-size:8.5px;color:#aaa;margin-top:16px;border-top:1px solid #eee;padding-top:7px}
-@media print{@page{size:A4 portrait;margin:10mm}body{padding:0}}
-</style></head><body>
+  /* ── Reset ─────────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── Página: landscape A4, márgenes generosos para que el borde
+        de la tabla no quede pegado al corte de papel ────────────────── */
+  @page { size: A4 landscape; margin: 12mm 14mm; }
+
+  /* ── Cuerpo: sin padding en pantalla para que @page domine en print ─ */
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10px;
+    color: #222;
+    padding: 14px;          /* solo se ve en pantalla, @page lo elimina en print */
+    background: #fff;
+  }
+
+  /* ── Encabezado ─────────────────────────────────────────────────────── */
+  .hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    border-bottom: 3px solid #4CAF50;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+  .corp-sub { font-size: 9px; color: #555; margin-top: 3px; }
+  .rt h2    { font-size: 13px; font-weight: 700; text-align: right; }
+  .rt p     { font-size: 9px; color: #666; margin-top: 2px; text-align: right; }
+
+  /* ── Cards de resumen ───────────────────────────────────────────────── */
+  .sg {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+  .card {
+    flex: 1;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 6px 8px;
+    text-align: center;
+    min-width: 0;           /* evita que flex desborde */
+  }
+  .cv   { font-size: 15px; font-weight: 900; }
+  .cv.g { color: #2e7d32; }
+  .cv.r { color: #b71c1c; }
+  .cv.b { color: #1565c0; }
+  .cl   { font-size: 7.5px; color: #777; text-transform: uppercase; margin-top: 2px; }
+  .cs   { font-size: 7px; color: #aaa; margin-top: 1px; }
+
+  /* ── Tabla: layout fixed garantiza que las columnas no desborden
+        el ancho de la página impresa. Los anchos de <th> son la guía. ── */
+  .wrap {
+    width: 100%;
+    overflow: hidden;       /* recuadro completo: sin overflow en pantalla */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;    /* columnas respetan los anchos declarados en <th> */
+  }
+  thead { background: #f0f0f0; }
+  th {
+    font-weight: 700;
+    padding: 5px 5px;
+    border-bottom: 2px solid #ccc;
+    border-right: 1px solid #ccc;
+    font-size: 8.5px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  th:last-child { border-right: none; }
+  td {
+    padding: 4px 5px;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #eee;
+    font-size: 9.5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  td:last-child { border-right: none; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* ── Pie ─────────────────────────────────────────────────────────────── */
+  .foot {
+    text-align: center;
+    font-size: 8px;
+    color: #aaa;
+    margin-top: 12px;
+    border-top: 1px solid #eee;
+    padding-top: 6px;
+  }
+
+  /* ── Solo en print: quitar padding del body (ya lo controla @page) ─── */
+  @media print { body { padding: 0; } }
+</style>
+</head><body>
+
+<!-- Encabezado con logo y título -->
 <div class="hdr">
-  <div><div class="corp">Amazonas365</div><div class="corp-sub">Gestión de Recursos Humanos</div></div>
-  <div class="rt"><h2>Reporte Global de Asistencia</h2><p>Período: ${fromStr} – ${toStr}</p><p>Generado: ${gen}</p>${searchFilter ? `<p style="color:#e65100">Filtrado: "${searchFilter}"</p>` : ''}</div>
+  <div>
+    <img src="${logoUrl}" alt="Amazonas 365" style="height:34px;width:auto;display:block;margin-bottom:2px" />
+    <div class="corp-sub">Gestión de Recursos Humanos</div>
+  </div>
+  <div class="rt">
+    <h2>Reporte Global de Asistencia</h2>
+    <p>Período: ${fromStr} – ${toStr}</p>
+    <p>Generado: ${gen}</p>
+    ${searchFilter ? `<p style="color:#e65100">Filtrado: "${searchFilter}"</p>` : ''}
+  </div>
 </div>
+
+<!-- Cards de resumen -->
 <div class="sg">
-  <div class="card"><div class="cv">${totals.totalEmployees}</div><div class="cl">Empleados</div></div>
+  <div class="card"><div class="cv">${totals.totalEmployees}</div><div class="cl">Empleados</div><div class="cs">${totals.activeEmployees} activos · ${totals.inactiveEmployees} inactivos</div></div>
   <div class="card"><div class="cv r">${totals.totalLateWeekday}</div><div class="cl">Retardos sem.</div></div>
   <div class="card"><div class="cv r">${totals.totalLateWeekend}</div><div class="cl">Retardos finde</div></div>
   <div class="card"><div class="cv b">${totals.totalExtraDays}</div><div class="cl">Días extra</div></div>
-  <div class="card"><div class="cv g">${totals.totalPresent}</div><div class="cl">Total presencias</div></div>
+  <div class="card"><div class="cv g">${totals.totalPresent}</div><div class="cl">Presencias</div></div>
+  <div class="card"><div class="cv r">${totals.totalFalta}</div><div class="cl">Total faltas</div></div>
 </div>
-<table>
-  <thead><tr>
-    <th>#</th><th>Apellido, Nombre</th><th>Cédula</th><th>Cargo</th>
-    <th>Ret. Semana</th><th>Ret. Finde</th><th>Días Extra</th>
-  </tr></thead>
-  <tbody>${rows}</tbody>
-</table>
-<div class="foot">Amazonas365 · Gestión de Recursos Humanos · Documento confidencial · ${filtered.length} empleados</div>
-<script>window.onload=()=>window.print();</script>
+
+<!-- Tabla con recuadro completo (div.wrap controla el borde exterior) -->
+<div class="wrap">
+  <table>
+    <thead>
+      <tr>
+        <!-- Anchos fijos que suman ~100% del área útil landscape A4 (~267mm) -->
+        <th style="width:4%">#</th>
+        <th style="width:22%">Apellido, Nombre</th>
+        <th style="width:11%">Cédula</th>
+        <th style="width:22%">Departamento</th>
+        <th style="width:18%">Cargo</th>
+        <th style="width:7%;text-align:center;color:#b71c1c">Ret. Sem.</th>
+        <th style="width:7%;text-align:center;color:#e65100">Ret. Finde</th>
+        <th style="width:5%;text-align:center;color:#1565c0">Extra</th>
+        <th style="width:4%;text-align:center;color:#c62828">Faltas</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+</div>
+
+<div class="foot">Amazonas 365 · Gestión de Recursos Humanos · Documento confidencial · ${filtered.length} empleados mostrados</div>
+<script>window.onload = () => window.print();</script>
 </body></html>`;
 }
 
@@ -454,12 +596,16 @@ td{padding:4px 6px;border:1px solid #ddd;font-size:10px}
  */
 function StatusBadge({ status }) {
     const map = {
-        'Presente':   { dot: 'bg-green-500',  tx: 'text-green-700 font-semibold' },
-        'Retardo':    { dot: 'bg-amber-500',   tx: 'text-amber-600 font-bold' },
-        'Ausente':    { dot: 'bg-red-500',     tx: 'text-red-600 font-bold' },
-        'Franco tr.': { dot: 'bg-blue-500',    tx: 'text-blue-600 font-semibold' },
-        'Descanso':   { dot: 'bg-gray-300',    tx: 'text-gray-400' },
-        'Pendiente':  { dot: 'bg-gray-300',    tx: 'text-gray-400 italic' },
+        'Presente':    { dot: 'bg-green-500',   tx: 'text-green-700 font-semibold' },
+        'Retardo':     { dot: 'bg-amber-500',   tx: 'text-amber-600 font-bold'     },
+        'Ausente':     { dot: 'bg-red-500',     tx: 'text-red-600 font-bold'       },
+        'Franco tr.':  { dot: 'bg-blue-500',    tx: 'text-blue-600 font-semibold'  },
+        'Descanso':    { dot: 'bg-gray-300',    tx: 'text-gray-400'                },
+        'Pendiente':   { dot: 'bg-gray-300',    tx: 'text-gray-400 italic'         },
+        // Nuevos estados correspondientes a los workTypes extendidos
+        'Permiso':     { dot: 'bg-purple-400',  tx: 'text-purple-600 font-semibold'},
+        'Vacaciones':  { dot: 'bg-cyan-400',    tx: 'text-cyan-600 font-semibold'  },
+        'Falta':       { dot: 'bg-red-400',     tx: 'text-red-500 font-bold italic'},
     };
     const c = map[status] || map['Pendiente'];
     return (
@@ -609,11 +755,15 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
 
     const handleLimpiar = () => { setSelectedUser(null); setSearchQuery(''); setFromDate(''); setToDate(''); setReportData(null); setCurrentPage(1); setError(null); };
 
-    /** Abre el HTML de impresión en una ventana nueva */
+    /**
+     * Abre el HTML de impresión del reporte individual en una ventana nueva.
+     * Construye la URL absoluta del logo para que sea accesible desde about:blank.
+     */
     const handleExportPDF = () => {
         if (!reportData) return;
+        const logoUrl = window.location.origin + '/RBG-Logo-AMAZONAS%20365-Original.png';
         const win = window.open('', '_blank', 'width=1100,height=750');
-        win.document.write(buildIndividualPrintHTML(reportData, dayList));
+        win.document.write(buildIndividualPrintHTML(reportData, dayList, logoUrl));
         win.document.close();
     };
 
@@ -862,11 +1012,16 @@ function GlobalReportSection() {
 
     const handleLimpiar = () => { setFromDate(''); setToDate(''); setGlobalData(null); setError(null); setSearchFilter(''); setCurrentPage(1); };
 
-    /** Abre el HTML de impresión del reporte global en una ventana nueva */
+    /**
+     * Abre el HTML del reporte global en una ventana nueva en orientación landscape.
+     * Construye la URL absoluta del logo para que sea accesible desde about:blank.
+     */
     const handleExportPDF = () => {
         if (!globalData) return;
-        const win = window.open('', '_blank', 'width=900,height=700');
-        win.document.write(buildGlobalPrintHTML(globalData, searchFilter));
+        const logoUrl = window.location.origin + '/RBG-Logo-AMAZONAS%20365-Original.png';
+        // Ventana más ancha para aprovechar el layout landscape
+        const win = window.open('', '_blank', 'width=1200,height=750');
+        win.document.write(buildGlobalPrintHTML(globalData, searchFilter, logoUrl));
         win.document.close();
     };
 
@@ -889,12 +1044,15 @@ function GlobalReportSection() {
     // Resetear página al cambiar el filtro
     useEffect(() => { setCurrentPage(1); }, [searchFilter]);
 
-    // Totales de los empleados filtrados (para las mini-cards de resumen)
+    // Totales de los empleados filtrados (para las mini-cards de resumen).
+    // Se recalculan cuando cambia el filtro de búsqueda (client-side).
     const filteredTotals = useMemo(() => ({
-        lateWeekday: filteredEmployees.reduce((a, e) => a + e.lateWeekday, 0),
-        lateWeekend: filteredEmployees.reduce((a, e) => a + e.lateWeekend, 0),
-        extraDays:   filteredEmployees.reduce((a, e) => a + e.extraDays,   0),
+        lateWeekday: filteredEmployees.reduce((a, e) => a + e.lateWeekday,  0),
+        lateWeekend: filteredEmployees.reduce((a, e) => a + e.lateWeekend,  0),
+        extraDays:   filteredEmployees.reduce((a, e) => a + e.extraDays,    0),
         present:     filteredEmployees.reduce((a, e) => a + e.totalPresent, 0),
+        // faltaCount: faltas pre-registradas acumuladas del conjunto visible
+        faltaCount:  filteredEmployees.reduce((a, e) => a + (e.faltaCount || 0), 0),
     }), [filteredEmployees]);
 
     const periodLabel = useMemo(() => {
@@ -973,16 +1131,28 @@ function GlobalReportSection() {
             {/* Resultado global */}
             {!isLoading && globalData && (
                 <>
-                    {/* Cards de resumen globales */}
-                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3'>
-                        <SummaryCard value={globalData.totals.totalEmployees}   label='Empleados'      sub={`${filteredEmployees.length} visibles`}    color='gray'  />
-                        <SummaryCard value={filteredTotals.lateWeekday}         label='Ret. Semana'    sub='Lun – Vie'                                  color='red'   />
-                        <SummaryCard value={filteredTotals.lateWeekend}         label='Ret. Finde'     sub='Sáb – Dom'                                  color='amber' />
-                        <SummaryCard value={filteredTotals.extraDays}           label='Días extra'     sub='franco trabajado'                           color='blue'  />
-                        <SummaryCard value={filteredTotals.present}             label='Presencias'     sub='total checkIns'                             color='green' />
+                    {/* Cards de resumen globales — 6 métricas */}
+                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3'>
+                        {/* Total empleados con desglose activos/inactivos */}
+                        <SummaryCard
+                            value={globalData.totals.totalEmployees}
+                            label='Empleados'
+                            sub={`${globalData.totals.activeEmployees} activos · ${globalData.totals.inactiveEmployees} inactivos`}
+                            color='gray'
+                        />
+                        <SummaryCard value={filteredTotals.lateWeekday} label='Ret. Semana'  sub='Lun – Vie'          color='red'   />
+                        <SummaryCard value={filteredTotals.lateWeekend} label='Ret. Finde'   sub='Sáb – Dom'          color='amber' />
+                        <SummaryCard value={filteredTotals.extraDays}   label='Días extra'   sub='franco trabajado'   color='blue'  />
+                        <SummaryCard value={filteredTotals.present}     label='Presencias'   sub='total checkIns'     color='green' />
+                        {/* Card de faltas totales: pre-registradas + ausentes orgánicos */}
+                        <SummaryCard value={filteredTotals.faltaCount}  label='Faltas'       sub='ausencias totales'  color='red'   />
                     </div>
 
-                    {/* Tabla de empleados */}
+                    {/*
+                     * Tabla de empleados — layout HORIZONTAL.
+                     * overflow-x-auto permite scroll lateral para ver todas las columnas.
+                     * min-w-max en la tabla garantiza que las columnas no se compriman.
+                     */}
                     <div className='bg-white rounded-xl shadow-sm border flex flex-col overflow-hidden'>
 
                         {/* Sub-header con contador y buscador */}
@@ -998,24 +1168,27 @@ function GlobalReportSection() {
                                 placeholder='Filtrar por nombre, cédula o depto...'
                                 value={searchFilter}
                                 onChange={e => setSearchFilter(e.target.value)}
-                                className='h-8 w-56 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400'
+                                className='h-8 w-64 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400'
                             />
                         </div>
 
-                        <div className='overflow-auto'>
-                            <table className='min-w-full text-sm'>
+                        {/* Scroll horizontal para mostrar todas las columnas sin comprimir */}
+                        <div className='overflow-x-auto'>
+                            <table className='min-w-max w-full text-sm'>
                                 <thead className='sticky top-0 bg-gray-50 z-10 border-b border-gray-200'>
                                     <tr>
-                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider w-8'>#</th>
-                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Nombre</th>
-                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Cédula</th>
-                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Departamento</th>
-                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Cargo</th>
-                                        {/* Columnas de métricas con colores de alerta */}
-                                        <th className='px-3 py-2.5 text-center text-[10px] font-bold text-red-400 uppercase tracking-wider whitespace-nowrap'>Ret. Semana</th>
-                                        <th className='px-3 py-2.5 text-center text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap'>Ret. Finde</th>
-                                        <th className='px-3 py-2.5 text-center text-[10px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap'>Días Extra</th>
-                                        <th className='px-3 py-2.5 text-center text-[10px] font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap'>Presencias</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider w-10'>#</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[200px]'>Nombre</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[110px]'>Cédula</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[160px]'>Departamento</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[160px]'>Cargo</th>
+                                        {/* Columnas de métricas con colores de alerta visual */}
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-red-400 uppercase tracking-wider whitespace-nowrap min-w-[110px]'>Ret. Semana</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Ret. Finde</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Días Extra</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Presencias</th>
+                                        {/* Columna Faltas: workType='falta' pre-registrado O status='ausente' */}
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-rose-500 uppercase tracking-wider whitespace-nowrap min-w-[90px]'>Faltas</th>
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-gray-100'>
@@ -1027,7 +1200,7 @@ function GlobalReportSection() {
                                         />
                                     ))}
                                     {paginatedEmps.length === 0 && (
-                                        <tr><td colSpan={9} className='text-center py-10 text-gray-400 text-sm'>
+                                        <tr><td colSpan={10} className='text-center py-10 text-gray-400 text-sm'>
                                             {searchFilter ? 'No hay empleados que coincidan con el filtro' : 'No hay datos para este período'}
                                         </td></tr>
                                     )}
@@ -1055,12 +1228,14 @@ function GlobalReportSection() {
                             </div>
                         )}
 
-                        {/* Footer totales globales */}
-                        <div className='border-t grid grid-cols-2 sm:grid-cols-4 bg-gray-50 rounded-b-xl'>
-                            <FooterCell label='Total empleados'    value={`${filteredEmployees.length}`} />
-                            <FooterCell label='Total ret. semana'  value={String(filteredTotals.lateWeekday)} amber />
-                            <FooterCell label='Total ret. finde'   value={String(filteredTotals.lateWeekend)} amber />
-                            <FooterCell label='Total días extra'   value={String(filteredTotals.extraDays)} green />
+                        {/* Footer totales globales — incluye faltas */}
+                        <div className='border-t grid grid-cols-3 sm:grid-cols-5 bg-gray-50 rounded-b-xl'>
+                            <FooterCell label='Total empleados'   value={`${filteredEmployees.length}`} />
+                            <FooterCell label='Ret. semana'       value={String(filteredTotals.lateWeekday)} amber />
+                            <FooterCell label='Ret. finde'        value={String(filteredTotals.lateWeekend)} amber />
+                            <FooterCell label='Días extra'        value={String(filteredTotals.extraDays)} green />
+                            {/* Total de faltas pre-registradas del conjunto visible */}
+                            <FooterCell label='Total faltas'      value={String(filteredTotals.faltaCount)} />
                         </div>
                     </div>
                 </>
@@ -1071,27 +1246,46 @@ function GlobalReportSection() {
 
 /**
  * Fila de empleado en la tabla del reporte global.
- * Resalta en rojo los retardos > 0 y en azul los días extra > 0.
+ *
+ * Muestra:
+ *  - Badge "Inactivo" en la celda de nombre si emp.inabilited === true.
+ *  - Retardos semana/finde en rojo/naranja si > 0.
+ *  - Días extra en azul si > 0.
+ *  - Presencias en verde si > 0.
+ *  - Faltas en rosa si > 0 (workType='falta' pre-registrado OR status='ausente').
  */
 function GlobalEmployeeRow({ emp, index }) {
-    const dept = emp.jobInformation?.department || 'Sin departamento';
-    const pos  = emp.jobInformation?.position   || '—';
+    const dept       = emp.jobInformation?.department || 'Sin departamento';
+    const pos        = emp.jobInformation?.position   || '—';
+    const isInactive = emp.inabilited === true;
+    const falta      = emp.faltaCount || 0;
+
     return (
-        <tr className='hover:bg-gray-50/70 transition-colors'>
+        <tr className={`hover:bg-gray-50/70 transition-colors ${isInactive ? 'opacity-60' : ''}`}>
             <td className='px-3 py-2.5 text-[11px] text-gray-400 text-center'>{index}</td>
+
+            {/* Nombre + foto/iniciales + badge de inactivo */}
             <td className='px-3 py-2.5'>
                 <div className='flex items-center gap-2'>
-                    {/* Foto o iniciales */}
                     <div className='w-7 h-7 rounded-full bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center'>
                         {emp.img
                             ? <img src={emp.img} className='w-full h-full object-cover' alt='' />
                             : <span className='text-[10px] font-bold text-slate-500'>{emp.name?.[0]}{emp.surName?.[0]}</span>}
                     </div>
                     <div>
-                        <p className='text-[12px] font-semibold text-gray-800 whitespace-nowrap'>{emp.name} {emp.surName}</p>
+                        <p className='text-[12px] font-semibold text-gray-800 whitespace-nowrap'>
+                            {emp.name} {emp.surName}
+                        </p>
+                        {/* Badge visible solo para empleados dados de baja */}
+                        {isInactive && (
+                            <span className='text-[9px] font-bold uppercase tracking-wider text-rose-500 bg-rose-50 border border-rose-200 rounded px-1.5 py-0.5'>
+                                Inactivo
+                            </span>
+                        )}
                     </div>
                 </div>
             </td>
+
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{emp.dni || '—'}</td>
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{dept}</td>
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{pos}</td>
@@ -1111,6 +1305,10 @@ function GlobalEmployeeRow({ emp, index }) {
             {/* Presencias — verde si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.totalPresent > 0 ? 'text-emerald-500' : 'text-gray-300'}`}>
                 {emp.totalPresent}
+            </td>
+            {/* Faltas totales (pre-registradas + ausencias orgánicas) — rosa si > 0 */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${falta > 0 ? 'text-rose-500' : 'text-gray-300'}`}>
+                {falta}
             </td>
         </tr>
     );
@@ -1160,8 +1358,17 @@ export default function AsistenciaPage() {
     return (
         <div className='w-full h-full p-4 sm:p-6 bg-gray-50 flex flex-col gap-4 overflow-auto'>
 
-            {/* ENCABEZADO DE LA PÁGINA */}
-            <div className='bg-white rounded-xl shadow-sm border p-4 flex items-center justify-between'>
+            {/* ENCABEZADO DE LA PÁGINA — logo Amazonas 365 + título */}
+            <div className='bg-white rounded-xl shadow-sm border p-4 flex items-center gap-4'>
+                {/*
+                 * Logo servido directamente desde /public en Next.js.
+                 * Se usa el nombre real del archivo con espacio codificado.
+                 */}
+                <img
+                    src='/RBG-Logo-AMAZONAS%20365-Original.png'
+                    alt='Amazonas 365'
+                    className='h-9 w-auto object-contain flex-shrink-0'
+                />
                 <div>
                     <h1 className='text-lg font-bold text-gray-800'>Reportes de Asistencia</h1>
                     <p className='text-xs text-gray-500'>Consulta individual o consolidada de todos los empleados</p>

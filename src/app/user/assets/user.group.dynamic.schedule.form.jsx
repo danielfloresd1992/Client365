@@ -4,11 +4,27 @@ import { es } from 'date-fns/locale';
 
 const GREEN_THEME_GRADIENT = 'linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%)';
 
+/**
+ * Opciones de tipo de jornada disponibles para el formulario grupal.
+ * Cada valor se almacena en scheduleOverride.workType (Attendance) y
+ * en workSchedule.scheduleByDay[d].workType (User).
+ *
+ *  noTime: true  → los tipos sin horario (entrada/salida) ocultan los inputs de hora.
+ */
 const WORK_MODE_OPTIONS = [
-    { value: 'laboral', label: 'Día laboral' },
-    { value: 'extra', label: 'Día extra' },
-    { value: 'descanso', label: 'Descanso' },
+    { value: 'laboral',    label: 'Día laboral',  noTime: false },
+    { value: 'extra',      label: 'Día extra',    noTime: false },
+    { value: 'descanso',   label: 'Descanso',     noTime: true  },
+    { value: 'permiso',    label: 'Permiso',      noTime: true  },
+    { value: 'vacaciones', label: 'Vacaciones',   noTime: true  },
+    { value: 'falta',      label: 'Falta',        noTime: true  },
 ];
+
+/**
+ * Tipos de jornada que NO requieren hora de entrada/salida.
+ * Se usa en la lógica de validación y al construir el payload de actualización.
+ */
+const NO_TIME_TYPES = new Set(['descanso', 'permiso', 'vacaciones', 'falta']);
 
 const normalizeDateKey = (dateISO) => {
     const date = new Date(dateISO);
@@ -69,14 +85,16 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                 [field]: value,
             };
 
-            if (field === 'workType' && value === 'descanso') {
-                next.startTime = null;
-                next.endTime = null;
-            }
-
-            if (field === 'workType' && value !== 'descanso') {
-                next.startTime = current.startTime || '09:00';
-                next.endTime = current.endTime || '18:00';
+            if (field === 'workType') {
+                if (NO_TIME_TYPES.has(value)) {
+                    // Tipos sin horario: limpiar horas para no enviar datos erróneos
+                    next.startTime = null;
+                    next.endTime = null;
+                } else {
+                    // Tipos con horario: restaurar valores previos o usar defaults
+                    next.startTime = current.startTime || '09:00';
+                    next.endTime   = current.endTime   || '18:00';
+                }
             }
 
             return {
@@ -123,18 +141,19 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
         event.preventDefault();
 
         const updates = Object.values(formByCell).map((item) => ({
-            userId: item.userId,
-            dni: item.dni,
-            date: item.dateISO,
-            workType: item.workType,
-            shift: item.shift || 'Diurno',
-            startTime: item.workType === 'descanso' ? null : item.startTime,
-            endTime: item.workType === 'descanso' ? null : item.endTime,
+            userId:    item.userId,
+            dni:       item.dni,
+            date:      item.dateISO,
+            workType:  item.workType,
+            shift:     item.shift || 'Diurno',
+            // Los tipos sin horario envían null para no pisar horas existentes
+            startTime: NO_TIME_TYPES.has(item.workType) ? null : item.startTime,
+            endTime:   NO_TIME_TYPES.has(item.workType) ? null : item.endTime,
         }));
 
+        // Validar que los tipos con horario tengan entrada y salida definidas
         const hasInvalidWorkingTime = updates.some((item) => {
-            if(item.workType === 'descanso') return false;
-            if (item.isRestDay) return false;
+            if (NO_TIME_TYPES.has(item.workType)) return false;
             return !item.startTime || !item.endTime;
         });
 
@@ -219,41 +238,47 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                             }
 
                                             const row = formByCell[key];
-                                            const isRestDay = row?.workType === 'descanso';
-                                            const isExtra = row?.workType === 'extra';
+                                            const wt = row?.workType || 'laboral';
+                                            const isNoTime = NO_TIME_TYPES.has(wt);
+
+                                            /**
+                                             * Paleta de colores por workType para el contenedor de celda,
+                                             * el selector de tipo y el bloque de "sin horario".
+                                             * Permite distinguir visualmente cada tipo de jornada.
+                                             */
+                                            const CELL_PALETTE = {
+                                                laboral:    { border: 'border-emerald-200/60', bg: 'bg-emerald-50/50',   shadow: 'shadow-[inset_0_1px_3px_rgba(16,185,129,0.05)]',  selBg: 'bg-emerald-100/70 text-emerald-700 hover:bg-emerald-200/80', arrow: 'text-emerald-500', tagBg: 'bg-emerald-100/40 border-emerald-200/60', tagTx: 'text-emerald-500/80' },
+                                                extra:      { border: 'border-indigo-200',     bg: 'bg-indigo-50/80',    shadow: 'shadow-[inset_0_1px_3px_rgba(99,102,241,0.05)]',   selBg: 'bg-indigo-100/70 text-indigo-700 hover:bg-indigo-200/80',   arrow: 'text-indigo-500',  tagBg: 'bg-indigo-100/40 border-indigo-200/60', tagTx: 'text-indigo-500/80' },
+                                                descanso:   { border: 'border-orange-200',     bg: 'bg-orange-50/80',    shadow: 'shadow-[inset_0_1px_3px_rgba(251,146,60,0.1)]',    selBg: 'bg-orange-100/70 text-orange-700 hover:bg-orange-200/80',   arrow: 'text-orange-500',  tagBg: 'bg-orange-100/40 border-orange-200/60', tagTx: 'text-orange-500/80' },
+                                                permiso:    { border: 'border-purple-200',     bg: 'bg-purple-50/80',    shadow: 'shadow-[inset_0_1px_3px_rgba(168,85,247,0.08)]',   selBg: 'bg-purple-100/70 text-purple-700 hover:bg-purple-200/80',   arrow: 'text-purple-500',  tagBg: 'bg-purple-100/40 border-purple-200/60', tagTx: 'text-purple-500/80' },
+                                                vacaciones: { border: 'border-cyan-200',       bg: 'bg-cyan-50/80',      shadow: 'shadow-[inset_0_1px_3px_rgba(6,182,212,0.08)]',    selBg: 'bg-cyan-100/70 text-cyan-700 hover:bg-cyan-200/80',         arrow: 'text-cyan-500',    tagBg: 'bg-cyan-100/40 border-cyan-200/60',   tagTx: 'text-cyan-500/80' },
+                                                falta:      { border: 'border-red-200',        bg: 'bg-red-50/80',       shadow: 'shadow-[inset_0_1px_3px_rgba(239,68,68,0.08)]',    selBg: 'bg-red-100/70 text-red-700 hover:bg-red-200/80',           arrow: 'text-red-500',     tagBg: 'bg-red-100/40 border-red-200/60',     tagTx: 'text-red-500/80' },
+                                            };
+                                            const pal = CELL_PALETTE[wt] || CELL_PALETTE.laboral;
 
                                             return (
                                                 <td key={key} className='border-r border-gray-200 px-2.5 py-2 align-middle bg-inherit'>
-                                                    <div className={`flex flex-col gap-1.5 p-1.5 rounded-md border transition-colors ${isRestDay ? 'border-orange-200 bg-orange-50/80 shadow-[inset_0_1px_3px_rgba(251,146,60,0.1)]' :
-                                                            isExtra ? 'border-indigo-200 bg-indigo-50/80 shadow-[inset_0_1px_3px_rgba(99,102,241,0.05)]' :
-                                                                'border-emerald-200/60 bg-emerald-50/50 shadow-[inset_0_1px_3px_rgba(16,185,129,0.05)]'
-                                                        }`}>
+                                                    <div className={`flex flex-col gap-1.5 p-1.5 rounded-md border transition-colors ${pal.border} ${pal.bg} ${pal.shadow}`}>
 
-                                                        {/* Selector de Tipo de Turno estilo Badge */}
+                                                        {/* ── Selector de tipo de jornada ── */}
                                                         <div className="relative">
                                                             <select
-                                                                value={row?.workType || 'laboral'}
+                                                                value={wt}
                                                                 onChange={(e) => updateField(key, 'workType', e.target.value)}
-                                                                className={`w-full text-[11px] font-bold uppercase tracking-wider rounded px-2 py-1.5 appearance-none cursor-pointer outline-none transition-all ${isRestDay
-                                                                        ? 'bg-orange-100/70 text-orange-700 hover:bg-orange-200/80'
-                                                                        : isExtra
-                                                                            ? 'bg-indigo-100/70 text-indigo-700 hover:bg-indigo-200/80'
-                                                                            : 'bg-emerald-100/70 text-emerald-700 hover:bg-emerald-200/80'
-                                                                    }`}
+                                                                className={`w-full text-[11px] font-bold uppercase tracking-wider rounded px-2 py-1.5 appearance-none cursor-pointer outline-none transition-all ${pal.selBg}`}
                                                             >
                                                                 {WORK_MODE_OPTIONS.map((option) => (
                                                                     <option key={option.value} value={option.value}>{option.label}</option>
                                                                 ))}
                                                             </select>
-                                                            {/* Icono flecha personalizado */}
-                                                            <div className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${isRestDay ? 'text-orange-500' : isExtra ? 'text-indigo-500' : 'text-emerald-500'
-                                                                }`}>
+                                                            {/* Flecha del selector */}
+                                                            <div className={`absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none ${pal.arrow}`}>
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                                             </div>
                                                         </div>
 
-                                                        {/* Selector de Turno (Diurno/Nocturno) */}
-                                                        {!isRestDay && (
+                                                        {/* ── Selector de turno (solo si el tipo requiere horario) ── */}
+                                                        {!isNoTime && (
                                                             <div className='relative'>
                                                                 <select
                                                                     value={row?.shift || 'Diurno'}
@@ -269,10 +294,9 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                             </div>
                                                         )}
 
-                                                        {/* Panel de Horas Integrado */}
-                                                        {!isRestDay ? (
-                                                            <div className={`flex items-center justify-between bg-white border rounded px-1.5 min-h-[30px] shadow-sm focus-within:ring-2 focus-within:ring-offset-1 transition-all ${isExtra ? 'border-indigo-200 focus-within:ring-indigo-400 focus-within:border-indigo-400' : 'border-emerald-200/80 focus-within:ring-emerald-400 focus-within:border-emerald-400'
-                                                                }`}>
+                                                        {/* ── Panel de horas (solo tipos con horario) ── */}
+                                                        {!isNoTime ? (
+                                                            <div className={`flex items-center justify-between bg-white border rounded px-1.5 min-h-[30px] shadow-sm focus-within:ring-2 focus-within:ring-offset-1 transition-all ${wt === 'extra' ? 'border-indigo-200 focus-within:ring-indigo-400 focus-within:border-indigo-400' : 'border-emerald-200/80 focus-within:ring-emerald-400 focus-within:border-emerald-400'}`}>
                                                                 <input
                                                                     type='time'
                                                                     value={row?.startTime || ''}
@@ -280,12 +304,9 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                     className='w-full text-[12px] font-semibold text-gray-700 bg-transparent text-center outline-none cursor-pointer'
                                                                     title="Hora de Entrada"
                                                                 />
-
-                                                                {/* Separador de flecha entre horas */}
-                                                                <div className={`flex items-center justify-center px-0.5 ${isExtra ? 'text-indigo-300' : 'text-emerald-300'}`}>
+                                                                <div className={`flex items-center justify-center px-0.5 ${wt === 'extra' ? 'text-indigo-300' : 'text-emerald-300'}`}>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
                                                                 </div>
-
                                                                 <input
                                                                     type='time'
                                                                     value={row?.endTime || ''}
@@ -295,10 +316,11 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                 />
                                                             </div>
                                                         ) : (
-                                                            <div className='flex items-center justify-center bg-orange-100/40 border border-orange-200/60 rounded py-1.5 min-h-[30px] shadow-sm'>
-                                                                <span className='text-[10px] font-bold text-orange-500/80 uppercase flex items-center gap-1 select-none tracking-widest'>
+                                                            /* Indicador visual para tipos sin horario */
+                                                            <div className={`flex items-center justify-center border rounded py-1.5 min-h-[30px] shadow-sm ${pal.tagBg}`}>
+                                                                <span className={`text-[10px] font-bold uppercase flex items-center gap-1 select-none tracking-widest ${pal.tagTx}`}>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12h20"></path></svg>
-                                                                    Libre
+                                                                    Sin horario
                                                                 </span>
                                                             </div>
                                                         )}
