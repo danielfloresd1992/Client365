@@ -2717,6 +2717,135 @@ body .lobby-title-row--compact {
     gap: .35rem;
 }
 
+
+/* ==================================
+   NOVELTY BUTTONS — MOBILE RESPONSIVE
+   ================================== */
+@media screen and (max-width: 767px) {
+
+    /* Action buttons grid: 2x2 on mobile */
+    body .lobby-noveltie-actionGrid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 0 !important;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic {
+        border-right: none;
+        border-bottom: 1px solid var(--app-border);
+        min-height: 44px;
+        padding: .5rem .3rem;
+        flex-direction: column;
+        gap: .2rem;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic:nth-child(odd) {
+        border-right: 1px solid var(--app-border);
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic:nth-last-child(-n+2) {
+        border-bottom: none;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic-img {
+        width: 18px;
+        height: 18px;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic > p {
+        font-size: .68rem;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    /* Send/download buttons row: stack vertically */
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic {
+        border-right: none;
+        border-bottom: 1px solid var(--app-border);
+        min-height: 44px;
+        padding: .5rem .3rem;
+        flex-direction: column;
+        gap: .2rem;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic:nth-child(odd) {
+        border-right: 1px solid var(--app-border);
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic:nth-last-child(-n+2) {
+        border-bottom: none;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic-img {
+        width: 18px;
+        height: 18px;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic > p {
+        font-size: .68rem;
+        text-align: center;
+        line-height: 1.2;
+    }
+
+    /* Meta info (shared by, validated by): stack vertically */
+    body .lobby-noveltie-metaItem {
+        width: 100%;
+    }
+
+    body .lobby-noveltie-metaItem .divContentNovelties-pDate {
+        font-size: .7rem;
+    }
+
+    /* Header of novelty card */
+    body .divContentNovelties-divTitle {
+        padding: .5rem;
+        gap: .4rem;
+    }
+
+    body .divContentNovelties-pTitle {
+        font-size: .82rem;
+    }
+
+    /* Options menu dropdown */
+    body .divContentNovelties-headerListOption {
+        width: 180px;
+        right: 0;
+    }
+
+    /* Novelty card: full width, no side margins */
+    body .divContentNovelties {
+        border-radius: 8px;
+        margin: 0;
+    }
+}
+
+@media screen and (max-width: 400px) {
+    /* Very small screens: single column buttons */
+    body .lobby-noveltie-actionGrid {
+        grid-template-columns: 1fr !important;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic {
+        flex-direction: row;
+        border-right: none !important;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) {
+        grid-template-columns: 1fr !important;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic {
+        flex-direction: row;
+        border-right: none !important;
+    }
+}
+
 body .lobby-title-icon--compact {
     width: 24px;
     height: 24px;
