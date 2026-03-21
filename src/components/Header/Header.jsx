@@ -174,7 +174,7 @@ export default function Header() {
 
 
     return (
-        <nav className='header header-main' >
+        <nav className='header-main' >
             <div className='header-main__brand'>
                 {
                     pathName !== '/' ?
