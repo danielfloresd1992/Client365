@@ -1710,10 +1710,12 @@ footer a {
         right: 0;
         z-index: 1000;
         border-radius: unset;
-        transition: 1s ease;
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
         gap: 1rem;
         background-color: #e5e5e5;
         margin-top: 0;
+        overflow-y: auto;
+        padding-top: 50px;
     }
 
 
@@ -1902,6 +1904,89 @@ footer a {
     }
 }
 
+
+/* ==================================
+   NAV SIDEBAR — mobile hamburger + overlay
+   ================================== */
+.nav-hamburger,
+.nav-close-btn,
+.nav-overlay {
+    display: none;
+}
+
+@media screen and (max-width: 767px) {
+    .nav-hamburger {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        position: fixed;
+        bottom: 40px;
+        left: 20px;
+        z-index: 999;
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        border: none;
+        background: linear-gradient(135deg, #29c50c 0%, #4e8300 100%);
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-hamburger:active {
+        transform: scale(0.92);
+    }
+
+    .nav-hamburger__line {
+        display: block;
+        width: 22px;
+        height: 2.5px;
+        background: #fff;
+        border-radius: 2px;
+    }
+
+    .nav-overlay {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 999;
+        background: rgba(0, 0, 0, 0.45);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease, visibility 0.3s ease;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .nav-overlay--visible {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .nav-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 1001;
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.12);
+        background: #fff;
+        font-size: 1.1rem;
+        color: #333;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .nav-close-btn:active {
+        background: #eee;
+    }
+}
 
 /* ==================================
    LOBBY THEME: MINIMAL WHITE FUTURE
