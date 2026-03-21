@@ -3,15 +3,26 @@
 /**
  * Servicio singleton de Text-to-Speech multiplataforma.
  *
- * Resuelve:
+ * Estrategia de 2 motores:
+ *  1. Web Speech API (speechSynthesis) — navegadores que lo soportan.
+ *  2. Audio fallback via Google Translate TTS — WebViews de Cordova/Android
+ *     que no tienen speechSynthesis. Genera un MP3 y lo reproduce con Audio().
+ *
+ * También resuelve:
  *  - Cola de utterances para que no se pisen alertas simultáneas.
  *  - Unlock de audio en iOS/Android (requiere 1er gesto del usuario).
- *  - Splitting de textos largos para evitar el corte de Chrome (~15 s).
+ *  - Splitting de textos largos (200 chars para Chrome, 200 chars para audio).
  *  - Selección de voz con fallback por idioma español.
- *  - Fallback a Audio() cuando speechSynthesis no está disponible.
  */
 
-const MAX_UTTERANCE_LENGTH = 200; // Chrome corta ~15 s ≈ 200 chars en español
+const MAX_CHUNK_LENGTH = 200;
+
+// Detectar si speechSynthesis está disponible y funcional
+function hasSpeechSynthesis() {
+    return typeof window !== 'undefined'
+        && typeof speechSynthesis !== 'undefined'
+        && typeof SpeechSynthesisUtterance !== 'undefined';
+}
 
 class SpeechService {
     constructor() {
@@ -20,10 +31,13 @@ class SpeechService {
         this._unlocked = false;
         this._voices = [];
         this._selectedVoice = null;
+        this._selectedVoiceLang = 'es-ES';
         this._volume = 1;
         this._ready = false;
         this._readyPromise = null;
         this._onVoicesChange = null;
+        this._useNative = false;  // true = speechSynthesis, false = audio fallback
+        this._currentAudio = null;
 
         if (typeof window !== 'undefined') {
             this._readyPromise = this._init();
@@ -34,26 +48,40 @@ class SpeechService {
     /*  Init                                               */
     /* -------------------------------------------------- */
     async _init() {
-        if (typeof speechSynthesis === 'undefined') {
-            console.warn('[SpeechService] speechSynthesis no disponible');
-            this._ready = false;
-            return;
-        }
+        if (hasSpeechSynthesis()) {
+            // Intentar cargar voces para verificar que realmente funciona
+            await this._loadVoices();
 
-        // Las voces pueden tardar en cargar (Chrome las carga async)
-        await this._loadVoices();
-        speechSynthesis.addEventListener('voiceschanged', () => {
-            this._voices = speechSynthesis.getVoices();
-            if (this._onVoicesChange) this._onVoicesChange(this._voices);
-        });
+            // Si después de esperar hay voces, usar speechSynthesis
+            if (this._voices.length > 0) {
+                this._useNative = true;
+                speechSynthesis.addEventListener('voiceschanged', () => {
+                    this._voices = speechSynthesis.getVoices();
+                    if (this._onVoicesChange) this._onVoicesChange(this._voices);
+                });
+                console.log('[SpeechService] Usando Web Speech API');
+            } else {
+                // speechSynthesis existe pero no devuelve voces (Cordova WebView)
+                this._useNative = false;
+                this._setupAudioFallbackVoices();
+                console.log('[SpeechService] speechSynthesis sin voces, usando audio fallback');
+            }
+        } else {
+            this._useNative = false;
+            this._setupAudioFallbackVoices();
+            console.log('[SpeechService] speechSynthesis no disponible, usando audio fallback');
+        }
 
         this._ready = true;
     }
 
     _loadVoices() {
         return new Promise((resolve) => {
-            this._voices = speechSynthesis.getVoices();
-            if (this._voices.length > 0) return resolve();
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) {
+                this._voices = voices;
+                return resolve();
+            }
 
             const onVoices = () => {
                 this._voices = speechSynthesis.getVoices();
@@ -62,8 +90,9 @@ class SpeechService {
             };
             speechSynthesis.addEventListener('voiceschanged', onVoices);
 
-            // Timeout por si voiceschanged nunca se dispara
+            // Timeout: si voiceschanged nunca se dispara (Cordova)
             setTimeout(() => {
+                speechSynthesis.removeEventListener('voiceschanged', onVoices);
                 if (this._voices.length === 0) {
                     this._voices = speechSynthesis.getVoices();
                 }
@@ -72,21 +101,41 @@ class SpeechService {
         });
     }
 
+    /**
+     * Cuando speechSynthesis no está disponible, ofrece una lista
+     * de "voces" virtuales que representan idiomas soportados por el fallback.
+     */
+    _setupAudioFallbackVoices() {
+        this._voices = [
+            { name: 'Español (España)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
+            { name: 'Español (México)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
+            { name: 'Español (Venezuela)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
+            { name: 'English (US)', lang: 'en', voiceURI: 'audio-fallback', localService: false },
+            { name: 'Português (Brasil)', lang: 'pt', voiceURI: 'audio-fallback', localService: false },
+        ];
+        this._selectedVoice = this._voices[0];
+        this._selectedVoiceLang = 'es';
+        if (this._onVoicesChange) this._onVoicesChange(this._voices);
+    }
+
     /* -------------------------------------------------- */
     /*  Unlock (iOS / Android)                             */
     /* -------------------------------------------------- */
-    /**
-     * Debe llamarse una vez dentro de un handler de evento de usuario
-     * (click, touchend, etc.) para desbloquear audio en mobile.
-     */
     unlock() {
         if (this._unlocked) return;
-        if (typeof speechSynthesis === 'undefined') return;
 
-        // Truco: reproducir un utterance vacío desbloquea el audio context
-        const u = new SpeechSynthesisUtterance('');
-        u.volume = 0;
-        speechSynthesis.speak(u);
+        if (this._useNative && hasSpeechSynthesis()) {
+            const u = new SpeechSynthesisUtterance('');
+            u.volume = 0;
+            speechSynthesis.speak(u);
+        } else {
+            // Unlock audio context con un audio silencioso
+            try {
+                const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+                audio.volume = 0;
+                audio.play().catch(() => {});
+            } catch (e) { /* ignore */ }
+        }
 
         this._unlocked = true;
     }
@@ -102,44 +151,36 @@ class SpeechService {
         this._onVoicesChange = cb;
     }
 
-    /**
-     * Selecciona voz por nombre exacto.
-     * Retorna true si la encontró, false si no.
-     */
     selectVoiceByName(name) {
         const v = this._voices.find((voice) => voice.name === name);
         if (v) {
             this._selectedVoice = v;
+            this._selectedVoiceLang = v.lang || 'es';
             return true;
         }
         return false;
     }
 
-    /**
-     * Selecciona la mejor voz española disponible en la plataforma.
-     * Prioriza voces "Online/Natural" > voces locales > cualquier es-*.
-     */
     selectBestSpanishVoice() {
         if (this._voices.length === 0) return null;
 
         const esVoices = this._voices.filter(
             (v) => v.lang && v.lang.startsWith('es')
         );
-
         if (esVoices.length === 0) return null;
 
         // Prioridad: Online/Natural/Premium > local
         const premium = esVoices.find(
-            (v) =>
-                /online|natural|premium|enhanced/i.test(v.name)
+            (v) => /online|natural|premium|enhanced/i.test(v.name)
         );
         if (premium) {
             this._selectedVoice = premium;
+            this._selectedVoiceLang = premium.lang;
             return premium;
         }
 
-        // Fallback: primera voz española
         this._selectedVoice = esVoices[0];
+        this._selectedVoiceLang = esVoices[0].lang;
         return esVoices[0];
     }
 
@@ -178,21 +219,25 @@ class SpeechService {
     stop() {
         this._queue = [];
         this._speaking = false;
-        if (typeof speechSynthesis !== 'undefined') {
+
+        if (this._useNative && hasSpeechSynthesis()) {
             speechSynthesis.cancel();
+        }
+        if (this._currentAudio) {
+            this._currentAudio.pause();
+            this._currentAudio = null;
         }
     }
 
     _splitText(text) {
-        if (text.length <= MAX_UTTERANCE_LENGTH) return [text];
+        if (text.length <= MAX_CHUNK_LENGTH) return [text];
 
         const chunks = [];
-        // Cortar en puntos naturales: punto, coma, punto y coma
         const sentences = text.match(/[^.;,!?]+[.;,!?]?\s*/g) || [text];
         let current = '';
 
         for (const sentence of sentences) {
-            if ((current + sentence).length > MAX_UTTERANCE_LENGTH && current) {
+            if ((current + sentence).length > MAX_CHUNK_LENGTH && current) {
                 chunks.push(current.trim());
                 current = sentence;
             } else {
@@ -207,48 +252,58 @@ class SpeechService {
     _processQueue() {
         if (this._speaking || this._queue.length === 0) return;
 
-        if (typeof speechSynthesis === 'undefined') {
-            // Sin soporte — limpiar cola silenciosamente
-            this._queue = [];
+        this._speaking = true;
+        const text = this._queue.shift();
+
+        if (this._useNative) {
+            this._speakNative(text);
+        } else {
+            this._speakAudioFallback(text);
+        }
+    }
+
+    /* -------------------------------------------------- */
+    /*  Motor 1: Web Speech API (speechSynthesis)          */
+    /* -------------------------------------------------- */
+    _speakNative(text) {
+        if (!hasSpeechSynthesis()) {
+            this._speaking = false;
+            this._processQueue();
             return;
         }
 
-        // Chrome bug: speechSynthesis puede quedar "stuck". Cancelar antes de hablar.
         if (speechSynthesis.paused) {
             speechSynthesis.resume();
         }
 
-        this._speaking = true;
-        const text = this._queue.shift();
         const utterance = new SpeechSynthesisUtterance(text);
 
-        if (this._selectedVoice) {
+        if (this._selectedVoice && this._selectedVoice.voiceURI !== 'audio-fallback') {
             utterance.voice = this._selectedVoice;
             utterance.lang = this._selectedVoice.lang;
         } else {
-            utterance.lang = 'es-ES';
+            utterance.lang = this._selectedVoiceLang || 'es-ES';
         }
 
         utterance.volume = this._volume;
         utterance.rate = 1;
         utterance.pitch = 1;
 
-        utterance.onend = () => {
+        const done = () => {
+            if (keepAlive) clearInterval(keepAlive);
             this._speaking = false;
             this._processQueue();
         };
 
+        utterance.onend = done;
         utterance.onerror = (e) => {
-            // 'interrupted' y 'canceled' no son errores reales
             if (e.error !== 'interrupted' && e.error !== 'canceled') {
-                console.warn('[SpeechService] Error:', e.error);
+                console.warn('[SpeechService] Error nativo:', e.error);
             }
-            this._speaking = false;
-            this._processQueue();
+            done();
         };
 
-        // Chrome bug: si pasan >15 s sin interacción, se pausa.
-        // Workaround: timer que hace resume cada 10 s.
+        // Chrome keep-alive workaround
         let keepAlive = null;
         const isChrome = /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent);
         if (isChrome) {
@@ -260,18 +315,43 @@ class SpeechService {
             }, 10000);
         }
 
-        const originalOnEnd = utterance.onend;
-        utterance.onend = (e) => {
-            if (keepAlive) clearInterval(keepAlive);
-            originalOnEnd(e);
-        };
-        const originalOnError = utterance.onerror;
-        utterance.onerror = (e) => {
-            if (keepAlive) clearInterval(keepAlive);
-            originalOnError(e);
+        speechSynthesis.speak(utterance);
+    }
+
+    /* -------------------------------------------------- */
+    /*  Motor 2: Audio fallback (Google Translate TTS)      */
+    /*  Funciona en cualquier WebView que soporte Audio()   */
+    /* -------------------------------------------------- */
+    _speakAudioFallback(text) {
+        const lang = (this._selectedVoiceLang || 'es').substring(0, 2);
+        const encoded = encodeURIComponent(text);
+
+        // Google Translate TTS endpoint (no requiere API key, límite ~200 chars)
+        const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`;
+
+        const audio = new Audio(url);
+        audio.volume = this._volume;
+        this._currentAudio = audio;
+
+        audio.onended = () => {
+            this._currentAudio = null;
+            this._speaking = false;
+            this._processQueue();
         };
 
-        speechSynthesis.speak(utterance);
+        audio.onerror = (e) => {
+            console.warn('[SpeechService] Error audio fallback:', e);
+            this._currentAudio = null;
+            this._speaking = false;
+            this._processQueue();
+        };
+
+        audio.play().catch((err) => {
+            console.warn('[SpeechService] No se pudo reproducir audio:', err);
+            this._currentAudio = null;
+            this._speaking = false;
+            this._processQueue();
+        });
     }
 
     /* -------------------------------------------------- */
@@ -282,7 +362,12 @@ class SpeechService {
     }
 
     isSupported() {
-        return typeof window !== 'undefined' && typeof speechSynthesis !== 'undefined';
+        // Siempre soportado: speechSynthesis o audio fallback
+        return typeof window !== 'undefined';
+    }
+
+    isUsingNative() {
+        return this._useNative;
     }
 
     isSpeaking() {
