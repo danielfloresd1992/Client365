@@ -108,10 +108,13 @@ export default function LocalCard({ local, formValues, onChange }) {
                 {/* ── Rotaciones ───────────────────────────────────────── */}
                 <div>
                     <label className={LABEL_CLS}>Nº de rotaciones</label>
-                    <input className='text-zinc-950.' type='number' min='0'
+                   <input 
+                        type='number' 
+                        min='0'
                         value={formValues.rotation ?? ''}
                         onChange={e => setRotation(e.target.value)}
-                        className={`${INPUT_CLS} mt-1`} />
+                        className={`text-zinc-950 ${INPUT_CLS} mt-1`} 
+                    />
                 </div>
 
                 {/* ── Procesos ─────────────────────────────────────────── */}
