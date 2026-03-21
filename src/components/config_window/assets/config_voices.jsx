@@ -45,7 +45,7 @@ export default function SectionConfigVoice() {
                     <InputBorderBlue
                         type='select'
                         important={false}
-                        value={voice_definitive?.name}
+                        value={voice_definitive || ''}
                         textLabel='Listas de voces disponibles'
                         childSelect={
                             listVoicesState.map(voice => ({
@@ -58,7 +58,7 @@ export default function SectionConfigVoice() {
                     />
 
 
-                    <p className='text-center '>Voz selecionada: {voice_definitive ? voice_definitive.name : 'ninguna'}</p>
+                    <p className='text-center '>Voz selecionada: {voice_definitive || 'ninguna'}</p>
 
                     <div className='__center_center __oneGap __width-complete'>
                         <InputBorderBlue

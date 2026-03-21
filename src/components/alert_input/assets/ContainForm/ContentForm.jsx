@@ -30,7 +30,7 @@ import useNotificationSound from '@/hook/useNotificationSound';
 
 export default function ContainForm() {
 
-    const { speak, changeVoice, changueVolume, voices } = useSpeckAlert();
+    const { speak, changeVoice, changueVolume, listVoicesState } = useSpeckAlert();
     const { play } = useNotificationSound();
     const dispatch = useDispatch();
 
@@ -82,9 +82,7 @@ export default function ContainForm() {
 
     useEffect(() => {
         if (voiceDefinitive) {
-            changeVoice(voiceDefinitive, err => {
-                console.log(err)
-            });
+            changeVoice(voiceDefinitive);
         }
         if (volumeDefinitive) changueVolume(Number(volumeDefinitive));
     }, [voiceDefinitive, volumeDefinitive]);
@@ -93,7 +91,7 @@ export default function ContainForm() {
     useEffect(() => {   // Handler listener text on audio 
         let isSubscribed = true;
 
-        dispatch(setVoices(voices));
+        dispatch(setVoices(listVoicesState));
 
         const handlerMsmSocket = msm => {
 
@@ -119,7 +117,7 @@ export default function ContainForm() {
             isSubscribed = false;
             socket_jarvis.off('warnin', handlerMsmSocket);
         }
-    }, [voices]);
+    }, [listVoicesState]);
 
 
 

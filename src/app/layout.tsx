@@ -34,6 +34,7 @@ export const metadata = {
     title: 'Jarvis365',
     description: 'Tu herramienta las 365 días del año',
     icons: [{ rel: 'icon', url: Favicon.src }],
+    manifest: '/manifest.json',
 };
 
 

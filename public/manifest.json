@@ -1,0 +1,22 @@
+{
+    "name": "Jarvis365",
+    "short_name": "Jarvis365",
+    "description": "Tu herramienta las 365 días del año",
+    "start_url": "/Lobby",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#29c50c",
+    "orientation": "any",
+    "icons": [
+        {
+            "src": "/favicon.ico",
+            "sizes": "64x64",
+            "type": "image/x-icon"
+        },
+        {
+            "src": "/ico/icons8-campana-48.png",
+            "sizes": "48x48",
+            "type": "image/png"
+        }
+    ]
+}
