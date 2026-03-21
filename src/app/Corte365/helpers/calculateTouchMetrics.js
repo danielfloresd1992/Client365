@@ -5,7 +5,7 @@
  */
 
 export default function calculateTouchMetrics(franchises, locals, parsedData) {
-    if (!franchises?.length || !locals?.length || !parsedData?.length) return [];
+    if (!locals?.length || !parsedData?.length) return [];
 
     // Paso 1: enriquecer parsedData con info del local (franchise, lang, isEvaluationGroup)
     const enriched = [];
@@ -13,29 +13,57 @@ export default function calculateTouchMetrics(franchises, locals, parsedData) {
         if (!local.touchs?.isRequiredeEvaluation) continue;
         const data = parsedData.find(d => d.name === local.name);
         if (!data) continue;
+
+        // Obtener el ID de franquicia del local
+        const franchiseId = local.franchiseReference?.franchise
+            || local.franchiseReference?._id
+            || null;
+
+        const franchiseName = local.franchiseReference?.name_franchise
+            || local.franchise
+            || local.name;
+
         enriched.push({
             ...data,
             idLocal: local._id,
-            franchise: local.franchise,
+            franchiseId,
+            franchiseName,
             lang: local.lang || 'es',
             isEvaluationGroup: !!local.touchs.isEvaluationGroup,
         });
     }
 
+    if (!enriched.length) return [];
+
     // Paso 2: agrupar por franquicia (o individual si isEvaluationGroup === false)
     const groups = [];
-    for (const fr of franchises) {
-        const group = [];
-        for (const item of enriched) {
-            if (item.idLocal === fr._id) {
-                if (!item.isEvaluationGroup) {
-                    groups.push([item]);
-                } else {
-                    group.push(item);
+
+    if (franchises?.length) {
+        for (const fr of franchises) {
+            const group = [];
+            for (const item of enriched) {
+                // Comparar franchise ID del local con el ID de la franquicia
+                const itemFrId = String(item.franchiseId || '');
+                const frId = String(fr._id || '');
+
+                if (itemFrId === frId) {
+                    if (!item.isEvaluationGroup) {
+                        groups.push([item]);
+                    } else {
+                        group.push(item);
+                    }
                 }
             }
+            if (group.length) groups.push(group);
         }
-        if (group.length) groups.push(group);
+    }
+
+    // Fallback: locales que no matchearon ninguna franquicia, agrupar individualmente
+    const matched = new Set(groups.flat().map(i => i.idLocal));
+    for (const item of enriched) {
+        if (!matched.has(item.idLocal)) {
+            groups.push([item]);
+        }
     }
 
     // Paso 3: calcular porcentajes por manager
@@ -64,7 +92,7 @@ export default function calculateTouchMetrics(franchises, locals, parsedData) {
 
             return {
                 name: data.name,
-                franchise: data.franchise,
+                franchise: data.franchiseName,
                 lang: data.lang,
                 rotaciones,
                 resultEvaluation,

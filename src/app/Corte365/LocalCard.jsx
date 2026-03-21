@@ -5,6 +5,8 @@ import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
 export default function LocalCard({ local, formValues, onChange }) {
     if (!local || !formValues) return null;
 
+    console.log(local);
+
     const { dishMenu, touchs, managers } = local;
 
     const activeManagers = (managers || [])
@@ -30,7 +32,7 @@ export default function LocalCard({ local, formValues, onChange }) {
         : null;
 
     const INPUT_CLS = 'w-full text-gray-800 border border-[#333] rounded-lg px-3 py-2 text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 transition-colors';
-    const INPUT_SM_CLS = 'flex-1 text-gray-800 font-black border border-[#333] rounded-lg px-2 py-1.5 text-xs  text-center placeholder:text-gray-600 disabled:bg-[#dddddd] disabled:text-gray-700 focus:outline-none focus:border-emerald-500';
+    const INPUT_SM_CLS = 'w-[30%] flex-1 text-gray-800 font-black border border-[#333] rounded-lg px-2 py-1.5 text-xs  text-center placeholder:text-gray-600 disabled:bg-[#dddddd] disabled:text-gray-700 focus:outline-none focus:border-emerald-500';
     const LABEL_CLS = 'text-[11px] font-semibold text-gray-600 uppercase tracking-wide';
 
 
@@ -46,7 +48,7 @@ export default function LocalCard({ local, formValues, onChange }) {
                     onChange={() => togglePresence(managerKey)}
                     className='w-4 h-4 accent-emerald-500 shrink-0 cursor-pointer'
                 />
-                <span className={`text-xs min-w-[120px] ${t.present ? 'text-gray-200' : 'text-gray-600 line-through'}`}>
+                <span className={`text-xs min-w-[120px] ${t.present ? 'text-black' : 'text-gray-600 line-through'}`}>
                     {label}
                 </span>
 
@@ -91,14 +93,12 @@ export default function LocalCard({ local, formValues, onChange }) {
 
     return (
         <div
-            className='border border-[#2a2a2a] rounded-xl overflow-hidden shadow-lg'
-            style={{ order: local.order ?? 0 }}
-        >
+            className='border border-[#2a2a2a] rounded-xl overflow-hidden shadow-lg'>
             {/* ── Header ──────────────────────────────────────────────── */}
-            <div className='bg-gradient-to-r from-emerald-900 to-emerald-800 px-4 py-3 flex items-center justify-between gap-3'>
+            <div className='bg-gradient-to-r from-green-800 to-lime-400 px-4 py-3 flex items-center justify-between gap-3'>
                 <h3 className='text-sm font-bold text-white truncate'>{local.name}</h3>
-                {imgSrc && (
-                    <img src={imgSrc} alt={local.name}
+                {local?.image && (
+                    <img src={local?.image} alt={local.name}
                         className='w-8 h-8 rounded-md object-cover bg-white/10 shrink-0' />
                 )}
             </div>
@@ -151,7 +151,7 @@ export default function LocalCard({ local, formValues, onChange }) {
 
                 {/* ── Toques de gerente ────────────────────────────────── */}
                 {touchList.length > 0 && (
-                    <div className='w-full'>
+                    <div className='w-ful'>
                         <p className={`${LABEL_CLS} mb-1`}>Toques de gerente</p>
                         {isDetailedTouch && (
                             <div className='flex items-center gap-2 py-1 mb-1'>

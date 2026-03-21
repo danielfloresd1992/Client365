@@ -1,17 +1,20 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
+import { toJpeg } from 'html-to-image';
 
 import useAuthOnServer from '@/hook/auth';
 import useAxios from '@/hook/useAxios';
 import LoandingData from '@/components/loandingComponent/loanding';
-
+import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import LocalCard from './LocalCard';
 import parseCorteData from './helpers/parseCorteData';
 import formatCorteText from './helpers/formatCorteText';
 import calculateDishMetrics from './helpers/calculateDishMetrics';
 import calculateTouchMetrics from './helpers/calculateTouchMetrics';
+import IndicatorProcesses from './indicators/IndicatorProcesses';
+import IndicatorTouches from './indicators/IndicatorTouches';
 
 
 const BOT_URL = 'https://amazona365.ddns.net:4000/bot/img';
@@ -22,43 +25,53 @@ export default function CorteForm() {
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
     const dispatch = useDispatch();
+    const clients = useSelector(state => state.clients);
+    const [locals, setLocals] = useState([]);
     const { requestAction } = useAxios();
 
-    const [locals, setLocals] = useState([]);
+
     const [franchises, setFranchises] = useState([]);
     const [formData, setFormData] = useState({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
+    // Métricas calculadas para renderizar indicadores ocultos
+    const [dishMetrics, setDishMetrics] = useState([]);
+    const [touchMetrics, setTouchMetrics] = useState([]);
+
+    // Refs para captura de imágenes
+    const processRef = useRef(null);
+    const touchRef = useRef(null);
+
 
     /* ── Carga inicial ────────────────────────────────────────────────── */
     useEffect(() => {
-        loadData();
-    }, []);
+        clients && loadData(clients);
+    }, [clients]);
 
-    const loadData = async () => {
+
+
+    const loadData = async (list) => {
         try {
             setIsLoading(true);
 
-            // 1) Obtener lista ligera de locales
-            const resLocals = await requestAction({ url: '/localforCort', action: 'GET' });
-            if (resLocals.status !== 200) return;
-
-            const lightLocals = (resLocals.data || [])
-                .filter(l => l.typeMonitoring !== 'perimetral')
-           
 
             // 2) Obtener detalles de cada local en paralelo
             const details = await Promise.allSettled(
-                lightLocals.map(l =>
+                list.map(l =>
                     requestAction({ url: `/local&manager/id=${l._id}`, action: 'GET' })
                         .then(r => r.status === 200 ? r.data : null)
                 )
             );
 
+            console.log(details);
+
             const fullLocals = details
                 .map(r => r.status === 'fulfilled' ? r.value : null)
-                .filter(l => l && l.typeMonitoring !== 'perimeter');
+                .filter(l => l && l.typeMonitoring.toLowerCase() === 'analytical' || l.typeMonitoring.toLowerCase() ==='completo');
+
+            console.log(fullLocals);
+
 
             // 3) Obtener franquicias
             let fr = [];
@@ -70,7 +83,6 @@ export default function CorteForm() {
             // 4) Inicializar formData para cada local
             const initial = {};
             for (const local of fullLocals) {
-     
                 initial[local._id] = buildInitialFormData(local);
             }
 
@@ -119,7 +131,6 @@ export default function CorteForm() {
             managers.filter(m => m.burden === 'Gerente').forEach(addManager);
             managers.filter(m => m.burden === 'Asistente').forEach(addManager);
         } else {
-            // Fallback genérico
             for (let i = 0; i < (local.touchs?.totalManager || 0); i++) {
                 const key = `Gerente_${i + 1}`;
                 fd.toques[key] = isDetailed
@@ -147,6 +158,86 @@ export default function CorteForm() {
     }, []);
 
 
+    /* ── Capturar indicadores como imágenes y enviar al bot ────────────── */
+    const captureAndSendImages = async (dishData, touchData) => {
+        const sendImage = async (element, name) => {
+            // html-to-image necesita que el elemento esté visible en el viewport.
+            // Temporalmente lo movemos a left:0 para la captura.
+            const prevLeft = element.style.left;
+            const prevZIndex = element.style.zIndex;
+            const prevPointerEvents = element.style.pointerEvents;
+            element.style.left = '0';
+            element.style.zIndex = '-1';
+            element.style.pointerEvents = 'none';
+
+            try {
+                // Dar un frame al browser para aplicar estilos
+                await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+                const dataUrl = await toJpeg(element, {
+                    quality: 0.5,
+                    backgroundColor: '#ffffff',
+                    pixelRatio: 1,
+                });
+                const base64 = dataUrl.split(';base64,')[1];
+                const fd = new FormData();
+                fd.append('my-file', base64);
+                fd.append('my-text', name);
+                await fetch(BOT_URL, { method: 'POST', body: fd });
+            } catch (err) {
+                console.error(`Error capturando imagen "${name}":`, err);
+            } finally {
+                // Restaurar posición oculta
+                element.style.left = prevLeft;
+                element.style.zIndex = prevZIndex;
+                element.style.pointerEvents = prevPointerEvents;
+            }
+        };
+
+        // Esperar a que React renderice los indicadores ocultos
+        await new Promise(r => setTimeout(r, 500));
+
+        // 1) Capturar indicadores de procesos
+        if (processRef.current && dishData.length > 0) {
+            const name = processRef.current.getAttribute('data-name') || 'Indicadores de procesos';
+            await sendImage(processRef.current, name);
+        }
+
+        // 2) Capturar cada grupo de indicadores de toques
+        if (touchRef.current && touchData.length > 0) {
+            // Mover el wrapper padre a left:0 temporalmente
+            const parent = touchRef.current;
+            const prevParentLeft = parent.style.left;
+            parent.style.left = '0';
+            parent.style.zIndex = '-1';
+
+            await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+            const groups = parent.querySelectorAll('.touch-indicator-group');
+            for (const group of groups) {
+                const name = group.getAttribute('data-name') || 'Indicadores de toques';
+                try {
+                    const dataUrl = await toJpeg(group, {
+                        quality: 0.5,
+                        backgroundColor: '#ffffff',
+                        pixelRatio: 1,
+                    });
+                    const base64 = dataUrl.split(';base64,')[1];
+                    const fd = new FormData();
+                    fd.append('my-file', base64);
+                    fd.append('my-text', name);
+                    await fetch(BOT_URL, { method: 'POST', body: fd });
+                } catch (err) {
+                    console.error(`Error capturando imagen "${name}":`, err);
+                }
+            }
+
+            parent.style.left = prevParentLeft;
+            parent.style.zIndex = '';
+        }
+    };
+
+
     /* ── Submit ────────────────────────────────────────────────────────── */
     const handleSubmit = async e => {
         e.preventDefault();
@@ -161,13 +252,12 @@ export default function CorteForm() {
             // Texto formateado para bot
             const text = formatCorteText(parsed, username);
 
-            // Métricas (para futuro uso con imágenes)
-            const dishMetrics = calculateDishMetrics(locals, parsed);
-            const touchMetrics = calculateTouchMetrics(franchises, locals, parsed);
+            // Calcular métricas y renderizar indicadores ocultos
+            const dMetrics = calculateDishMetrics(locals, parsed);
+            const tMetrics = calculateTouchMetrics(franchises, locals, parsed);
 
-            console.log('Corte parsed:', parsed);
-            console.log('Dish metrics:', dishMetrics);
-            console.log('Touch metrics:', touchMetrics);
+            setDishMetrics(dMetrics);
+            setTouchMetrics(tMetrics);
 
             // Enviar corte al backend
             await requestAction({
@@ -184,8 +274,13 @@ export default function CorteForm() {
             try {
                 const fd = new FormData();
                 fd.append('my-text', text);
-                await fetch(BOT_URL, { method: 'POST', body: fd }).catch(() => {});
+                await fetch(BOT_URL, { method: 'POST', body: fd }).catch(() => { });
             } catch (_) { /* bot es opcional */ }
+
+            // Capturar y enviar imágenes de indicadores al bot
+            try {
+                await captureAndSendImages(dMetrics, tMetrics);
+            } catch (_) { /* imágenes son opcionales */ }
 
             dispatch(setConfigModal({
                 modalOpen: true,
@@ -195,12 +290,14 @@ export default function CorteForm() {
                 isCallback: null,
             }));
 
-            // Reset formulario
+            // Reset formulario y métricas
             const reset = {};
             for (const local of locals) {
                 reset[local._id] = buildInitialFormData(local);
             }
             setFormData(reset);
+            setDishMetrics([]);
+            setTouchMetrics([]);
 
         } catch (err) {
             console.error('Error enviando corte:', err);
@@ -227,17 +324,7 @@ export default function CorteForm() {
     if (isLoading) return <LoandingData title='Cargando establecimientos...' />;
 
 
-    const group = locals.length > 0 && locals.reduce((acc, item) => {
-            const { franchiseReference } = item;
-            const name = franchiseReference?.name_franchise;
-            if (!acc[name]) {
-                acc[name] = [];
-            }
-            acc[name].push(item);
-            return acc;
-        }, {});
-    
-        console.log(group)
+
 
 
     return (
@@ -276,29 +363,24 @@ export default function CorteForm() {
                     <p className='text-center text-gray-600 text-sm mt-10'>
                         No hay establecimientos configurados para corte.
                     </p>
-                ) : 
-                (
-                    
-                    <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
-
-                        {Object.entries(group).map(([key, list], index) => {
-                            console.log(key)
-
-                            return list.map(local => {
-                                return(
-                                    <LocalCard
-                                        key={local._id}
-                                        local={local}
-                                        formValues={formData[local._id]}
-                                        onChange={(field, value) => handleChange(local._id, field, value)}
-                                    />
-                                );
-                            })
-                        })}
-
-                  
-                    </div>
-                )}
+                ) :
+                    (
+                        <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                            {Object.entries(groupByFranchiseComprehensive(locals)).map(([key, list]) => {
+                                console.log(key, list)
+                                return list.map(local => {
+                                    return (
+                                        <LocalCard
+                                            key={local._id}
+                                            local={local}
+                                            formValues={formData[local._id]}
+                                            onChange={(field, value) => handleChange(local._id, field, value)}
+                                        />
+                                    );
+                                })
+                            })}
+                        </div>
+                    )}
 
                 {locals.length > 0 && (
                     <div className='mt-6 flex justify-center'>
@@ -312,6 +394,10 @@ export default function CorteForm() {
                     </div>
                 )}
             </form>
+
+            {/* ── Indicadores ocultos (para captura como imagen) ───── */}
+            <IndicatorProcesses ref={processRef} data={dishMetrics} />
+            <IndicatorTouches ref={touchRef} data={touchMetrics} />
         </div>
     );
 }
