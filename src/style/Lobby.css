@@ -2498,6 +2498,32 @@ body .lobby-noveltie-local {
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body .lobby-noveltie-logoWrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    flex-shrink: 0;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+body .lobby-noveltie-logoWrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+body .divContentNovelties-textContain {
+    flex: 1;
+    min-width: 0;
+    align-items: flex-start;
 }
 
 body .lobby-noveltie-metaItem {
@@ -2719,11 +2745,145 @@ body .lobby-title-row--compact {
 
 
 /* ==================================
-   NOVELTY BUTTONS — MOBILE RESPONSIVE
+   NOVELTY CARD — TABLET RESPONSIVE
+   ================================== */
+@media screen and (max-width: 1024px) {
+
+    /* Header: logo más compacto en tablet */
+    body .lobby-noveltie-logoWrap {
+        width: 58px;
+        height: 58px;
+        border-radius: 12px;
+    }
+
+    body .lobby-noveltie-local {
+        font-size: .92rem;
+    }
+
+    /* Botones de acción: horizontal compacto */
+    body .lobby-noveltie-actionGrid .btnPublic,
+    body .divContentNovelties-divBtn .btnPublic {
+        min-height: 38px;
+        padding: .35rem .2rem;
+        font-size: .7rem;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic > p,
+    body .divContentNovelties-divBtn .btnPublic > p {
+        font-size: .68rem;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic-img,
+    body .divContentNovelties-divBtn .btnPublic-img {
+        width: 15px;
+        height: 15px;
+    }
+}
+
+/* ==================================
+   NOVELTY CARD — MOBILE RESPONSIVE
    ================================== */
 @media screen and (max-width: 767px) {
 
-    /* Action buttons grid: 2x2 on mobile */
+    /* Contenedor principal: full width sin bordes */
+    body .lobby-feed-main {
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    body .lobby-feed-header {
+        padding: .6rem .5rem;
+    }
+
+    body .lobby-feed-scroll {
+        padding: .4rem 0;
+        gap: .6rem;
+    }
+
+    body .box-Noveltie {
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+
+    body .main-contain {
+        border: none;
+        box-shadow: none;
+    }
+
+    /* Tarjeta: full width sin bordes laterales */
+    body .divContentNovelties {
+        border-radius: 0;
+        margin: 0;
+        border-left: none;
+        border-right: none;
+    }
+
+    /* Header de la tarjeta */
+    body .divContentNovelties-divTitle {
+        padding: .5rem;
+        gap: .5rem;
+        align-items: center;
+    }
+
+    body .lobby-noveltie-logoWrap {
+        width: 46px;
+        height: 46px;
+        border-radius: 10px;
+    }
+
+    body .lobby-noveltie-local {
+        font-size: .85rem;
+    }
+
+    body .divContentNovelties-pTitle {
+        font-size: .78rem;
+    }
+
+    body .divContentNovelties-pDate {
+        font-size: .72rem;
+    }
+
+    body .divContentNovelties-pDateImg {
+        width: 13px;
+        height: 13px;
+    }
+
+    body .contain-btnNoveltie {
+        top: 6px;
+        right: 6px;
+    }
+
+    body .divContentNovelties-headerOption_btn {
+        width: 28px;
+        height: 28px;
+    }
+
+    body .divContentNovelties-headerListOption {
+        width: 180px;
+        right: 0;
+    }
+
+    /* ---- Meta info (compartido por, validado por) ---- */
+    body .lobby-noveltie-metaItem {
+        padding: .1rem .35rem;
+        min-height: 22px;
+    }
+
+    body .lobby-noveltie-metaItem .divContentNovelties-pDate {
+        font-size: .65rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    body .lobby-noveltie-metaItem .divContentNovelties-pDateImg {
+        width: 11px;
+        height: 11px;
+        flex-shrink: 0;
+    }
+
+    /* ---- Botones de acción: grid 2x2 compacto ---- */
     body .lobby-noveltie-actionGrid {
         display: grid !important;
         grid-template-columns: 1fr 1fr;
@@ -2733,10 +2893,9 @@ body .lobby-title-row--compact {
     body .lobby-noveltie-actionGrid .btnPublic {
         border-right: none;
         border-bottom: 1px solid var(--app-border);
-        min-height: 44px;
-        padding: .5rem .3rem;
-        flex-direction: column;
-        gap: .2rem;
+        min-height: 36px;
+        padding: .3rem .2rem;
+        gap: .25rem;
     }
 
     body .lobby-noveltie-actionGrid .btnPublic:nth-child(odd) {
@@ -2748,17 +2907,16 @@ body .lobby-title-row--compact {
     }
 
     body .lobby-noveltie-actionGrid .btnPublic-img {
-        width: 18px;
-        height: 18px;
+        width: 16px;
+        height: 16px;
     }
 
     body .lobby-noveltie-actionGrid .btnPublic > p {
-        font-size: .68rem;
-        text-align: center;
-        line-height: 1.2;
+        font-size: .65rem;
+        line-height: 1.1;
     }
 
-    /* Send/download buttons row: stack vertically */
+    /* ---- Botones enviar/descargar: grid 2 col ---- */
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) {
         display: grid !important;
         grid-template-columns: 1fr 1fr;
@@ -2768,10 +2926,9 @@ body .lobby-title-row--compact {
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic {
         border-right: none;
         border-bottom: 1px solid var(--app-border);
-        min-height: 44px;
-        padding: .5rem .3rem;
-        flex-direction: column;
-        gap: .2rem;
+        min-height: 36px;
+        padding: .3rem .2rem;
+        gap: .25rem;
     }
 
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic:nth-child(odd) {
@@ -2783,66 +2940,66 @@ body .lobby-title-row--compact {
     }
 
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic-img {
+        width: 16px;
+        height: 16px;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic > p {
+        font-size: .65rem;
+        line-height: 1.1;
+    }
+
+    /* ---- Área del menú/text editor ---- */
+    body .divContentNovelties-menuContain {
+        padding: .5rem !important;
+    }
+}
+
+/* ==================================
+   NOVELTY CARD — SMALL MOBILE (<480)
+   ================================== */
+@media screen and (max-width: 480px) {
+
+    /* Botones acción: solo iconos, texto oculto */
+    body .lobby-noveltie-actionGrid {
+        grid-template-columns: repeat(4, 1fr) !important;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic {
+        min-height: 40px;
+        border-bottom: none !important;
+        border-right: 1px solid var(--app-border) !important;
+        flex-direction: column;
+        gap: .15rem;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic:last-child {
+        border-right: none !important;
+    }
+
+    body .lobby-noveltie-actionGrid .btnPublic-img {
         width: 18px;
         height: 18px;
     }
 
-    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic > p {
-        font-size: .68rem;
-        text-align: center;
-        line-height: 1.2;
+    body .lobby-noveltie-actionGrid .btnPublic > p {
+        font-size: .55rem;
+        line-height: 1;
     }
 
-    /* Meta info (shared by, validated by): stack vertically */
-    body .lobby-noveltie-metaItem {
-        width: 100%;
-    }
-
-    body .lobby-noveltie-metaItem .divContentNovelties-pDate {
-        font-size: .7rem;
-    }
-
-    /* Header of novelty card */
-    body .divContentNovelties-divTitle {
-        padding: .5rem;
-        gap: .4rem;
-    }
-
-    body .divContentNovelties-pTitle {
-        font-size: .82rem;
-    }
-
-    /* Options menu dropdown */
-    body .divContentNovelties-headerListOption {
-        width: 180px;
-        right: 0;
-    }
-
-    /* Novelty card: full width, no side margins */
-    body .divContentNovelties {
-        border-radius: 8px;
-        margin: 0;
-    }
-}
-
-@media screen and (max-width: 400px) {
-    /* Very small screens: single column buttons */
-    body .lobby-noveltie-actionGrid {
-        grid-template-columns: 1fr !important;
-    }
-
-    body .lobby-noveltie-actionGrid .btnPublic {
-        flex-direction: row;
-        border-right: none !important;
-    }
-
+    /* Botones enviar/descargar: iconos + texto corto en fila */
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
     }
 
     body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic {
-        flex-direction: row;
-        border-right: none !important;
+        min-height: 38px;
+        flex-direction: column;
+        gap: .1rem;
+    }
+
+    body .divContentNovelties-divBtn:not(.lobby-noveltie-actionGrid) .btnPublic > p {
+        font-size: .55rem;
     }
 }
 
@@ -2960,4 +3117,116 @@ body .lobby-aside-filterError {
     font-size: .72rem;
     color: #c05621;
     font-weight: 600;
+}
+
+
+/* ==================================
+   NOVELTY — USER CHIPS HOVER ANIMATIONS
+   ================================== */
+
+/* Shimmer keyframe — brillo que recorre la tarjeta */
+@keyframes novelty-shimmer {
+    0%   { left: -100%; }
+    100% { left: 100%; }
+}
+
+/* Pulse glow del icono */
+@keyframes novelty-icon-pulse {
+    0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0.6); }
+    50%  { transform: scale(1.15); box-shadow: 0 0 12px 4px rgba(255,255,255,0.3); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+
+/* Base chip — todos comparten esto */
+.novelty-chip {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-radius: 9999px;
+    cursor: pointer;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Shimmer overlay (invisible por defecto) */
+.novelty-chip::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0) 20%,
+        rgba(255,255,255,0.45) 50%,
+        rgba(255,255,255,0) 80%,
+        transparent 100%
+    );
+    pointer-events: none;
+    z-index: 2;
+}
+
+/* Hover: elevación + sombra coloreada + shimmer */
+.novelty-chip:hover {
+    transform: translateY(-3px) scale(1.04);
+    box-shadow: 0 8px 25px var(--chip-glow, rgba(59,130,246,0.35));
+}
+
+.novelty-chip:hover::after {
+    animation: novelty-shimmer 0.6s ease-out forwards;
+}
+
+/* Active: press */
+.novelty-chip:active {
+    transform: translateY(0) scale(0.97);
+    transition-duration: 0.1s;
+}
+
+/* Avatar/icon container dentro del chip */
+.novelty-chip .novelty-chip-icon {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+.novelty-chip:hover .novelty-chip-icon {
+    animation: novelty-icon-pulse 0.5s ease-out;
+}
+
+/* Texto: sutil slide al hover */
+.novelty-chip .novelty-chip-text {
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.novelty-chip:hover .novelty-chip-text {
+    transform: translateX(2px);
+}
+
+/* ---- Variantes de color por chip ---- */
+
+/* Operador — azul */
+.novelty-chip--operador {
+    --chip-glow: rgba(59, 130, 246, 0.35);
+}
+.novelty-chip--operador:hover {
+    background: linear-gradient(135deg, rgba(59,130,246,0.08), rgba(59,130,246,0.02));
+}
+
+/* Coordinador — morado */
+.novelty-chip--coordinador {
+    --chip-glow: rgba(139, 92, 246, 0.35);
+}
+.novelty-chip--coordinador:hover {
+    background: linear-gradient(135deg, rgba(139,92,246,0.08), rgba(139,92,246,0.02));
+}
+
+/* Envío / WhatsApp — verde */
+.novelty-chip--envio {
+    --chip-glow: rgba(34, 197, 94, 0.35);
+}
+.novelty-chip--envio:hover {
+    background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02));
 }

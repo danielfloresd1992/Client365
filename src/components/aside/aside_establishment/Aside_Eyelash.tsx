@@ -290,14 +290,14 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
                     <div className='flex gap-[0.5rem] flex-col justify-center items-center h-full overflow-hidden'>
                         {returnImage()}
-                        <h2 className='hidden md:block text-white [writing-mode:vertical-rl] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(12px,2.5vh,24px)] flex-1 min-h-0'>{title}</h2>
+                        <h2 className='hidden md:flex text-white [writing-mode:vertical-rl] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(10px,1.5vh,14px)] min-h-0 '>{title}</h2>
                     </div>
 
                     {printNotifications()}
 
                     <div className='flex gap-[0.5rem] flex-col justify-center items-center h-full overflow-hidden'>
                         {returnImage()}
-                        <h2 className='hidden md:block text-white [writing-mode:sideways-lr] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(12px,2.5vh,24px)] flex-1 min-h-0'>{title}</h2>
+                        <h2 className='hidden md:flex text-white [writing-mode:sideways-lr] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(10px,1.5vh,14px)] min-h-0'>{title}</h2>
                     </div>
 
                 </div>

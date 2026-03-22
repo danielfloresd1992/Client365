@@ -82,27 +82,27 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
 
     return (
         <div
-            className='h-[500px] relative bg-black'
+            className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] relative bg-black'
             ref={ref}
         >
             <DynamicSlider {...setting}>
-                <img className='h-[500px] object-contain' src={changeHostNameForImg(imageShare)} alt='share-image' />
+                <img className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] object-contain' src={changeHostNameForImg(imageShare)} alt='share-image' />
                 {
                     video ?
-                        <video className='h-[500px]' controls>
+                        <video className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] w-full' controls>
                             <source src={changeHostNameForImg(video)} autoPlay={true} loop={true} type="video/mp4" />
                         </video>
                         : null
                 }
                 {
                     Array.isArray(imageGroup) && imageGroup.length > 1 ?
-                        <div className='h-[500px] w-full'>
+                        <div className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] w-full'>
                             <div className='w-full h-full flex flex-wrap direction-row justify-center items-center'>
                                 {
                                     imageGroup.map((img, index) => (
                                         <div className='h-[50%] w-[50%] relative' key={`${img.caption}-${index}`}>
 
-                                            <img className='h-full w-full' src={changeHostNameForImg(img.url)} key={index} alt='novelty-sequence' />
+                                            <img className='h-full w-full object-cover' src={changeHostNameForImg(img.url)} key={index} alt='novelty-sequence' />
                                             <div className='bottom-[0] left-[0] absolute p-[.1rem_1rem] flex justify-center items-center'
                                                 style={{
                                                     backgroundColor: '#43c700a6',

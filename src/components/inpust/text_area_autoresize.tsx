@@ -41,11 +41,11 @@ export default memo(function TextAreaAutoResize({ value, changeEvent, disabled, 
 
 
     return (
-        <div className='w-full h-[fit-content] border border-custom-gray rounded-md bg-[#d3d3d3]'>
-            <div className='w-full p-[.5rem] flex justify-between items-center'>
-                <p>Texto para el cliente</p>
+        <div className='w-full h-[fit-content] border border-custom-gray  bg-[#d3d3d3]'>
+            <div className='w-full p-[.5rem] flex justify-between items-center text-[12px] font-semibold text-gray-500'>
+                <p className=''>Texto para el cliente</p>
                 {
-                    editedBy ? <p>Editado por {editedBy}</p> : null
+                    editedBy ? <p>Editado por <span className='font-bold text-primary-700'>{editedBy}</span></p> : null
                 }
             </div>
 

@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect, useRef, useContext } from 'react';
-import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal } from 'react-icons/fi';
-
+import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
+import { FaWhatsapp } from "react-icons/fa";
+import { isMobile } from 'react-device-detect';
 
 import useAxios from "@/hook/useAxios";
 import DataFormart from '@/libs/time/dateFormat.js';
@@ -116,7 +117,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
-                 
+
                     }
                 })
                 .catch(err => {
@@ -249,10 +250,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     return (
         <div
+        style={{
+            boxShadow: 'rgb(167 167 167) 4px 4px 8px 1px'
+        }}
             onClick={() => {
-              if (process.env.NODE_ENV === 'development') console.log(noveltyState);
+                if (process.env.NODE_ENV === 'development') console.log(noveltyState);
             }}
-            className={data.isNewData ? 'divContentNovelties start' : 'divContentNovelties'}
+            className={`${data.isNewData ? 'start' : ''} divContentNovelties shadow-md bg-gray-600`}
             ref={ref}
         >
             {
@@ -260,13 +264,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                     (
                         <>
                             <div className='divContentNovelties-divTitle'>
-                                <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    height: '80x',
-                                    width: '80px',
-                                }}>
+                                <div className='lobby-noveltie-logoWrap'>
                                     <Img idLocal={noveltyState.local.idLocal} />
                                 </div>
 
@@ -330,7 +328,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             </div>
 
 
-                            <div className={isNotLobby ? 'none' : 'divContentNovelties-text divContentNovelties-menuContain p-[1rem]'} ref={menuRef}>
+                            <div className={isNotLobby ? 'none' : 'divContentNovelties-text divContentNovelties-menuContain'} ref={menuRef}>
                                 <TextAreaAutoResize
                                     value={noveltyState.menu ? parseMenu(noveltyState.menu) : ''}
                                     changeEvent={text => {
@@ -361,33 +359,57 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             />
 
 
-    
 
-                            <div className='p-[.6rem_.5rem] flex items-center justify-between flex-wrap gap-2'>
 
-                                <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
-                                    {/* DATOS RELACIONADOS DE LA PERSONA QUE PUBLICO LA ALERTA */}
+                            <div className='p-[.8rem_.5rem] flex items-center justify-start flex-wrap gap-[6px]'>
+
+                                {/*operador*/}
+                                <div className='novelty-chip novelty-chip--operador'>
                                     {
                                         noveltyState?.sharedByUser?.user?.id?.img ?
-                                            <img className='w-[25px] h-[25px] object-cover rounded-full' src={noveltyState?.sharedByUser?.user?.id?.img} alt='ico-user' />
+                                            <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.sharedByUser?.user?.id?.img} alt='ico-user' />
                                             :
-                                            <FiUser className='divContentNovelties-pDateImg' />
-
+                                            <div className='novelty-chip-icon flex justify-center items-center w-[40px] h-[40px] min-w-[40px] rounded-full bg-stone-500'>
+                                                <FiUser className='w-[22px] h-[22px]' stroke='white' />
+                                            </div>
                                     }
-                                    <p className='divContentNovelties-pDate'>Compartido por {noveltyState?.sharedByUser?.user.nameUser} </p>
+                                    <div className='novelty-chip-text flex flex-col p-[0px_15px_0px_0px]'>
+                                        <p className='text-[11px]'>operador</p>
+                                        <p className='font-semibold text-[12px] text-primary-800'>{noveltyState?.sharedByUser?.user.nameUser}</p>
+                                    </div>
                                 </div>
+
+
+                                {/*envio*/}
                                 {
                                     typeof validationValue === 'boolean' ?
                                         (
-                                            <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
+
+                                            <div className='novelty-chip novelty-chip--coordinador'>
                                                 {
                                                     noveltyState?.validationResult?.validatedByUser?.user?.id?.img ?
-                                                        <img className='w-[25px] h-[25px] object-cover rounded-full' src={noveltyState?.validationResult?.validatedByUser?.user?.id?.img} alt='ico-user' />
+                                                        <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.validationResult?.validatedByUser?.user?.id?.img} alt='ico-user' />
                                                         :
-                                                        <FiShield className='divContentNovelties-pDateImg' />
+                                                        <div className='novelty-chip-icon flex justify-center items-center w-[40px] h-[40px] min-w-[40px] rounded-full bg-purple-500'>
+                                                            <FiShield className='w-[22px] h-[22px]' stroke='white' />
+                                                        </div>
                                                 }
-
-                                                <p className='divContentNovelties-pDate'>Validado por {noveltyState?.isValidate?.for}</p>
+                                                <div className='novelty-chip-text flex flex-col p-[0px_15px_0px_0px]'>
+                                                    <p className='text-[11px]'>Coordinador</p>
+                                                    <p className='font-semibold text-[12px] text-primary-800'>{noveltyState?.isValidate?.for}</p>
+                                                </div>
+                                                {
+                                                    typeof isValidated === 'boolean' ?
+                                                        <div className={`novelty-chip-icon w-[40px] h-[40px] flex justify-center items-center rounded-r-full ${isInvalid ? 'bg-[#891616]' : 'bg-[#161a89]'}`}>
+                                                            {
+                                                                isInvalid ?
+                                                                    <FiThumbsDown className='w-[18px] h-[18px] text-white' stroke='white' />
+                                                                    :
+                                                                    <FiThumbsUp className='w-[18px] h-[18px] text-white' stroke='white' />
+                                                            }
+                                                        </div>
+                                                        : null
+                                                }
                                             </div>
                                         )
                                         :
@@ -396,12 +418,19 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                         )
 
                                 }
+
+
+
+                                {/*validador*/}
                                 {
                                     noveltyState.givenToTheGroup ?
                                         (
-                                            <div className='divContentNovelties-textContain __row-text lobby-noveltie-metaItem'>
-                                                <FiSend className='divContentNovelties-pDateImg' />
-                                                <p className='divContentNovelties-pDate'>Enviado a Amazonas Activo</p>
+
+                                            <div className='novelty-chip novelty-chip--envio'>
+                                                <p className='novelty-chip-text font-semibold text-[12px] text-primary-800 p-[0px_5px_0px_15px] truncate'>Enviado a amazonas365</p>
+                                                <div className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] flex justify-center items-center bg-[#18e018] rounded-r-full'>
+                                                    <FaWhatsapp className='w-[20px] h-[20px]' style={{ color: 'white' }} />
+                                                </div>
                                             </div>
                                         )
                                         :
@@ -412,208 +441,215 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             </div>
 
 
-                            <div className='divContentNovelties-divBtn lobby-noveltie-actionGrid' style={{ gap: 0, overflow: 'hidden' }}>
-                                <button
-                                    className={isValidated ? 'btnPublic __btn-blue' : 'btnPublic'}
-                                    onClick={() => {
-                                        putValidateNoveltie(noveltyState._id, {
-                                            validationResult: {
-                                                isApproved: true
-                                            },
-                                            isValidate: {
-                                                ...noveltyState.isValidate,
-                                                validation: 'true',
-                                                for: `${user.name} ${user.surName}`
-                                            }
-                                        });
-                                    }}
-                                    disabled={permissionUser}
-                                    title={permissionUser ? 'Sin permiso para validar' : 'Validar para poder enviar'}
-                                >
-                                    <FiCheckCircle className='btnPublic-img' />
-                                    <p style={isValidated ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Aprobar</p>
-                                </button>
-
-                                <button
-                                    className={isInvalid ? 'btnPublic __btn-red' : 'btnPublic'}
-                                    onClick={() => {
-                                        putValidateNoveltie(noveltyState._id, {
-                                            validationResult: {
-                                                isApproved: false
-                                            },
-                                            isValidate: {
-                                                ...noveltyState.isValidate,
-                                                validation: 'false',
-                                                for: `${user.name} ${user.surName}`
-                                            }
-                                        });
-                                    }}
-                                    disabled={permissionUser}
-                                    title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
-                                >
-                                    <FiXCircle className='btnPublic-img' />
-                                    <p style={isInvalid ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Rechazar</p>
-                                </button>
-
-
-
-                                <button
-                                    className={noveltyState.shift === 'day' ? `btnPublic __day` : 'btnPublic'}
-                                    onClick={() => {
-                                        putValidateNoveltie(noveltyState._id, {
-                                            shift: 'day'
-                                        });
-                                    }}
-                                    disabled={permissionUser && !isValidated}
-                                    title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
-                                >
-                                    <FiSun className='btnPublic-img' />
-                                    <p className='__textGrayForList'
-                                        style={{
-                                            color: noveltyState.shift === 'day' ? 'rgb(73 73 73)' : 'unset'
-                                        }}
-                                    >Turno día</p>
-                                </button>
-                                <button
-                                    className={noveltyState.shift === 'night' ? `btnPublic __night` : 'btnPublic'}
-                                    onClick={() => {
-                                        putValidateNoveltie(noveltyState._id, {
-                                            shift: 'night'
-                                        });
-                                    }}
-                                    disabled={permissionUser}
-                                    title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
-                                >
-                                    <FiMoon className='btnPublic-img' />
-                                    <p className='__textGrayForList'
-                                        style={{
-                                            color: noveltyState.shift === 'night' ? 'white' : 'unset'
-                                        }}
-                                    >Turno noche</p>
-                                </button>
-
-                            </div>
-
-
-
-                            <div className='divContentNovelties-divBtn' style={{ gap: 0, borderRadius: '0 0 5px 5px', overflow: 'hidden' }}>
-                                {
-                                    isVideoBooleanState ?
-                                        <>
+                            {
+                                !isMobile ? (
+                                    <>
+                                        <div className='divContentNovelties-divBtn lobby-noveltie-actionGrid' style={{ gap: 0, overflow: 'hidden' }}>
                                             <button
-                                                className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
-                                                onClick={e => {
-                                                    e.preventDefault()
-
-                                                    axiosInstance.get(changeHostNameForImg(noveltyState.videoUrl), { responseType: 'blob' })
-                                                        .then(response => {
-                                                            const blob = new Blob([response.data], { type: response.data.type });
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const link = document.createElement('a');
-                                                            link.href = url;
-                                                            link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`; // Nombre del archivo al descargar
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            document.body.removeChild(link);
-                                                        });
-
-                                                }
-                                                }
-                                                disabled={!canShare}
-                                                title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
-                                            >
-                                                <FiDownload className='btnPublic-img' />
-                                                <p className='__textGrayForList'>Descargar video</p>
-
-
-
-                                            </button>
-                                            {
-                                                <button //button whastapp
-                                                    className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
-                                                    type='button'
-                                                    onClick={() => {
-                                                        dispatch(setConfigModal(
-                                                            {
-                                                                modalOpen: true,
-                                                                title: 'Enviando',
-                                                                description: 'Por favor verifique que el video este en el grupo. en caso de no estarlo, descárgalo',
-                                                                isCallback: null,
-                                                                type: 'warning'
-                                                            }
-                                                        ));
-                                                        shareNoveltyForApiAva()
-                                                    }
-                                                    }
-                                                    disabled={!canShare}
-                                                    title={permissionUser ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
-                                                >
-                                                    <FiSend className='btnPublic-img' />
-                                                    <p className='__textGrayForList'>Enviar video</p>
-                                                </button>
-
-                                            }
-
-                                        </>
-                                        :
-                                        null
-                                }
-                                {
-                                    noveltyState.imageToShare ?
-                                        <>
-                                            <button
-                                                className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
-                                                onClick={e => {
-                                                    e.preventDefault()
-
-                                                    axiosInstance.get(changeHostNameForImg(noveltyState.imageToShare), { responseType: 'blob' })
-                                                        .then(response => {
-                                                            const blob = new Blob([response.data], { type: response.data.type });
-                                                            const url = window.URL.createObjectURL(blob);
-                                                            const link = document.createElement('a');
-                                                            link.href = url;
-                                                            link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`;
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            document.body.removeChild(link);
-                                                        });
-
-                                                }
-                                                }
-                                                disabled={!canShare}
-                                                title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
-                                            >
-                                                <FiDownload className='btnPublic-img' />
-                                                <p className='__textGrayForList'>Descargar imagen</p>
-                                            </button>
-
-                                            <button //button for image
-                                                className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
-                                                onClick={e => {
-                                                    e.preventDefault()
-                                                    dispatch(setConfigModal(
-                                                        {
-                                                            modalOpen: true,
-                                                            title: 'Enviando',
-                                                            description: '',
-                                                            isCallback: null,
-                                                            type: 'await'
+                                                className={isValidated ? 'btnPublic __btn-blue' : 'btnPublic'}
+                                                onClick={() => {
+                                                    putValidateNoveltie(noveltyState._id, {
+                                                        validationResult: {
+                                                            isApproved: true
+                                                        },
+                                                        isValidate: {
+                                                            ...noveltyState.isValidate,
+                                                            validation: 'true',
+                                                            for: `${user.name} ${user.surName}`
                                                         }
-                                                    ));
-                                                    shareNoveltyForApiAva(noveltyState.imageToShare);
-                                                }
-                                                }
-                                                disabled={!canShare}
-                                                title={permissionUser ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
+                                                    });
+                                                }}
+                                                disabled={permissionUser}
+                                                title={permissionUser ? 'Sin permiso para validar' : 'Validar para poder enviar'}
                                             >
-                                                <FiSend className='btnPublic-img' />
-                                                <p className='__textGrayForList'>Enviar imagen</p>
+                                                <FiCheckCircle className='btnPublic-img' />
+                                                <p style={isValidated ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Aprobar</p>
                                             </button>
-                                        </>
-                                        :
-                                        null
-                                }
-                            </div>
+
+                                            <button
+                                                className={isInvalid ? 'btnPublic __btn-red' : 'btnPublic'}
+                                                onClick={() => {
+                                                    putValidateNoveltie(noveltyState._id, {
+                                                        validationResult: {
+                                                            isApproved: false
+                                                        },
+                                                        isValidate: {
+                                                            ...noveltyState.isValidate,
+                                                            validation: 'false',
+                                                            for: `${user.name} ${user.surName}`
+                                                        }
+                                                    });
+                                                }}
+                                                disabled={permissionUser}
+                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                            >
+                                                <FiXCircle className='btnPublic-img' />
+                                                <p style={isInvalid ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Rechazar</p>
+                                            </button>
+
+
+
+                                            <button
+                                                className={noveltyState.shift === 'day' ? `btnPublic __day` : 'btnPublic'}
+                                                onClick={() => {
+                                                    putValidateNoveltie(noveltyState._id, {
+                                                        shift: 'day'
+                                                    });
+                                                }}
+                                                disabled={permissionUser && !isValidated}
+                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                            >
+                                                <FiSun className='btnPublic-img' />
+                                                <p className='__textGrayForList'
+                                                    style={{
+                                                        color: noveltyState.shift === 'day' ? 'rgb(73 73 73)' : 'unset'
+                                                    }}
+                                                >Turno día</p>
+                                            </button>
+                                            <button
+                                                className={noveltyState.shift === 'night' ? `btnPublic __night` : 'btnPublic'}
+                                                onClick={() => {
+                                                    putValidateNoveltie(noveltyState._id, {
+                                                        shift: 'night'
+                                                    });
+                                                }}
+                                                disabled={permissionUser}
+                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                            >
+                                                <FiMoon className='btnPublic-img' />
+                                                <p className='__textGrayForList'
+                                                    style={{
+                                                        color: noveltyState.shift === 'night' ? 'white' : 'unset'
+                                                    }}
+                                                >Turno noche</p>
+                                            </button>
+
+                                        </div>
+                                        <div className='divContentNovelties-divBtn' style={{ gap: 0, borderRadius: '0 0 5px 5px', overflow: 'hidden' }}>
+                                            {
+                                                isVideoBooleanState ?
+                                                    <>
+                                                        <button
+                                                            className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                            onClick={e => {
+                                                                e.preventDefault()
+
+                                                                axiosInstance.get(changeHostNameForImg(noveltyState.videoUrl), { responseType: 'blob' })
+                                                                    .then(response => {
+                                                                        const blob = new Blob([response.data], { type: response.data.type });
+                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const link = document.createElement('a');
+                                                                        link.href = url;
+                                                                        link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`; // Nombre del archivo al descargar
+                                                                        document.body.appendChild(link);
+                                                                        link.click();
+                                                                        document.body.removeChild(link);
+                                                                    });
+
+                                                            }
+                                                            }
+                                                            disabled={!canShare}
+                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
+                                                        >
+                                                            <FiDownload className='btnPublic-img' />
+                                                            <p className='__textGrayForList'>Descargar video</p>
+
+
+
+                                                        </button>
+                                                        {
+                                                            <button //button whastapp
+                                                                className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
+                                                                type='button'
+                                                                onClick={() => {
+                                                                    dispatch(setConfigModal(
+                                                                        {
+                                                                            modalOpen: true,
+                                                                            title: 'Enviando',
+                                                                            description: 'Por favor verifique que el video este en el grupo. en caso de no estarlo, descárgalo',
+                                                                            isCallback: null,
+                                                                            type: 'warning'
+                                                                        }
+                                                                    ));
+                                                                    shareNoveltyForApiAva()
+                                                                }
+                                                                }
+                                                                disabled={!canShare}
+                                                                title={permissionUser ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
+                                                            >
+                                                                <FiSend className='btnPublic-img' />
+                                                                <p className='__textGrayForList'>Enviar video</p>
+                                                            </button>
+
+                                                        }
+
+                                                    </>
+                                                    :
+                                                    null
+                                            }
+                                            {
+                                                noveltyState.imageToShare ?
+                                                    <>
+                                                        <button
+                                                            className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                            onClick={e => {
+                                                                e.preventDefault()
+
+                                                                axiosInstance.get(changeHostNameForImg(noveltyState.imageToShare), { responseType: 'blob' })
+                                                                    .then(response => {
+                                                                        const blob = new Blob([response.data], { type: response.data.type });
+                                                                        const url = window.URL.createObjectURL(blob);
+                                                                        const link = document.createElement('a');
+                                                                        link.href = url;
+                                                                        link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`;
+                                                                        document.body.appendChild(link);
+                                                                        link.click();
+                                                                        document.body.removeChild(link);
+                                                                    });
+
+                                                            }
+                                                            }
+                                                            disabled={!canShare}
+                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
+                                                        >
+                                                            <FiDownload className='btnPublic-img' />
+                                                            <p className='__textGrayForList'>Descargar imagen</p>
+                                                        </button>
+
+                                                        <button //button for image
+                                                            className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
+                                                            onClick={e => {
+                                                                e.preventDefault()
+                                                                dispatch(setConfigModal(
+                                                                    {
+                                                                        modalOpen: true,
+                                                                        title: 'Enviando',
+                                                                        description: '',
+                                                                        isCallback: null,
+                                                                        type: 'await'
+                                                                    }
+                                                                ));
+                                                                shareNoveltyForApiAva(noveltyState.imageToShare);
+                                                            }
+                                                            }
+                                                            disabled={!canShare}
+                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
+                                                        >
+                                                            <FiSend className='btnPublic-img' />
+                                                            <p className='__textGrayForList'>Enviar imagen</p>
+                                                        </button>
+                                                    </>
+                                                    :
+                                                    null
+                                            }
+                                        </div>
+
+                                    </>
+                                )
+
+                                    :
+                                    null
+                            }
                         </>
                     )
                     :
