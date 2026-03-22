@@ -32,11 +32,30 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
 
     const [alertState, setAlertState] = useState<T_Alert[]>([]);
+    const [headerHeight, setHeaderHeight] = useState(56);
 
 
     const styleInit: any = {};
     const refElement = useRef<HTMLDivElement>(null);
     const elementContentChildren = useRef<HTMLDivElement>(null);
+
+
+    // Observar la altura del header para adaptarse cuando crece
+    useEffect(() => {
+        const header = document.querySelector('.header-main') as HTMLElement;
+        if (!header) return;
+
+        const updateHeight = () => {
+            setHeaderHeight(header.offsetHeight);
+        };
+
+        updateHeight();
+
+        const ro = new ResizeObserver(updateHeight);
+        ro.observe(header);
+
+        return () => ro.disconnect();
+    }, []);
 
 
     if (position === 'r' || position === undefined) {
@@ -252,11 +271,15 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
     return (
         <aside
-            className='fixed w-[400px] h-full top-0 left-[1200] z-[100] shadow-[1px_10px_20px_7px_#00000094] bg-white flex justify-center items-center transition duration-300 ease-in-out hover:scale-105'
-            style={styleInit}
+            className='fixed w-[400px] max-w-[90vw] z-[100] shadow-[1px_10px_20px_7px_#00000094] bg-white flex justify-center items-center transition duration-300 ease-in-out hover:scale-105'
+            style={{
+                ...styleInit,
+                top: `${headerHeight}px`,
+                height: `calc(100vh - ${headerHeight}px)`,
+            }}
             ref={refElement}
         >
-            <div className='absolute w-[120%] h-[80%] bg-[#db6b36] rounded-[30px] shadow-[1px_10px_20px_7px_#00000094] p-[.4rem]'
+            <div className='absolute w-[120%] bg-[#db6b36] rounded-[30px] shadow-[1px_10px_20px_7px_#00000094] p-[.4rem]'
                 style={{
                     height: '25%',
                     top: seletColor(eyelash).position,
@@ -265,22 +288,22 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
             >
                 <div className='relative w-full h-full flex justify-between items-center '>
 
-                    <div className='flex gap-[0.5rem] flex flex-col justify-center items-center'>
+                    <div className='flex gap-[0.5rem] flex-col justify-center items-center h-full overflow-hidden'>
                         {returnImage()}
-                        <h2 className='text-white [writing-mode:vertical-rl] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(16px, 3vw, 24px)] '>{title}</h2>
+                        <h2 className='hidden md:block text-white [writing-mode:vertical-rl] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(12px,2.5vh,24px)] flex-1 min-h-0'>{title}</h2>
                     </div>
 
                     {printNotifications()}
 
-                    <div className='flex gap-[0.5rem] flex flex-col justify-center items-center'>
+                    <div className='flex gap-[0.5rem] flex-col justify-center items-center h-full overflow-hidden'>
                         {returnImage()}
-                        <h2 className='text-white [writing-mode:sideways-lr] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(16px, 3vw, 24px)]'>{title}</h2>
+                        <h2 className='hidden md:block text-white [writing-mode:sideways-lr] [text-orientation:mixed] whitespace-nowrap overflow-hidden text-ellipsis text-[clamp(12px,2.5vh,24px)] flex-1 min-h-0'>{title}</h2>
                     </div>
 
                 </div>
             </div>
 
-            <div className='w-full h-full bg-white z-[200] flex justify-center items-center p-[40px_0px_30px_0] '>
+            <div className='w-full h-full bg-white z-[200] flex justify-center items-center p-[10px_0px_10px_0] '>
                 <div className='w-full h-full flex justify-center items-center'
                     ref={elementContentChildren}
                 >

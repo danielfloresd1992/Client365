@@ -12,7 +12,7 @@ import useSpeckAlert from '@/hook/useSpeckAlert';
 export default function SectionConfigVoice() {
 
 
-    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState, speak, currentEngine, downloadProgress } = useSpeckAlert();
+    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState, speak, currentEngine, downloadProgress, isLoading } = useSpeckAlert();
 
 
 
@@ -41,6 +41,12 @@ export default function SectionConfigVoice() {
 
             </div>
             <div className='w-full h-[50%]'>
+                {isLoading && (
+                    <div className='w-full flex items-center justify-center gap-2 py-2'>
+                        <div className='animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent'></div>
+                        <p className='text-sm' style={{ color: '#7b8494' }}>Cargando motor de voz...</p>
+                    </div>
+                )}
                 <div className='w-full h-full flex flex-col justify-around overflow-hidden'>
                     <InputBorderBlue
                         type='select'
@@ -62,10 +68,11 @@ export default function SectionConfigVoice() {
                         <p className='text-center'>Voz: {voice_definitive || 'ninguna'} ({currentEngine})</p>
                         <button
                             className='btnPublic __btn-blue'
-                            style={{ padding: '4px 12px', fontSize: '0.85rem' }}
+                            style={{ padding: '4px 12px', fontSize: '0.85rem', opacity: isLoading ? 0.5 : 1 }}
+                            disabled={isLoading}
                             onClick={() => speak('Hola, esta es una prueba de voz.')}
                         >
-                            Probar
+                            {isLoading ? 'Cargando...' : 'Probar'}
                         </button>
                     </div>
                     {downloadProgress > 0 && downloadProgress < 100 && (

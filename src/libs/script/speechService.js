@@ -3,10 +3,11 @@
 /**
  * Servicio singleton de Text-to-Speech multiplataforma.
  *
- * Estrategia de 3 motores (auto-detecta cuál funciona):
+ * Estrategia de 4 motores (auto-detecta cuál funciona):
  *  1. Piper TTS via WASM — motor neuronal, 100% cliente. Import dinámico.
  *  2. Web Speech API (speechSynthesis) — navegadores que lo soportan.
- *  3. Audio fallback via Google Translate TTS — último recurso.
+ *  3. Cordova TTS nativo — usa cordova-plugin-tts-advanced (Android/iOS TTS).
+ *  4. Audio fallback via Google Translate TTS — último recurso.
  *
  * Resuelve:
  *  - Auto-detección de motores disponibles al iniciar.
@@ -18,6 +19,21 @@
 
 const MAX_CHUNK_LENGTH = 200;
 const PIPER_TIMEOUT_MS = 30000; // 30s máximo para que Piper genere audio
+
+/** Detecta si estamos en un entorno Cordova/Capacitor */
+function isCordova() {
+    return typeof window !== 'undefined' && (
+        !!window.cordova ||
+        !!window.Cordova ||
+        !!window._cordovaNative ||
+        document.URL.indexOf('http://') === -1 && document.URL.indexOf('https://') === -1
+    );
+}
+
+/** Detecta si el plugin TTS de Cordova está disponible */
+function hasCordovaTTS() {
+    return typeof window !== 'undefined' && window.TTS && typeof window.TTS.speak === 'function';
+}
 
 // Voces Piper disponibles en español (y otros idiomas útiles)
 const PIPER_VOICES = [
@@ -74,7 +90,11 @@ class SpeechService {
         this._piperAvailable = false;
         this._lastPiperVoiceId = null; // track para saber si hay que resetear la sesión
 
-        // Motor activo: 'piper' | 'native' | 'audio-fallback'
+        // Cordova TTS
+        this._cordovaAvailable = false;
+        this._cordovaVoices = [];
+
+        // Motor activo: 'piper' | 'native' | 'cordova' | 'audio-fallback'
         this._engine = 'audio-fallback'; // default seguro hasta que se auto-detecte
 
         if (typeof window !== 'undefined') {
@@ -95,13 +115,16 @@ class SpeechService {
         // 1. Intentar cargar Piper TTS dinámicamente
         await this._tryLoadPiper();
 
-        // 2. Construir lista de voces según lo que esté disponible
+        // 2. Detectar Cordova TTS
+        await this._tryDetectCordovaTTS();
+
+        // 3. Construir lista de voces según lo que esté disponible
         this._buildVoiceList();
 
-        // 3. Auto-detectar el mejor motor
+        // 4. Auto-detectar el mejor motor
         this._autoDetectEngine();
 
-        // 4. Seleccionar voz por defecto
+        // 5. Seleccionar voz por defecto
         this._selectDefaultVoice();
 
         if (this._onVoicesChange) this._onVoicesChange(this._voices);
@@ -119,6 +142,39 @@ class SpeechService {
             this._piperTTS = null;
             this._piperAvailable = false;
             console.warn('[SpeechService] Piper TTS no disponible:', e.message);
+        }
+    }
+
+    async _tryDetectCordovaTTS() {
+        if (!hasCordovaTTS()) {
+            // Si estamos en Cordova pero el plugin aún no cargó, esperar
+            if (isCordova()) {
+                await new Promise((resolve) => {
+                    const check = () => {
+                        if (hasCordovaTTS()) resolve();
+                        else setTimeout(check, 200);
+                    };
+                    check();
+                    setTimeout(resolve, 3000); // máximo 3s de espera
+                });
+            }
+        }
+
+        if (hasCordovaTTS()) {
+            this._cordovaAvailable = true;
+            try {
+                // Obtener voces disponibles del sistema Android/iOS
+                const voices = await new Promise((resolve, reject) => {
+                    window.TTS.getVoices((v) => resolve(v), (e) => reject(e));
+                });
+                this._cordovaVoices = voices || [];
+                console.log(`[SpeechService] Cordova TTS detectado con ${this._cordovaVoices.length} voces`);
+            } catch (e) {
+                this._cordovaVoices = [];
+                console.log('[SpeechService] Cordova TTS detectado (sin listado de voces)');
+            }
+        } else {
+            console.log('[SpeechService] Cordova TTS no disponible');
         }
     }
 
@@ -159,6 +215,29 @@ class SpeechService {
             } catch (e) { /* sin voces nativas */ }
         }
 
+        // Voces Cordova nativas (Android/iOS TTS via plugin)
+        if (this._cordovaAvailable) {
+            if (this._cordovaVoices.length > 0) {
+                for (const v of this._cordovaVoices) {
+                    this._voices.push({
+                        name: `[Dispositivo] ${v.name || v.identifier || 'Voz'}`,
+                        lang: v.language || v.lang || 'es',
+                        voiceURI: `cordova:${v.identifier || v.name}`,
+                        localService: true,
+                        cordovaVoice: v,
+                        engine: 'cordova',
+                    });
+                }
+            } else {
+                // Plugin disponible pero sin listado — agregar voces genéricas
+                this._voices.push(
+                    { name: '[Dispositivo] Español', lang: 'es-ES', voiceURI: 'cordova:es', engine: 'cordova' },
+                    { name: '[Dispositivo] English', lang: 'en-US', voiceURI: 'cordova:en', engine: 'cordova' },
+                    { name: '[Dispositivo] Português', lang: 'pt-BR', voiceURI: 'cordova:pt', engine: 'cordova' },
+                );
+            }
+        }
+
         // Voces Audio Fallback (siempre disponibles como último recurso)
         this._voices.push(
             { name: 'Google Español', lang: 'es', voiceURI: 'audio-fallback', engine: 'audio-fallback' },
@@ -168,7 +247,7 @@ class SpeechService {
     }
 
     _autoDetectEngine() {
-        // Prioridad: Piper > Native > Audio Fallback
+        // Prioridad: Piper > Native > Cordova > Audio Fallback
         if (this._piperAvailable) {
             this._engine = 'piper';
             console.log('[SpeechService] Motor principal: Piper TTS (WASM)');
@@ -182,6 +261,12 @@ class SpeechService {
                 console.log('[SpeechService] Motor principal: Web Speech API');
                 return;
             }
+        }
+
+        if (this._cordovaAvailable) {
+            this._engine = 'cordova';
+            console.log('[SpeechService] Motor principal: Cordova TTS nativo');
+            return;
         }
 
         this._engine = 'audio-fallback';
@@ -208,6 +293,18 @@ class SpeechService {
             if (esVoice) {
                 this._selectedVoice = esVoice;
                 this._selectedVoiceLang = esVoice.lang;
+                return;
+            }
+        }
+
+        // Cordova
+        if (this._engine === 'cordova') {
+            const cordovaEs = this._voices.find(
+                v => v.engine === 'cordova' && v.lang && v.lang.startsWith('es')
+            );
+            if (cordovaEs) {
+                this._selectedVoice = cordovaEs;
+                this._selectedVoiceLang = cordovaEs.lang;
                 return;
             }
         }
@@ -479,6 +576,8 @@ class SpeechService {
             return await this._speakPiper(text);
         } else if (engine === 'native') {
             return await this._speakNative(text);
+        } else if (engine === 'cordova') {
+            return await this._speakCordova(text);
         } else {
             return await this._speakAudioFallback(text);
         }
@@ -486,14 +585,13 @@ class SpeechService {
 
     /** Cadena de fallback: prueba cada motor saltando el que ya falló */
     async _speakWithFallback(text, excludeEngine = null) {
-        const engines = ['piper', 'native', 'audio-fallback'];
+        const engines = ['piper', 'native', 'cordova', 'audio-fallback'];
 
         for (const engine of engines) {
             if (engine === excludeEngine) continue;
-            // No intentar Piper si no está disponible
             if (engine === 'piper' && !this._piperAvailable) continue;
-            // No intentar native si no hay speechSynthesis
             if (engine === 'native' && !hasSpeechSynthesis()) continue;
+            if (engine === 'cordova' && !this._cordovaAvailable) continue;
 
             try {
                 console.log(`[SpeechService] Intentando fallback: "${engine}"`);
@@ -623,12 +721,57 @@ class SpeechService {
     }
 
     /* -------------------------------------------------- */
-    /*  Motor 3: Audio fallback (Google Translate TTS)      */
+    /*  Motor 3: Cordova TTS nativo (Android/iOS)           */
     /* -------------------------------------------------- */
-    _speakAudioFallback(text) {
+    _speakCordova(text) {
+        return new Promise((resolve, reject) => {
+            if (!hasCordovaTTS()) {
+                return reject(new Error('Cordova TTS no disponible'));
+            }
+
+            const lang = this._selectedVoiceLang || 'es-ES';
+            const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
+
+            const options = {
+                text,
+                locale: lang,
+                rate: 1.0,
+            };
+
+            if (identifier) {
+                options.identifier = identifier;
+            }
+
+            window.TTS.speak(
+                options,
+                () => resolve(),
+                (err) => reject(new Error(`Cordova TTS error: ${err}`))
+            );
+        });
+    }
+
+    /* -------------------------------------------------- */
+    /*  Motor 4: Audio fallback (Google Translate TTS)      */
+    /* -------------------------------------------------- */
+    async _speakAudioFallback(text) {
         const lang = (this._selectedVoiceLang || 'es').substring(0, 2);
         const encoded = encodeURIComponent(text);
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`;
+
+        // Intentar fetch + blob (funciona en WebViews donde URL directa falla)
+        try {
+            const response = await fetch(url, {
+                mode: 'cors',
+                headers: { 'Referer': 'https://translate.google.com/' },
+            });
+            if (response.ok) {
+                const blob = await response.blob();
+                return this._playBlob(blob);
+            }
+        } catch (e) {
+            // fetch falló, intentar URL directa como último recurso
+            console.warn('[SpeechService] Fetch de Google TTS falló, intentando URL directa');
+        }
 
         return this._playUrl(url);
     }

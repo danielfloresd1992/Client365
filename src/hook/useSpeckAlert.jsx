@@ -15,17 +15,22 @@ export default function useSpeckAlert() {
     const [volumeState, setVolumeState] = useState(1);
     const [downloadProgress, setDownloadProgress] = useState(0);
     const [currentEngine, setCurrentEngine] = useState('piper');
+    const [isLoading, setIsLoading] = useState(true);
 
 
     // Cargar voces y escuchar progreso de descarga
     useEffect(() => {
-        if (!speechService) return;
-
-        // Voces iniciales (pueden ya estar cargadas)
-        const initial = speechService.getVoices();
-        if (initial.length > 0) {
-            setListVoicesState(initial);
+        if (!speechService) {
+            setIsLoading(false);
+            return;
         }
+
+        // Esperar a que el servicio esté listo
+        speechService._ensureReady().then(() => {
+            setListVoicesState(speechService.getVoices());
+            setCurrentEngine(speechService.getEngine());
+            setIsLoading(false);
+        });
 
         // Escuchar cambios de voces
         speechService.onVoicesChanged((voices) => {
@@ -36,8 +41,6 @@ export default function useSpeckAlert() {
         speechService.onDownloadProgress((progress) => {
             setDownloadProgress(progress);
         });
-
-        setCurrentEngine(speechService.getEngine());
 
         return () => {
             speechService.onVoicesChanged(null);
@@ -136,6 +139,7 @@ export default function useSpeckAlert() {
         volumeState,
         downloadProgress,
         currentEngine,
+        isLoading,
         isSupported: speechService?.isSupported() ?? false,
     };
 }
