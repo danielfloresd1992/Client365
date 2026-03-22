@@ -5,7 +5,7 @@ import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
 export default function LocalCard({ local, formValues, onChange }) {
     if (!local || !formValues) return null;
 
-    console.log(local);
+
 
     const { dishMenu, touchs, managers } = local;
 
@@ -41,34 +41,37 @@ export default function LocalCard({ local, formValues, onChange }) {
         if (!t) return null;
 
         return (
-            <div key={managerKey} className='flex items-center gap-2 py-2 border-b border-[#2a2a2a] last:border-0'>
-                <input
-                    type='checkbox'
-                    checked={t.present}
-                    onChange={() => togglePresence(managerKey)}
-                    className='w-4 h-4 accent-emerald-500 shrink-0 cursor-pointer'
-                />
-                <span className={`text-xs min-w-[120px] ${t.present ? 'text-black' : 'text-gray-600 line-through'}`}>
-                    {label}
-                </span>
-
-                {isDetailedTouch ? (
-                    <>
-                        <input type='number' placeholder='1ros' disabled={!t.present}
-                            value={t.present ? (t.primeros ?? '') : ''}
-                            onChange={e => setToque(managerKey, 'primeros', e.target.value)}
-                            className={INPUT_SM_CLS} />
-                        <input type='number' placeholder='otros' disabled={!t.present}
-                            value={t.present ? (t.otros ?? '') : ''}
-                            onChange={e => setToque(managerKey, 'otros', e.target.value)}
-                            className={INPUT_SM_CLS} />
-                    </>
-                ) : (
-                    <input type='number' placeholder={t.present ? 'toques' : 'ausente'} disabled={!t.present}
-                        value={t.present ? (t.total ?? '') : ''}
-                        onChange={e => setToque(managerKey, 'total', e.target.value)}
-                        className={INPUT_SM_CLS} />
-                )}
+            <div key={managerKey} className='flex items-center flex-col gap-[1rem] py-2 border-b border-[#2a2a2a] last:border-0'>
+                <div className='w-full flex items-center gap-2 justify-start'>
+                    <input
+                        type='checkbox'
+                        checked={t.present}
+                        onChange={() => togglePresence(managerKey)}
+                        className='w-4 h-4 accent-emerald-500 shrink-0 cursor-pointer'
+                    />
+                    <span className={`text-xs min-w-[120px] ${t.present ? 'text-black' : 'text-gray-600 line-through'}`}>
+                        {label}
+                    </span>
+                </div>
+                <div className='w-full flex justify-around items-center gap-2'>
+                    {isDetailedTouch ? (
+                        <>  
+                            <input type='number' placeholder='1ros' disabled={!t.present}
+                                value={t.present ? (t.primeros ?? '') : ''}
+                                onChange={e => setToque(managerKey, 'primeros', e.target.value)}
+                                className={`w-[48%] ${INPUT_SM_CLS}`} />
+                            <input type='number' placeholder='otros' disabled={!t.present}
+                                value={t.present ? (t.otros ?? '') : ''}
+                                onChange={e => setToque(managerKey, 'otros', e.target.value)}
+                                className={`w-[48%] ${INPUT_SM_CLS}`} />
+                        </>
+                    ) : (
+                        <input type='number' placeholder={t.present ? 'toques' : 'ausente'} disabled={!t.present}
+                            value={t.present ? (t.total ?? '') : ''}
+                            onChange={e => setToque(managerKey, 'total', e.target.value)}
+                            className={`w-full ${INPUT_SM_CLS}`} />
+                    )}
+                 </div>
             </div>
         );
     };
@@ -93,7 +96,7 @@ export default function LocalCard({ local, formValues, onChange }) {
 
     return (
         <div
-            className='border border-[#2a2a2a] rounded-xl overflow-hidden shadow-lg'>
+            className='w-full rounded-xl overflow-hidden shadow-xl shadow-black/40'>
             {/* ── Header ──────────────────────────────────────────────── */}
             <div className='bg-gradient-to-r from-green-800 to-lime-400 px-4 py-3 flex items-center justify-between gap-3'>
                 <h3 className='text-sm font-bold text-white truncate'>{local.name}</h3>
@@ -156,14 +159,7 @@ export default function LocalCard({ local, formValues, onChange }) {
                 {touchList.length > 0 && (
                     <div className='w-ful'>
                         <p className={`${LABEL_CLS} mb-1`}>Toques de gerente</p>
-                        {isDetailedTouch && (
-                            <div className='flex items-center gap-2 py-1 mb-1'>
-                                <span className='w-4 shrink-0' />
-                                <span className='text-[9px] text-gray-600 min-w-[120px]'>Manager</span>
-                                <span className='flex-1 text-[9px] text-gray-600 text-center'>1ros toques</span>
-                                <span className='flex-1 text-[9px] text-gray-600 text-center'>Otros toques</span>
-                            </div>
-                        )}
+                       
                         {touchList.map(({ key, label }) => renderTouchRow(key, label))}
                     </div>
                 )}

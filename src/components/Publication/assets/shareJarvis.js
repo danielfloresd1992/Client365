@@ -21,6 +21,7 @@ export default function typeShareJarvis(res, GROUP_KEY) {
         };
         axiosInstance.get(res[0].videoUrl ? res[0].videoUrl : res[0].imageToShare, configRes)
             .then(response => {
+                console.log(response.data)
                 blobToFileAndUrl(response.data, data => {
                     const formData = new FormData();
                     formData.append('my-file', data.base64.split(';base64,')[1]);

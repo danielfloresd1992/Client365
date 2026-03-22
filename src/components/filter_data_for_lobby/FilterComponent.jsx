@@ -110,7 +110,7 @@ export default function FilterNoveltyForLobby({ addAlert, openAside }) {
     return (
         <div className='w-full h-full'>
 
-            <header className='w-full h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
+            <header className='w-full h-[80px] bg-[rgb(237_237_237)] p-[.5rem] flex items-center justify-between'>
                 <div className='h-full w-full flex justify-start items-center flex-col gap-[.5rem]'>
                     <div className='w-full flex justify-between items-center'>
                         <div className='flex justify-start items-center flex- gap-[.5rem]'>

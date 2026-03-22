@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
+import axios from 'axios';
 import { toJpeg } from 'html-to-image';
 
 import useAuthOnServer from '@/hook/auth';
@@ -15,9 +16,10 @@ import calculateDishMetrics from './helpers/calculateDishMetrics';
 import calculateTouchMetrics from './helpers/calculateTouchMetrics';
 import IndicatorProcesses from './indicators/IndicatorProcesses';
 import IndicatorTouches from './indicators/IndicatorTouches';
+import { arrGroup } from '@/libs/data/group';
 
 
-const BOT_URL = 'https://amazona365.ddns.net:4000/bot/img';
+
 
 
 export default function CorteForm() {
@@ -28,6 +30,11 @@ export default function CorteForm() {
     const clients = useSelector(state => state.clients);
     const [locals, setLocals] = useState([]);
     const { requestAction } = useAxios();
+
+    const groupSeleted = arrGroup.filter(g => g.name === 'Indicadores de Amazonas365');
+
+    const BOT_URL = `${process.env.NEXT_PUBLIC_SOCKET_AVA_CHAT}/bot/imgV2/number=${groupSeleted[0].key}`;
+
 
 
     const [franchises, setFranchises] = useState([]);
@@ -68,7 +75,7 @@ export default function CorteForm() {
 
             const fullLocals = details
                 .map(r => r.status === 'fulfilled' ? r.value : null)
-                .filter(l => l && l.typeMonitoring.toLowerCase() === 'analytical' || l.typeMonitoring.toLowerCase() ==='completo');
+                .filter(l => l && l.typeMonitoring.toLowerCase() === 'analytical' || l.typeMonitoring.toLowerCase() === 'completo');
 
             console.log(fullLocals);
 
@@ -160,6 +167,7 @@ export default function CorteForm() {
 
     /* ── Capturar indicadores como imágenes y enviar al bot ────────────── */
     const captureAndSendImages = async (dishData, touchData) => {
+
         const sendImage = async (element, name) => {
             // html-to-image necesita que el elemento esté visible en el viewport.
             // Temporalmente lo movemos a left:0 para la captura.
@@ -179,14 +187,18 @@ export default function CorteForm() {
                     backgroundColor: '#ffffff',
                     pixelRatio: 1,
                 });
+
                 const base64 = dataUrl.split(';base64,')[1];
                 const fd = new FormData();
                 fd.append('my-file', base64);
+                fd.append('type', 'image/jpeg');
                 fd.append('my-text', name);
-                await fetch(BOT_URL, { method: 'POST', body: fd });
-            } catch (err) {
+                await axios.post(BOT_URL,fd );
+            }
+            catch (err) {
                 console.error(`Error capturando imagen "${name}":`, err);
-            } finally {
+            }
+            finally {
                 // Restaurar posición oculta
                 element.style.left = prevLeft;
                 element.style.zIndex = prevZIndex;
@@ -225,8 +237,9 @@ export default function CorteForm() {
                     const base64 = dataUrl.split(';base64,')[1];
                     const fd = new FormData();
                     fd.append('my-file', base64);
+                    fd.append('type', 'image/jpeg');
                     fd.append('my-text', name);
-                    await fetch(BOT_URL, { method: 'POST', body: fd });
+                    await axios.post(BOT_URL, fd );
                 } catch (err) {
                     console.error(`Error capturando imagen "${name}":`, err);
                 }
@@ -275,12 +288,14 @@ export default function CorteForm() {
                 const fd = new FormData();
                 fd.append('my-text', text);
                 await fetch(BOT_URL, { method: 'POST', body: fd }).catch(() => { });
-            } catch (_) { /* bot es opcional */ }
+            }
+            catch (_) { /* bot es opcional */ }
 
             // Capturar y enviar imágenes de indicadores al bot
             try {
                 await captureAndSendImages(dMetrics, tMetrics);
-            } catch (_) { /* imágenes son opcionales */ }
+            }
+            catch (_) { /* imágenes son opcionales */ }
 
             dispatch(setConfigModal({
                 modalOpen: true,
@@ -299,7 +314,8 @@ export default function CorteForm() {
             setDishMetrics([]);
             setTouchMetrics([]);
 
-        } catch (err) {
+        }
+        catch (err) {
             console.error('Error enviando corte:', err);
             dispatch(setConfigModal({
                 modalOpen: true,
@@ -308,7 +324,8 @@ export default function CorteForm() {
                 type: 'error',
                 isCallback: null,
             }));
-        } finally {
+        }
+        finally {
             setIsSubmitting(false);
         }
     };
@@ -328,7 +345,7 @@ export default function CorteForm() {
 
 
     return (
-        <div className='w-full h-full overflow-y-auto'>
+        <div className='w-full h-full overflow-y-auto pt-[84px] sm:pt-0'>
 
             {/* ── Header ──────────────────────────────────────────────── */}
             <div className='px-6 py-5 border-b border-[#1a3c2a]/60'>
@@ -383,11 +400,11 @@ export default function CorteForm() {
                     )}
 
                 {locals.length > 0 && (
-                    <div className='mt-6 flex justify-center'>
+                    <div className='mt-6 flex justify-center px-4 sm:px-0'>
                         <button
                             type='submit'
                             disabled={isSubmitting}
-                            className='px-8 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-900/30 transition-colors'
+                            className='w-full sm:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:bg-gray-700 disabled:text-gray-500 text-white font-semibold text-sm rounded-xl shadow-lg shadow-emerald-900/30 transition-colors'
                         >
                             {isSubmitting ? 'Enviando...' : 'Enviar corte'}
                         </button>
