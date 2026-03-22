@@ -12,7 +12,7 @@ import useSpeckAlert from '@/hook/useSpeckAlert';
 export default function SectionConfigVoice() {
 
 
-    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState } = useSpeckAlert();
+    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState, speak, currentEngine, downloadProgress } = useSpeckAlert();
 
 
 
@@ -58,7 +58,21 @@ export default function SectionConfigVoice() {
                     />
 
 
-                    <p className='text-center '>Voz selecionada: {voice_definitive || 'ninguna'}</p>
+                    <div className='flex items-center justify-center gap-2'>
+                        <p className='text-center'>Voz: {voice_definitive || 'ninguna'} ({currentEngine})</p>
+                        <button
+                            className='btnPublic __btn-blue'
+                            style={{ padding: '4px 12px', fontSize: '0.85rem' }}
+                            onClick={() => speak('Hola, esta es una prueba de voz.')}
+                        >
+                            Probar
+                        </button>
+                    </div>
+                    {downloadProgress > 0 && downloadProgress < 100 && (
+                        <p className='text-center text-sm' style={{ color: '#7b8494' }}>
+                            Descargando modelo: {downloadProgress}%
+                        </p>
+                    )}
 
                     <div className='__center_center __oneGap __width-complete'>
                         <InputBorderBlue

@@ -13,16 +13,13 @@ export default function useSpeckAlert() {
     const voice_definitive = useSelector(store => store.voiceDefinitive);
     const [listVoicesState, setListVoicesState] = useState([]);
     const [volumeState, setVolumeState] = useState(1);
+    const [downloadProgress, setDownloadProgress] = useState(0);
+    const [currentEngine, setCurrentEngine] = useState('piper');
 
 
-    // Cargar voces
+    // Cargar voces y escuchar progreso de descarga
     useEffect(() => {
         if (!speechService) return;
-
-        const updateVoices = () => {
-            const voices = speechService.getVoices();
-            setListVoicesState(voices);
-        };
 
         // Voces iniciales (pueden ya estar cargadas)
         const initial = speechService.getVoices();
@@ -30,13 +27,21 @@ export default function useSpeckAlert() {
             setListVoicesState(initial);
         }
 
-        // Escuchar cambios
+        // Escuchar cambios de voces
         speechService.onVoicesChanged((voices) => {
             setListVoicesState(voices);
         });
 
+        // Escuchar progreso de descarga de modelos Piper
+        speechService.onDownloadProgress((progress) => {
+            setDownloadProgress(progress);
+        });
+
+        setCurrentEngine(speechService.getEngine());
+
         return () => {
             speechService.onVoicesChanged(null);
+            speechService.onDownloadProgress(null);
         };
     }, []);
 
@@ -49,7 +54,8 @@ export default function useSpeckAlert() {
         const savedVoiceName = AppManagerConfigStorange.get('voice_definitive');
         if (savedVoiceName && speechService.selectVoiceByName(savedVoiceName)) {
             dispatch(setVoicesDefinitive(savedVoiceName));
-        } else if (!voice_definitive) {
+        } 
+        else if (!voice_definitive) {
             // Si no hay voz guardada, seleccionar la mejor voz en español
             const best = speechService.selectBestSpanishVoice();
             if (best) {
@@ -103,6 +109,7 @@ export default function useSpeckAlert() {
         AppManagerConfigStorange.set('voice_definitive', nameVoice);
         if (speechService) {
             speechService.selectVoiceByName(nameVoice);
+            setCurrentEngine(speechService.getEngine());
         }
         dispatch(setVoicesDefinitive(nameVoice));
     }, [dispatch]);
@@ -127,6 +134,8 @@ export default function useSpeckAlert() {
         stop,
         changueVolume,
         volumeState,
+        downloadProgress,
+        currentEngine,
         isSupported: speechService?.isSupported() ?? false,
     };
 }

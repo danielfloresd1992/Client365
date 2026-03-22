@@ -3,25 +3,52 @@
 /**
  * Servicio singleton de Text-to-Speech multiplataforma.
  *
- * Estrategia de 2 motores:
- *  1. Web Speech API (speechSynthesis) — navegadores que lo soportan.
- *  2. Audio fallback via Google Translate TTS — WebViews de Cordova/Android
- *     que no tienen speechSynthesis. Genera un MP3 y lo reproduce con Audio().
+ * Estrategia de 3 motores (auto-detecta cuál funciona):
+ *  1. Piper TTS via WASM — motor neuronal, 100% cliente. Import dinámico.
+ *  2. Web Speech API (speechSynthesis) — navegadores que lo soportan.
+ *  3. Audio fallback via Google Translate TTS — último recurso.
  *
- * También resuelve:
+ * Resuelve:
+ *  - Auto-detección de motores disponibles al iniciar.
  *  - Cola de utterances para que no se pisen alertas simultáneas.
  *  - Unlock de audio en iOS/Android (requiere 1er gesto del usuario).
- *  - Splitting de textos largos (200 chars para Chrome, 200 chars para audio).
- *  - Selección de voz con fallback por idioma español.
+ *  - Splitting de textos largos (200 chars).
+ *  - Timeout en Piper para evitar colas congeladas.
  */
 
 const MAX_CHUNK_LENGTH = 200;
+const PIPER_TIMEOUT_MS = 30000; // 30s máximo para que Piper genere audio
 
-// Detectar si speechSynthesis está disponible y funcional
+// Voces Piper disponibles en español (y otros idiomas útiles)
+const PIPER_VOICES = [
+    { id: 'es_ES-davefx-medium', name: 'David (España)', lang: 'es-ES', quality: 'medium' },
+    { id: 'es_ES-sharvard-medium', name: 'Sharvard (España)', lang: 'es-ES', quality: 'medium' },
+    { id: 'es_ES-carlfm-x_low', name: 'Carlos (España - Ligero)', lang: 'es-ES', quality: 'x_low' },
+    { id: 'es_ES-mls_10246-low', name: 'MLS 10246 (España)', lang: 'es-ES', quality: 'low' },
+    { id: 'es_ES-mls_9972-low', name: 'MLS 9972 (España)', lang: 'es-ES', quality: 'low' },
+    { id: 'es_MX-ald-medium', name: 'Aldo (México)', lang: 'es-MX', quality: 'medium' },
+    { id: 'es_MX-claude-high', name: 'Claude (México - Alta calidad)', lang: 'es-MX', quality: 'high' },
+    { id: 'en_US-amy-medium', name: 'Amy (English US)', lang: 'en-US', quality: 'medium' },
+    { id: 'en_US-danny-low', name: 'Danny (English US)', lang: 'en-US', quality: 'low' },
+    { id: 'pt_BR-faber-medium', name: 'Faber (Português BR)', lang: 'pt-BR', quality: 'medium' },
+];
+
+const DEFAULT_VOICE_ID = 'es_MX-ald-medium';
+
 function hasSpeechSynthesis() {
     return typeof window !== 'undefined'
         && typeof speechSynthesis !== 'undefined'
         && typeof SpeechSynthesisUtterance !== 'undefined';
+}
+
+/** Promesa con timeout */
+function withTimeout(promise, ms, label) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`[Timeout] ${label} excedió ${ms}ms`)), ms)
+        ),
+    ]);
 }
 
 class SpeechService {
@@ -31,13 +58,24 @@ class SpeechService {
         this._unlocked = false;
         this._voices = [];
         this._selectedVoice = null;
-        this._selectedVoiceLang = 'es-ES';
+        this._selectedVoiceId = DEFAULT_VOICE_ID;
+        this._selectedVoiceLang = 'es-MX';
         this._volume = 1;
         this._ready = false;
         this._readyPromise = null;
         this._onVoicesChange = null;
-        this._useNative = false;  // true = speechSynthesis, false = audio fallback
         this._currentAudio = null;
+        this._preloadPromise = null;
+        this._downloadProgress = 0;
+        this._onDownloadProgress = null;
+
+        // Import dinámico de Piper — null si no se pudo cargar
+        this._piperTTS = null;
+        this._piperAvailable = false;
+        this._lastPiperVoiceId = null; // track para saber si hay que resetear la sesión
+
+        // Motor activo: 'piper' | 'native' | 'audio-fallback'
+        this._engine = 'audio-fallback'; // default seguro hasta que se auto-detecte
 
         if (typeof window !== 'undefined') {
             this._readyPromise = this._init();
@@ -47,75 +85,182 @@ class SpeechService {
     /* -------------------------------------------------- */
     /*  Init                                               */
     /* -------------------------------------------------- */
-    async _init() {
-        if (hasSpeechSynthesis()) {
-            // Intentar cargar voces para verificar que realmente funciona
-            await this._loadVoices();
-
-            // Si después de esperar hay voces, usar speechSynthesis
-            if (this._voices.length > 0) {
-                this._useNative = true;
-                speechSynthesis.addEventListener('voiceschanged', () => {
-                    this._voices = speechSynthesis.getVoices();
-                    if (this._onVoicesChange) this._onVoicesChange(this._voices);
-                });
-                console.log('[SpeechService] Usando Web Speech API');
-            } else {
-                // speechSynthesis existe pero no devuelve voces (Cordova WebView)
-                this._useNative = false;
-                this._setupAudioFallbackVoices();
-                console.log('[SpeechService] speechSynthesis sin voces, usando audio fallback');
-            }
-        } else {
-            this._useNative = false;
-            this._setupAudioFallbackVoices();
-            console.log('[SpeechService] speechSynthesis no disponible, usando audio fallback');
-        }
-
-        this._ready = true;
+    async _ensureReady() {
+        if (this._readyPromise) await this._readyPromise;
     }
 
-    _loadVoices() {
-        return new Promise((resolve) => {
+    async _init() {
+        console.log('[SpeechService] Iniciando...');
+
+        // 1. Intentar cargar Piper TTS dinámicamente
+        await this._tryLoadPiper();
+
+        // 2. Construir lista de voces según lo que esté disponible
+        this._buildVoiceList();
+
+        // 3. Auto-detectar el mejor motor
+        this._autoDetectEngine();
+
+        // 4. Seleccionar voz por defecto
+        this._selectDefaultVoice();
+
+        if (this._onVoicesChange) this._onVoicesChange(this._voices);
+
+        this._ready = true;
+        console.log(`[SpeechService] Listo — motor: "${this._engine}", voces: ${this._voices.length}`);
+    }
+
+    async _tryLoadPiper() {
+        try {
+            this._piperTTS = await import('@mintplex-labs/piper-tts-web');
+            this._piperAvailable = true;
+            console.log('[SpeechService] Piper TTS cargado correctamente');
+        } catch (e) {
+            this._piperTTS = null;
+            this._piperAvailable = false;
+            console.warn('[SpeechService] Piper TTS no disponible:', e.message);
+        }
+    }
+
+    _buildVoiceList() {
+        this._voices = [];
+
+        // Voces Piper (solo si Piper cargó)
+        if (this._piperAvailable) {
+            for (const v of PIPER_VOICES) {
+                this._voices.push({
+                    name: v.name,
+                    lang: v.lang,
+                    voiceURI: `piper:${v.id}`,
+                    localService: true,
+                    piperVoiceId: v.id,
+                    quality: v.quality,
+                    engine: 'piper',
+                });
+            }
+        }
+
+        // Voces nativas del navegador
+        if (hasSpeechSynthesis()) {
+            try {
+                const nativeVoices = speechSynthesis.getVoices();
+                if (nativeVoices.length > 0) {
+                    for (const v of nativeVoices) {
+                        this._voices.push({
+                            name: `[Nativa] ${v.name}`,
+                            lang: v.lang,
+                            voiceURI: v.voiceURI,
+                            localService: v.localService,
+                            nativeVoice: v,
+                            engine: 'native',
+                        });
+                    }
+                }
+            } catch (e) { /* sin voces nativas */ }
+        }
+
+        // Voces Audio Fallback (siempre disponibles como último recurso)
+        this._voices.push(
+            { name: 'Google Español', lang: 'es', voiceURI: 'audio-fallback', engine: 'audio-fallback' },
+            { name: 'Google English', lang: 'en', voiceURI: 'audio-fallback', engine: 'audio-fallback' },
+            { name: 'Google Português', lang: 'pt', voiceURI: 'audio-fallback', engine: 'audio-fallback' },
+        );
+    }
+
+    _autoDetectEngine() {
+        // Prioridad: Piper > Native > Audio Fallback
+        if (this._piperAvailable) {
+            this._engine = 'piper';
+            console.log('[SpeechService] Motor principal: Piper TTS (WASM)');
+            return;
+        }
+
+        if (hasSpeechSynthesis()) {
             const voices = speechSynthesis.getVoices();
             if (voices.length > 0) {
-                this._voices = voices;
-                return resolve();
+                this._engine = 'native';
+                console.log('[SpeechService] Motor principal: Web Speech API');
+                return;
             }
+        }
+
+        this._engine = 'audio-fallback';
+        console.log('[SpeechService] Motor principal: Audio fallback (Google TTS)');
+    }
+
+    _selectDefaultVoice() {
+        if (this._engine === 'piper') {
+            const def = this._voices.find(v => v.piperVoiceId === DEFAULT_VOICE_ID);
+            if (def) {
+                this._selectedVoice = def;
+                this._selectedVoiceId = DEFAULT_VOICE_ID;
+                this._selectedVoiceLang = def.lang;
+                // Pre-descargar modelo en background
+                this._preloadPiperModel(DEFAULT_VOICE_ID);
+                return;
+            }
+        }
+
+        if (this._engine === 'native') {
+            const esVoice = this._voices.find(
+                v => v.engine === 'native' && v.lang && v.lang.startsWith('es')
+            );
+            if (esVoice) {
+                this._selectedVoice = esVoice;
+                this._selectedVoiceLang = esVoice.lang;
+                return;
+            }
+        }
+
+        // Audio fallback
+        const fallback = this._voices.find(v => v.engine === 'audio-fallback' && v.lang === 'es');
+        if (fallback) {
+            this._selectedVoice = fallback;
+            this._selectedVoiceLang = 'es';
+        }
+    }
+
+    _loadNativeVoicesAsync() {
+        return new Promise((resolve) => {
+            if (!hasSpeechSynthesis()) return resolve([]);
+
+            const voices = speechSynthesis.getVoices();
+            if (voices.length > 0) return resolve(voices);
 
             const onVoices = () => {
-                this._voices = speechSynthesis.getVoices();
                 speechSynthesis.removeEventListener('voiceschanged', onVoices);
-                resolve();
+                resolve(speechSynthesis.getVoices());
             };
             speechSynthesis.addEventListener('voiceschanged', onVoices);
 
-            // Timeout: si voiceschanged nunca se dispara (Cordova)
             setTimeout(() => {
                 speechSynthesis.removeEventListener('voiceschanged', onVoices);
-                if (this._voices.length === 0) {
-                    this._voices = speechSynthesis.getVoices();
-                }
-                resolve();
+                resolve(speechSynthesis.getVoices());
             }, 3000);
         });
     }
 
-    /**
-     * Cuando speechSynthesis no está disponible, ofrece una lista
-     * de "voces" virtuales que representan idiomas soportados por el fallback.
-     */
-    _setupAudioFallbackVoices() {
-        this._voices = [
-            { name: 'Español (España)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
-            { name: 'Español (México)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
-            { name: 'Español (Venezuela)', lang: 'es', voiceURI: 'audio-fallback', localService: false },
-            { name: 'English (US)', lang: 'en', voiceURI: 'audio-fallback', localService: false },
-            { name: 'Português (Brasil)', lang: 'pt', voiceURI: 'audio-fallback', localService: false },
-        ];
-        this._selectedVoice = this._voices[0];
-        this._selectedVoiceLang = 'es';
-        if (this._onVoicesChange) this._onVoicesChange(this._voices);
+    _preloadPiperModel(voiceId) {
+        if (!this._piperTTS) return;
+        this._preloadPromise = this._doPreload(voiceId);
+        return this._preloadPromise;
+    }
+
+    async _doPreload(voiceId) {
+        try {
+            await this._piperTTS.download(voiceId, (progress) => {
+                if (progress.total > 0) {
+                    this._downloadProgress = Math.round((progress.loaded / progress.total) * 100);
+                    if (this._onDownloadProgress) {
+                        this._onDownloadProgress(this._downloadProgress);
+                    }
+                }
+            });
+            this._downloadProgress = 100;
+            console.log(`[SpeechService] Modelo Piper "${voiceId}" cacheado`);
+        } catch (e) {
+            console.warn('[SpeechService] No se pudo pre-descargar modelo Piper:', e.message);
+        }
     }
 
     /* -------------------------------------------------- */
@@ -124,16 +269,17 @@ class SpeechService {
     unlock() {
         if (this._unlocked) return;
 
-        if (this._useNative && hasSpeechSynthesis()) {
-            const u = new SpeechSynthesisUtterance('');
-            u.volume = 0;
-            speechSynthesis.speak(u);
-        } else {
-            // Unlock audio context con un audio silencioso
+        try {
+            const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
+            audio.volume = 0;
+            audio.play().catch(() => {});
+        } catch (e) { /* ignore */ }
+
+        if (hasSpeechSynthesis()) {
             try {
-                const audio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=');
-                audio.volume = 0;
-                audio.play().catch(() => {});
+                const u = new SpeechSynthesisUtterance('');
+                u.volume = 0;
+                speechSynthesis.speak(u);
             } catch (e) { /* ignore */ }
         }
 
@@ -149,39 +295,89 @@ class SpeechService {
 
     onVoicesChanged(cb) {
         this._onVoicesChange = cb;
+
+        // Si hay voces nativas pendientes de cargar, escuchar cambios
+        if (cb && hasSpeechSynthesis()) {
+            const handler = () => {
+                // Reconstruir la lista y notificar
+                this._buildVoiceList();
+                if (this._onVoicesChange) this._onVoicesChange(this._voices);
+            };
+            speechSynthesis.addEventListener('voiceschanged', handler);
+            this._nativeVoicesHandler = handler;
+        } else if (this._nativeVoicesHandler && hasSpeechSynthesis()) {
+            speechSynthesis.removeEventListener('voiceschanged', this._nativeVoicesHandler);
+            this._nativeVoicesHandler = null;
+        }
+    }
+
+    onDownloadProgress(cb) {
+        this._onDownloadProgress = cb;
     }
 
     selectVoiceByName(name) {
         const v = this._voices.find((voice) => voice.name === name);
         if (v) {
             this._selectedVoice = v;
-            this._selectedVoiceLang = v.lang || 'es';
+            this._selectedVoiceLang = v.lang || 'es-MX';
+            this._engine = v.engine || 'audio-fallback';
+            this._selectedVoiceId = v.piperVoiceId || null;
+
+            // Si es voz Piper, pre-descargar modelo
+            if (v.engine === 'piper' && v.piperVoiceId) {
+                this._preloadPiperModel(v.piperVoiceId);
+            }
+
+            console.log(`[SpeechService] Voz seleccionada: "${name}" (motor: ${this._engine})`);
             return true;
         }
+        console.warn(`[SpeechService] Voz no encontrada: "${name}"`);
         return false;
     }
 
     selectBestSpanishVoice() {
         if (this._voices.length === 0) return null;
 
-        const esVoices = this._voices.filter(
-            (v) => v.lang && v.lang.startsWith('es')
-        );
-        if (esVoices.length === 0) return null;
+        // Prioridad: Piper medium/high > Native español > Audio fallback
+        if (this._piperAvailable) {
+            const piperEs = this._voices.filter(
+                v => v.engine === 'piper' && v.lang && v.lang.startsWith('es')
+            );
+            const best = piperEs.find(v => v.quality === 'high')
+                || piperEs.find(v => v.quality === 'medium')
+                || piperEs[0];
 
-        // Prioridad: Online/Natural/Premium > local
-        const premium = esVoices.find(
-            (v) => /online|natural|premium|enhanced/i.test(v.name)
-        );
-        if (premium) {
-            this._selectedVoice = premium;
-            this._selectedVoiceLang = premium.lang;
-            return premium;
+            if (best) {
+                this._selectedVoice = best;
+                this._selectedVoiceLang = best.lang;
+                this._engine = 'piper';
+                this._selectedVoiceId = best.piperVoiceId;
+                this._preloadPiperModel(best.piperVoiceId);
+                return best;
+            }
         }
 
-        this._selectedVoice = esVoices[0];
-        this._selectedVoiceLang = esVoices[0].lang;
-        return esVoices[0];
+        // Nativas español
+        const nativeEs = this._voices.filter(
+            v => v.engine === 'native' && v.lang && v.lang.startsWith('es')
+        );
+        if (nativeEs.length > 0) {
+            this._selectedVoice = nativeEs[0];
+            this._selectedVoiceLang = nativeEs[0].lang;
+            this._engine = 'native';
+            return nativeEs[0];
+        }
+
+        // Audio fallback español
+        const fallbackEs = this._voices.find(v => v.engine === 'audio-fallback' && v.lang === 'es');
+        if (fallbackEs) {
+            this._selectedVoice = fallbackEs;
+            this._selectedVoiceLang = 'es';
+            this._engine = 'audio-fallback';
+            return fallbackEs;
+        }
+
+        return null;
     }
 
     getSelectedVoice() {
@@ -206,8 +402,9 @@ class SpeechService {
     /* -------------------------------------------------- */
     /*  Speak (con cola y splitting)                       */
     /* -------------------------------------------------- */
-    speak(text) {
+    async speak(text) {
         if (!text || typeof text !== 'string') return;
+        await this._ensureReady();
 
         const chunks = this._splitText(text.trim());
         for (const chunk of chunks) {
@@ -220,8 +417,8 @@ class SpeechService {
         this._queue = [];
         this._speaking = false;
 
-        if (this._useNative && hasSpeechSynthesis()) {
-            speechSynthesis.cancel();
+        if (hasSpeechSynthesis()) {
+            try { speechSynthesis.cancel(); } catch (e) { /* ignore */ }
         }
         if (this._currentAudio) {
             this._currentAudio.pause();
@@ -249,130 +446,256 @@ class SpeechService {
         return chunks;
     }
 
-    _processQueue() {
+    async _processQueue() {
         if (this._speaking || this._queue.length === 0) return;
 
+        await this._ensureReady();
         this._speaking = true;
         const text = this._queue.shift();
 
-        if (this._useNative) {
-            this._speakNative(text);
-        } else {
-            this._speakAudioFallback(text);
+        try {
+            await this._speakWithEngine(text, this._engine);
+        }
+        catch (e) {
+            console.warn(`[SpeechService] Motor "${this._engine}" falló:`, e.message);
+            // Intentar cadena de fallback excluyendo el motor que falló
+            try {
+                await this._speakWithFallback(text, this._engine);
+            } catch (fallbackError) {
+                console.error('[SpeechService] TODOS los motores fallaron:', fallbackError.message);
+            }
+        }
+        finally {
+            this._speaking = false;
+            if (this._queue.length > 0) {
+                this._processQueue();
+            }
         }
     }
 
+    /** Ejecuta un motor específico */
+    async _speakWithEngine(text, engine) {
+        if (engine === 'piper') {
+            return await this._speakPiper(text);
+        } else if (engine === 'native') {
+            return await this._speakNative(text);
+        } else {
+            return await this._speakAudioFallback(text);
+        }
+    }
+
+    /** Cadena de fallback: prueba cada motor saltando el que ya falló */
+    async _speakWithFallback(text, excludeEngine = null) {
+        const engines = ['piper', 'native', 'audio-fallback'];
+
+        for (const engine of engines) {
+            if (engine === excludeEngine) continue;
+            // No intentar Piper si no está disponible
+            if (engine === 'piper' && !this._piperAvailable) continue;
+            // No intentar native si no hay speechSynthesis
+            if (engine === 'native' && !hasSpeechSynthesis()) continue;
+
+            try {
+                console.log(`[SpeechService] Intentando fallback: "${engine}"`);
+                await this._speakWithEngine(text, engine);
+                return; // éxito
+            } catch (e) {
+                console.warn(`[SpeechService] Fallback "${engine}" falló:`, e.message);
+            }
+        }
+
+        throw new Error('Ningún motor de TTS disponible');
+    }
+
     /* -------------------------------------------------- */
-    /*  Motor 1: Web Speech API (speechSynthesis)          */
+    /*  Motor 1: Piper TTS (WASM - Neural)                 */
+    /* -------------------------------------------------- */
+
+    /**
+     * WORKAROUND: La librería @mintplex-labs/piper-tts-web usa un singleton
+     * interno (TtsSession._instance). Cuando cambias de voiceId, solo actualiza
+     * el campo voiceId pero NO recarga el modelo ONNX ni el config.
+     * Resultado: siempre suena la primera voz que se cargó.
+     *
+     * Fix: destruir el singleton (TtsSession._instance = null) cuando el
+     * voiceId cambió, forzando que se cree una nueva sesión con el modelo correcto.
+     */
+    _resetPiperSessionIfNeeded(voiceId) {
+        if (!this._piperTTS) return;
+        if (this._lastPiperVoiceId && this._lastPiperVoiceId !== voiceId) {
+            // Destruir el singleton para forzar nueva sesión con nuevo modelo
+            if (this._piperTTS.TtsSession) {
+                this._piperTTS.TtsSession._instance = null;
+                console.log(`[SpeechService] Sesión Piper reseteada: ${this._lastPiperVoiceId} → ${voiceId}`);
+            }
+        }
+        this._lastPiperVoiceId = voiceId;
+    }
+
+    async _speakPiper(text) {
+        if (!this._piperTTS) {
+            throw new Error('Piper TTS no cargado');
+        }
+
+        const voiceId = this._selectedVoiceId || DEFAULT_VOICE_ID;
+
+        // Resetear sesión si cambió la voz (fix del bug del singleton)
+        this._resetPiperSessionIfNeeded(voiceId);
+
+        // Esperar preload si hay uno en progreso
+        if (this._preloadPromise) {
+            try {
+                await withTimeout(this._preloadPromise, PIPER_TIMEOUT_MS, 'Preload Piper');
+            } catch (e) {
+                console.warn('[SpeechService] Preload timeout, intentando predict directo');
+            }
+        }
+
+        // predict() con timeout para no congelar la cola
+        const wav = await withTimeout(
+            this._piperTTS.predict({ text, voiceId }),
+            PIPER_TIMEOUT_MS,
+            `Piper predict(${voiceId})`
+        );
+
+        return this._playBlob(wav);
+    }
+
+    /* -------------------------------------------------- */
+    /*  Motor 2: Web Speech API (speechSynthesis)          */
     /* -------------------------------------------------- */
     _speakNative(text) {
-        if (!hasSpeechSynthesis()) {
-            this._speaking = false;
-            this._processQueue();
-            return;
-        }
-
-        if (speechSynthesis.paused) {
-            speechSynthesis.resume();
-        }
-
-        const utterance = new SpeechSynthesisUtterance(text);
-
-        if (this._selectedVoice && this._selectedVoice.voiceURI !== 'audio-fallback') {
-            utterance.voice = this._selectedVoice;
-            utterance.lang = this._selectedVoice.lang;
-        } else {
-            utterance.lang = this._selectedVoiceLang || 'es-ES';
-        }
-
-        utterance.volume = this._volume;
-        utterance.rate = 1;
-        utterance.pitch = 1;
-
-        const done = () => {
-            if (keepAlive) clearInterval(keepAlive);
-            this._speaking = false;
-            this._processQueue();
-        };
-
-        utterance.onend = done;
-        utterance.onerror = (e) => {
-            if (e.error !== 'interrupted' && e.error !== 'canceled') {
-                console.warn('[SpeechService] Error nativo:', e.error);
+        return new Promise((resolve, reject) => {
+            if (!hasSpeechSynthesis()) {
+                return reject(new Error('speechSynthesis no disponible'));
             }
-            done();
-        };
 
-        // Chrome keep-alive workaround
-        let keepAlive = null;
-        const isChrome = /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent);
-        if (isChrome) {
-            keepAlive = setInterval(() => {
-                if (speechSynthesis.speaking && !speechSynthesis.paused) {
-                    speechSynthesis.pause();
-                    speechSynthesis.resume();
+            if (speechSynthesis.paused) speechSynthesis.resume();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            if (this._selectedVoice?.nativeVoice) {
+                utterance.voice = this._selectedVoice.nativeVoice;
+                utterance.lang = this._selectedVoice.nativeVoice.lang;
+            } else {
+                utterance.lang = this._selectedVoiceLang || 'es-ES';
+            }
+
+            utterance.volume = this._volume;
+            utterance.rate = 1;
+            utterance.pitch = 1;
+
+            let keepAlive = null;
+            let settled = false;
+
+            const done = (err) => {
+                if (settled) return;
+                settled = true;
+                if (keepAlive) clearInterval(keepAlive);
+                if (err) reject(err); else resolve();
+            };
+
+            utterance.onend = () => done(null);
+            utterance.onerror = (e) => {
+                if (e.error === 'interrupted' || e.error === 'canceled') {
+                    done(null);
+                } else {
+                    done(new Error(`Error nativo: ${e.error}`));
                 }
-            }, 10000);
-        }
+            };
 
-        speechSynthesis.speak(utterance);
+            // Chrome keep-alive workaround
+            const isChrome = /chrome/i.test(navigator.userAgent) && !/edge/i.test(navigator.userAgent);
+            if (isChrome) {
+                keepAlive = setInterval(() => {
+                    if (speechSynthesis.speaking && !speechSynthesis.paused) {
+                        speechSynthesis.pause();
+                        speechSynthesis.resume();
+                    }
+                }, 10000);
+            }
+
+            // Timeout de seguridad para native (15s)
+            setTimeout(() => done(null), 15000);
+
+            speechSynthesis.speak(utterance);
+        });
     }
 
     /* -------------------------------------------------- */
-    /*  Motor 2: Audio fallback (Google Translate TTS)      */
-    /*  Funciona en cualquier WebView que soporte Audio()   */
+    /*  Motor 3: Audio fallback (Google Translate TTS)      */
     /* -------------------------------------------------- */
     _speakAudioFallback(text) {
         const lang = (this._selectedVoiceLang || 'es').substring(0, 2);
         const encoded = encodeURIComponent(text);
-
-        // Google Translate TTS endpoint (no requiere API key, límite ~200 chars)
         const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=${lang}&client=tw-ob&q=${encoded}`;
 
-        const audio = new Audio(url);
-        audio.volume = this._volume;
-        this._currentAudio = audio;
+        return this._playUrl(url);
+    }
 
-        audio.onended = () => {
-            this._currentAudio = null;
-            this._speaking = false;
-            this._processQueue();
-        };
+    /* -------------------------------------------------- */
+    /*  Reproducción de audio (compartido)                 */
+    /* -------------------------------------------------- */
+    _playBlob(blob) {
+        const url = URL.createObjectURL(blob);
+        return this._playUrl(url, true);
+    }
 
-        audio.onerror = (e) => {
-            console.warn('[SpeechService] Error audio fallback:', e);
-            this._currentAudio = null;
-            this._speaking = false;
-            this._processQueue();
-        };
+    _playUrl(url, revokeAfter = false) {
+        return new Promise((resolve, reject) => {
+            const audio = new Audio(url);
+            audio.volume = this._volume;
+            this._currentAudio = audio;
 
-        audio.play().catch((err) => {
-            console.warn('[SpeechService] No se pudo reproducir audio:', err);
-            this._currentAudio = null;
-            this._speaking = false;
-            this._processQueue();
+            let settled = false;
+            const done = (err) => {
+                if (settled) return;
+                settled = true;
+                if (revokeAfter) URL.revokeObjectURL(url);
+                this._currentAudio = null;
+                if (err) reject(err); else resolve();
+            };
+
+            audio.onended = () => done(null);
+            audio.onerror = (e) => done(new Error(`Error de audio: ${e.type || e}`));
+            audio.play().catch((err) => done(err));
         });
+    }
+
+    /* -------------------------------------------------- */
+    /*  Gestión de modelos Piper                           */
+    /* -------------------------------------------------- */
+
+    async getStoredModels() {
+        if (!this._piperTTS) return [];
+        try { return await this._piperTTS.stored(); }
+        catch (e) { return []; }
+    }
+
+    async downloadModel(voiceId, onProgress) {
+        if (!this._piperTTS) throw new Error('Piper no disponible');
+        await this._piperTTS.download(voiceId, (progress) => {
+            if (progress.total > 0 && onProgress) {
+                onProgress(Math.round((progress.loaded / progress.total) * 100));
+            }
+        });
+    }
+
+    async removeModel(voiceId) {
+        if (!this._piperTTS) return;
+        try { await this._piperTTS.remove(voiceId); }
+        catch (e) { console.warn('[SpeechService] Error eliminando modelo:', e); }
     }
 
     /* -------------------------------------------------- */
     /*  Estado                                             */
     /* -------------------------------------------------- */
-    isReady() {
-        return this._ready;
-    }
-
-    isSupported() {
-        // Siempre soportado: speechSynthesis o audio fallback
-        return typeof window !== 'undefined';
-    }
-
-    isUsingNative() {
-        return this._useNative;
-    }
-
-    isSpeaking() {
-        return this._speaking;
-    }
+    isReady() { return this._ready; }
+    isSupported() { return typeof window !== 'undefined'; }
+    getEngine() { return this._engine; }
+    isSpeaking() { return this._speaking; }
+    getDownloadProgress() { return this._downloadProgress; }
+    isPiperAvailable() { return this._piperAvailable; }
 }
 
 // Singleton
