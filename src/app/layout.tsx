@@ -17,6 +17,7 @@ import ErrorServerAlert from '@/components/error/Error_Server'
 
 const AlertInputLive = dynamic(() => import('@/components/alert_input/AlertIput'));
 const Config_window = dynamic(() => import('@/components/config_window/Config_window'));
+const ImageViewer = dynamic(() => import('@/components/ImageViewer/ImageViewer'));
 
 
 import FixedBottomBar from '@/components/Footer/FixedBottomBar';
@@ -59,7 +60,7 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                             <Modal />
                             <Config_window />
                             <FixedBottomBar />
-                               
+                            <ImageViewer />
                         </LoandingPage>
                     </Providers>
                     <ErrorServerAlert />

@@ -5,6 +5,7 @@ import changeHostNameForImg from '@/libs/script/changeHostName';
 import Image from 'next/image';
 
 import { useInView } from 'react-intersection-observer';
+import useImageViewer from '@/hook/useImageViewer';
 
 
 const DynamicSlider = dynamic(
@@ -60,6 +61,7 @@ const CustomArrow = ({ onClick, direction }) => {
 export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDrag }) {
 
     const { ref, inView } = useInView();
+    const { open: openImageViewer } = useImageViewer();
 
 
 
@@ -86,7 +88,16 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
             ref={ref}
         >
             <DynamicSlider {...setting}>
-                <img className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] object-contain' src={changeHostNameForImg(imageShare)} alt='share-image' />
+                <img
+                    className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] object-contain cursor-pointer'
+                    src={changeHostNameForImg(imageShare)}
+                    alt='share-image'
+                    onClick={() => {
+                        const allImgs = [changeHostNameForImg(imageShare)];
+                        if (Array.isArray(imageGroup)) imageGroup.forEach(img => allImgs.push(changeHostNameForImg(img.url)));
+                        openImageViewer({ images: allImgs, index: 0 });
+                    }}
+                />
                 {
                     video ?
                         <video className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] w-full' controls>
@@ -102,7 +113,17 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
                                     imageGroup.map((img, index) => (
                                         <div className='h-[50%] w-[50%] relative' key={`${img.caption}-${index}`}>
 
-                                            <img className='h-full w-full object-cover' src={changeHostNameForImg(img.url)} key={index} alt='novelty-sequence' />
+                                            <img
+                                                className='h-full w-full object-cover cursor-pointer'
+                                                src={changeHostNameForImg(img.url)}
+                                                key={index}
+                                                alt='novelty-sequence'
+                                                onClick={() => {
+                                                    const allImgs = [changeHostNameForImg(imageShare)];
+                                                    imageGroup.forEach(g => allImgs.push(changeHostNameForImg(g.url)));
+                                                    openImageViewer({ images: allImgs, index: index + 1 });
+                                                }}
+                                            />
                                             <div className='bottom-[0] left-[0] absolute p-[.1rem_1rem] flex justify-center items-center'
                                                 style={{
                                                     backgroundColor: '#43c700a6',

@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useContext } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
 import { FaWhatsapp } from "react-icons/fa";
 import { isMobile } from 'react-device-detect';
@@ -12,7 +12,7 @@ import typeShareJarvis from './assets/shareJarvis';
 import { useDispatch, useSelector } from 'react-redux';
 import { setConfigModal } from "@/store/slices/globalModal";
 
-import { ImgContext } from "@/contexts/imgContext";
+import useImageViewer from '@/hook/useImageViewer';
 import socket from "@/libs/socket/socketIo";
 import Img from './assets/Img';
 import { useInView } from 'react-intersection-observer';
@@ -42,7 +42,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
 
-    const { setImg } = useContext(ImgContext);
+    const { open: openImageViewer } = useImageViewer();
     const permissionUser = !(user?.admin || user?.super);
     const { requestAction } = useAxios();
     const dispatch = useDispatch();

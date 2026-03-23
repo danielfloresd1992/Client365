@@ -1,12 +1,12 @@
 'use client';
-import Image from 'next/image';
+import Link from 'next/link';
 
 export default function List({ data }) {
 
 
     return (
         <li style={{ order: data.order }} className='lobby-client-item'>
-            <a className='listRoute-a lobby-client-link'>
+            <Link href={`/establishment/${data._id}`} className='listRoute-a lobby-client-link'>
                 <div className='lobby-client-avatar'>
                     <img
                         src={data?.image || '/img/corporate-67.png'}
@@ -18,7 +18,7 @@ export default function List({ data }) {
                     <p className='__textGrayForList lobby-client-name'>{data?.name || 'Cliente sin nombre'}</p>
                     <span className='lobby-client-meta'>Cliente</span>
                 </div>
-            </a>
+            </Link>
         </li>
 
     )

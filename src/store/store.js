@@ -15,6 +15,7 @@ import dateNoveltyForListStore from './slices/dateNoveltyForList';
 import newEstablishmentStore from './slices/newEstablishment';
 import sessionStore from '@/store/slices/session'
 import filterClientReducer from '@/store/slices/filterAlert';
+import imageViewerReducer from '@/store/slices/imageViewer';
 
 
 
@@ -35,7 +36,8 @@ const store = configureStore({
         dateNoveltyForList: dateNoveltyForListStore,
         newEstablishment: newEstablishmentStore,
         session: sessionStore,
-        filterClientList: filterClientReducer
+        filterClientList: filterClientReducer,
+        imageViewer: imageViewerReducer
     }
 });
 
