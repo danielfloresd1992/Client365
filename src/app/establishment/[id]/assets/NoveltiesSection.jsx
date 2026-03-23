@@ -4,7 +4,11 @@ import { FiBell, FiChevronLeft, FiChevronRight, FiImage, FiVideo, FiUser, FiShie
 import useAxios from '@/hook/useAxios';
 import useImageViewer from '@/hook/useImageViewer';
 
+
+
+
 export default function NoveltiesSection({ establishmentName }) {
+
     const [novelties, setNovelties] = useState(null);
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(0);
@@ -13,6 +17,8 @@ export default function NoveltiesSection({ establishmentName }) {
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
     const { requestAction } = useAxios();
+
+
 
     const fetchNovelties = useCallback(async (p = 0) => {
         if (!establishmentName) return;
@@ -28,9 +34,12 @@ export default function NoveltiesSection({ establishmentName }) {
                 url: `/noveltie/local=${encodeURIComponent(establishmentName)}/since=${since}/until=${until}/page=${p}`,
                 action: 'GET',
             });
+
             setNovelties(res.data?.novelties || []);
             setTotal(res.data?.collection || 0);
-        } catch {
+
+        }
+        catch {
             setNovelties([]);
             setTotal(0);
         } finally {
@@ -38,15 +47,21 @@ export default function NoveltiesSection({ establishmentName }) {
         }
     }, [establishmentName, showDateFilter, dateFrom, dateTo]);
 
+
+
     useEffect(() => {
         setPage(0);
         fetchNovelties(0);
     }, [establishmentName, showDateFilter, dateFrom, dateTo]);
 
+
+
     const handlePageChange = (newPage) => {
         setPage(newPage);
         fetchNovelties(newPage);
     };
+
+
 
     const clearDateFilter = () => {
         setShowDateFilter(false);
@@ -54,7 +69,11 @@ export default function NoveltiesSection({ establishmentName }) {
         setDateTo('');
     };
 
+
+
     const totalPages = Math.ceil(total / 10);
+
+
 
     return (
         <div className='bg-white rounded-xl border border-gray-100 shadow-sm p-4'>
@@ -71,11 +90,10 @@ export default function NoveltiesSection({ establishmentName }) {
                 </h3>
                 <button
                     onClick={() => showDateFilter ? clearDateFilter() : setShowDateFilter(true)}
-                    className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors ${
-                        showDateFilter
-                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-                            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                    }`}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg transition-colors ${showDateFilter
+                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                        : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                        }`}
                 >
                     {showDateFilter ? <FiX className='w-3 h-3' /> : <FiFilter className='w-3 h-3' />}
                     {showDateFilter ? 'Quitar filtro' : 'Filtrar por fecha'}
@@ -158,11 +176,16 @@ export default function NoveltiesSection({ establishmentName }) {
 }
 
 
+
+
 function NoveltyCard({ novelty, allNovelties }) {
+
+
     const { open } = useImageViewer();
     const hasImage = !!novelty.imageToShare || (novelty.imageUrl?.length > 0 && novelty.imageUrl[0]?.url);
     const hasVideo = !!novelty.videoUrl;
     const imgSrc = novelty.imageToShare || novelty.imageUrl?.[0]?.url;
+
 
     const handleImageClick = () => {
         if (!hasImage || !imgSrc) return;
@@ -176,6 +199,8 @@ function NoveltyCard({ novelty, allNovelties }) {
     const senderName = novelty.sharedByUser?.user?.nameUser;
     const senderImg = novelty.sharedByUser?.user?.id?.img;
     const validatorName = novelty.validationResult?.validatedByUser?.user?.nameUser;
+    const validatorImg = novelty.validationResult?.validatedByUser?.user?.id?.img;
+
     const isApproved = novelty.validationResult?.isApproved;
     const hasValidation = typeof isApproved === 'boolean';
 
@@ -183,25 +208,31 @@ function NoveltyCard({ novelty, allNovelties }) {
         ? new Date(novelty.date).toLocaleDateString('es-VE', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
         : '';
 
+
+
     return (
-        <div className='rounded-lg border border-gray-100 overflow-hidden hover:shadow-md transition-shadow'>
+        <div className='bg-[#eeeeee] shadow-sm rounded-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow' onClick={() => { console.log(novelty) }}>
             {/* Image/Video */}
+
             {(hasImage || hasVideo) && (
-                <div className='relative w-full h-[140px] sm:h-[180px] bg-gray-100'>
-                    {hasImage && imgSrc ? (
-                        <img src={imgSrc} alt='' className='w-full h-full object-cover cursor-pointer' onClick={handleImageClick} />
-                    ) : hasVideo ? (
-                        <div className='w-full h-full flex items-center justify-center bg-gray-900'>
-                            <FiVideo className='w-8 h-8 text-white/50' />
-                        </div>
-                    ) : null}
+                <div className='relative w-full h-[140px] sm:h-[240px] bg-gray-100'>
+                    {
+                        hasImage && imgSrc ? (
+                            <img src={imgSrc} alt='' className='w-full h-full object-cover cursor-pointer' onClick={handleImageClick} />
+                        )
+                            :
+                            hasVideo ? (
+                                <div className='w-full h-full flex items-center justify-center bg-gray-900'>
+                                    <FiVideo className='w-8 h-8 text-white/50' />
+                                </div>
+                            ) : null}
                     {/* Shift badge */}
+
                     {novelty.shift && (
-                        <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm ${
-                            novelty.shift === 'day'
-                                ? 'bg-amber-100/90 text-amber-700'
-                                : 'bg-indigo-100/90 text-indigo-700'
-                        }`}>
+                        <span className={`absolute top-2 left-2 text-[10px] font-semibold px-2 py-0.5 rounded-full backdrop-blur-sm ${novelty.shift === 'day'
+                            ? 'bg-amber-100/90 text-amber-700'
+                            : 'bg-indigo-100/90 text-indigo-700'
+                            }`}>
                             {novelty.shift === 'day' ? 'Diurno' : 'Nocturno'}
                         </span>
                     )}
@@ -248,33 +279,38 @@ function NoveltyCard({ novelty, allNovelties }) {
                     {/* Validator */}
                     {validatorName && (
                         <div className='flex items-center gap-1.5 bg-gray-50 rounded-full pr-2.5 overflow-hidden'>
-                            <div className={`w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0 ${
-                                hasValidation
-                                    ? isApproved ? 'bg-emerald-500' : 'bg-red-500'
-                                    : 'bg-blue-500'
-                            }`}>
+                            <div className={`w-[24px] h-[24px] rounded-full flex items-center justify-center shrink-0 ${hasValidation
+                                ? isApproved ? 'bg-emerald-500' : 'bg-red-500'
+                                : 'bg-blue-500'
+                                }`}>
                                 {hasValidation ? (
                                     isApproved
                                         ? <FiThumbsUp className='w-3 h-3 text-white' />
                                         : <FiThumbsDown className='w-3 h-3 text-white' />
                                 ) : (
                                     <FiShield className='w-3 h-3 text-white' />
-                                )}
+                                 )}
                             </div>
                             <div className='min-w-0'>
                                 <p className='text-[10px] text-gray-400 leading-none'>Coordinador</p>
                                 <p className='text-[11px] font-semibold text-gray-700 truncate max-w-[120px]'>{validatorName}</p>
+                            </div>
+                            <div className='w-[24px] h-[24px] rounded-full bg-stone-400 flex items-center justify-center shrink-0 overflow-hidden'>
+                                {validatorImg ? (
+                                    <img src={validatorImg} alt='' className='w-full h-full object-cover' />
+                                ) : (
+                                    <FiUser className='w-3 h-3 text-white' />
+                                )}
                             </div>
                         </div>
                     )}
 
                     {/* Validation status */}
                     {hasValidation && (
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ml-auto ${
-                            isApproved
-                                ? 'bg-emerald-50 text-emerald-600'
-                                : 'bg-red-50 text-red-600'
-                        }`}>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ml-auto ${isApproved
+                            ? 'bg-emerald-50 text-emerald-600'
+                            : 'bg-red-50 text-red-600'
+                            }`}>
                             {isApproved ? 'Aprobada' : 'Rechazada'}
                         </span>
                     )}
@@ -282,11 +318,10 @@ function NoveltyCard({ novelty, allNovelties }) {
 
                 {/* No image/video - show shift inline */}
                 {!hasImage && !hasVideo && novelty.shift && (
-                    <span className={`inline-block mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                        novelty.shift === 'day'
-                            ? 'bg-amber-50 text-amber-600'
-                            : 'bg-indigo-50 text-indigo-600'
-                    }`}>
+                    <span className={`inline-block mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-full ${novelty.shift === 'day'
+                        ? 'bg-amber-50 text-amber-600'
+                        : 'bg-indigo-50 text-indigo-600'
+                        }`}>
                         {novelty.shift === 'day' ? 'Diurno' : 'Nocturno'}
                     </span>
                 )}

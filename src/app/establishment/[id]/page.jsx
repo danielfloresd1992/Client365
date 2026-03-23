@@ -3,13 +3,21 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import useAxios from '@/hook/useAxios';
 
+
+
 import EstablishmentHeader from './assets/EstablishmentHeader';
 import NoveltiesSection from './assets/NoveltiesSection';
 import ReportsSection from './assets/ReportsSection';
 import FranchiseInfo from './assets/FranchiseInfo';
 import ManagersSection from './assets/ManagersSection';
 
+
+
+
 export default function EstablishmentDetailPage() {
+
+
+
     const params = useParams();
     const id = params.id;
 
@@ -18,6 +26,8 @@ export default function EstablishmentDetailPage() {
     const [error, setError] = useState(false);
     const { requestAction } = useAxios();
 
+
+    
     useEffect(() => {
         if (!id) return;
         setLoading(true);
@@ -32,6 +42,7 @@ export default function EstablishmentDetailPage() {
             .catch(() => setError(true))
             .finally(() => setLoading(false));
     }, [id]);
+
 
     if (loading) {
         return (
