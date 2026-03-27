@@ -65,9 +65,9 @@ export default function AlertLiveJarvis() {
 
         const handdlerCreateSocket = (msm) => {
             if (isSubscribed) {
-                const text = `Nueva alerta en ${msm.doc?.local?.name}, por validar`;
+                const text = `Nueva alerta en ${msm.doc?.local?.localName}, por validar`;
                 speak(text);
-                console.log('hola');
+                console.log(msm);
                 showBrowserNotification('Nueva alerta', {
                     body: msm.doc?.title || text,
                     image: msm.doc?.imageToShare,
@@ -79,7 +79,7 @@ export default function AlertLiveJarvis() {
 
         const handdlerPutSocket = (msm) => {
             if (isSubscribed) {
-                console.log(msm);
+               // console.log(msm);
             }
         };
 
@@ -100,6 +100,6 @@ export default function AlertLiveJarvis() {
         }
     }, [voice_definitive]);
 
-    console.log('hola')
+
     return null;
 }
