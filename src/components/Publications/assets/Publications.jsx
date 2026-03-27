@@ -53,18 +53,18 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
 
 
     useEffect(() => {
-        if(!filterSignal) return;
+        if (!filterSignal) return;
         paginateRef.current = paginateRef.current = 0;
-        if(filterSignal?.dateFrom && filterSignal.dateUntil){
+        if (filterSignal?.dateFrom && filterSignal.dateUntil) {
             resetData()
             const before = new Date(filterSignal.dateFrom).toISOString();
             const after = new Date(filterSignal.dateUntil).toISOString();
             const establishment = filterSignal?.establishmentName !== '' ? `&establishment=${filterSignal?.establishmentName}` : ''
             const quiery = `/user/publisher/paginate=${paginateRef.current}/items=10?before=${before}&after=${after}${establishment}`;
-           fetchData(quiery);
+            fetchData(quiery);
         }
 
-        if(filterSignal.action === 'clear')  {
+        if (filterSignal.action === 'clear') {
             resetData();
             fetchData(`/user/publisher/paginate=${paginateRef.current}/items=10`);
         }
@@ -80,13 +80,13 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
         const handleSendPublisher = data => {
             if (isSubscribed) {
                 //  data.isNewData = true;
-                setItem(data, 'shift');
+                setItem(data?.doc, 'shift');
             }
         };
-        socket.on('sendPublisher', handleSendPublisher);
+        socket.on('created_Alert', handleSendPublisher);
         return () => {
             isSubscribed = false;
-            socket.off('sendPublisher', handleSendPublisher);
+            socket.off('created_Alert', handleSendPublisher);
         };
     }, []);
 
@@ -98,7 +98,7 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
         try {
             await fetchData(`/user/publisher/paginate=${page}/items=10`)
             paginateRef.current = paginateRef.current + 1;
-        } 
+        }
         finally {
             setAwait(false);
         }

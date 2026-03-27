@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 import { isMobile } from 'react-device-detect';
 import { useSelector, useDispatch } from 'react-redux';
 import { setOpenWindowConfig } from '@/store/slices/configModalStore';

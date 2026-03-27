@@ -88,11 +88,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
         socket.on('document_updated', handlePutPublisher);
         socket.on('reciveDeletePublisher', handleDeletePublisher);
+
         return () => {
             isSubscribed = false;
             socket.off('document_updated', handlePutPublisher);
             socket.off('reciveDeletePublisher', handleDeletePublisher);
         };
+
     }, [noveltyState, dataSessionState]);
 
 
@@ -250,9 +252,9 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     return (
         <div
-        style={{
-            boxShadow: 'rgb(167 167 167) 4px 4px 8px 1px'
-        }}
+            style={{
+                boxShadow: 'rgb(167 167 167) 4px 4px 8px 1px'
+            }}
             onClick={() => {
                 if (process.env.NODE_ENV === 'development') console.log(noveltyState);
             }}

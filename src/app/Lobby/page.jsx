@@ -57,6 +57,7 @@ export default function Lobby() {
         >
             <ImgProvider>
                 <Nav />
+                <AlertLiveJarvis />
                 <PublicationsBox filterSignal={publicationFilterSignal} />
                 <AsideInfoUser
                     onApplyPublicationFilter={handleApplyPublicationFilter}
@@ -89,7 +90,7 @@ export default function Lobby() {
 
                 <ZoomImg />
             </ImgProvider>
-            <AlertLiveJarvis />
+            
         </div>
     );
 }

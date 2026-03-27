@@ -36,6 +36,9 @@ export default function AlertLiveJarvis() {
     }, []);
 
 
+
+
+
     // Socket listeners para alertas
     useEffect(() => {
         let isSubscribed = true;
@@ -64,11 +67,13 @@ export default function AlertLiveJarvis() {
             if (isSubscribed) {
                 const text = `Nueva alerta en ${msm.doc?.local?.name}, por validar`;
                 speak(text);
+                console.log('hola');
                 showBrowserNotification('Nueva alerta', {
                     body: msm.doc?.title || text,
                     image: msm.doc?.imageToShare,
                     icon: '/ico/icons8-campana-48.png',
                 });
+
             }
         };
 
@@ -81,7 +86,8 @@ export default function AlertLiveJarvis() {
 
         socket_jarvis.on('warning', handlerMsmSocket);
         socket_jarvis.on('alert', handdlerAlertSocket);
-        socket.on('document_created', handdlerCreateSocket);
+
+        socket.on('created_Alert', handdlerCreateSocket);
         socket.on('document_updated', handdlerPutSocket);
 
 
@@ -94,6 +100,6 @@ export default function AlertLiveJarvis() {
         }
     }, [voice_definitive]);
 
-
+    console.log('hola')
     return null;
 }
