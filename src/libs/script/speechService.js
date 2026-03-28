@@ -141,42 +141,34 @@ class SpeechService {
     }
 
     async _tryDetectCordovaTTS() {
+        // Método 1: Plugin directo (cuando cordova.js está cargado en la página)
         if (!hasCordovaTTS()) {
-            // Esperar a deviceready — window.cordova y window.TTS no existen
-            // hasta que Cordova haya inicializado todos los plugins
-            await new Promise((resolve) => {
-                if (typeof document === 'undefined') return resolve();
-
-                const onDeviceReady = () => {
-                    document.removeEventListener('deviceready', onDeviceReady);
-                    // Después de deviceready, dar tiempo extra para que el plugin TTS se registre
+            // Esperar brevemente por si deviceready está pendiente
+            if (typeof window !== 'undefined' && (window.cordova || window._cordovaNative)) {
+                await new Promise((resolve) => {
                     const check = () => {
                         if (hasCordovaTTS()) resolve();
                         else setTimeout(check, 200);
                     };
                     check();
-                };
+                    setTimeout(resolve, 3000);
+                });
+            }
+        }
 
-                document.addEventListener('deviceready', onDeviceReady, false);
-
-                // Si deviceready ya se disparó antes, verificar directamente
-                if (window.cordova || window._cordovaNative) {
-                    const check = () => {
-                        if (hasCordovaTTS()) resolve();
-                        else setTimeout(check, 200);
-                    };
-                    check();
-                }
-
-                // Timeout máximo: 6s (deviceready + carga de plugin)
-                setTimeout(resolve, 6000);
-            });
+        // Método 2: Bridge desde Cordova launcher (para apps con URL remota)
+        // El launcher inyecta window.__cordovaBridge con las funciones nativas
+        if (!hasCordovaTTS() && typeof window !== 'undefined' && window.__cordovaBridge) {
+            this._cordovaAvailable = true;
+            this._cordovaBridge = true; // marca que usamos bridge
+            this._cordovaVoices = [];
+            console.log('[SpeechService] Cordova TTS detectado via bridge');
+            return;
         }
 
         if (hasCordovaTTS()) {
             this._cordovaAvailable = true;
             try {
-                // getVoices solo está en cordova-plugin-tts-advanced
                 if (hasCordovaGetVoices()) {
                     const voices = await new Promise((resolve, reject) => {
                         window.TTS.getVoices((v) => resolve(v), (e) => reject(e));
@@ -184,15 +176,14 @@ class SpeechService {
                     this._cordovaVoices = voices || [];
                     console.log(`[SpeechService] Cordova TTS detectado con ${this._cordovaVoices.length} voces`);
                 } else {
-                    // cordova-plugin-tts no tiene getVoices — usar voces genéricas
                     this._cordovaVoices = [];
-                    console.log('[SpeechService] Cordova TTS detectado (cordova-plugin-tts, sin getVoices)');
+                    console.log('[SpeechService] Cordova TTS detectado (sin getVoices)');
                 }
             } catch (e) {
                 this._cordovaVoices = [];
                 console.log('[SpeechService] Cordova TTS detectado (sin listado de voces)');
             }
-        } else {
+        } else if (!this._cordovaBridge) {
             console.log('[SpeechService] Cordova TTS no disponible');
         }
     }
@@ -743,30 +734,39 @@ class SpeechService {
     /* -------------------------------------------------- */
     /*  Motor 3: Cordova TTS nativo (Android/iOS)           */
     /* -------------------------------------------------- */
-    async _speakCordova(text) {
-        if (!hasCordovaTTS()) {
-            throw new Error('Cordova TTS no disponible');
+    _speakCordova(text) {
+        // Si usamos bridge (app con URL remota), enviar mensaje al launcher
+        if (this._cordovaBridge && window.__cordovaBridge) {
+            return window.__cordovaBridge.speak(
+                text,
+                this._selectedVoiceLang || 'es-ES'
+            );
         }
 
-        const lang = this._selectedVoiceLang || 'es-ES';
-        const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
+        return new Promise((resolve, reject) => {
+            if (!hasCordovaTTS()) {
+                return reject(new Error('Cordova TTS no disponible'));
+            }
 
-        const options = {
-            text,
-            locale: lang,
-            rate: 1.0,
-        };
+            const lang = this._selectedVoiceLang || 'es-ES';
+            const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
 
-        if (identifier) {
-            options.identifier = identifier;
-        }
+            const options = {
+                text,
+                locale: lang,
+                rate: 1.0,
+            };
 
-        try {
-            // cordova-plugin-tts usa API basada en promesas
-            await window.TTS.speak(options);
-        } catch (err) {
-            throw new Error(`Cordova TTS error: ${err}`);
-        }
+            if (identifier) {
+                options.identifier = identifier;
+            }
+
+            window.TTS.speak(
+                options,
+                () => resolve(),
+                (err) => reject(new Error(`Cordova TTS error: ${err}`))
+            );
+        });
     }
 
     /* -------------------------------------------------- */

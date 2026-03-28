@@ -4,20 +4,24 @@
  * Puente de inicialización para Cordova.
  *
  * Detecta si la app corre en un entorno Cordova y gestiona:
- *  - Espera a `deviceready`
+ *  - Detección de plugins nativos (disponibles tras navegación desde launcher)
  *  - Inicialización de Push Notifications (@havesource/cordova-plugin-push)
- *  - Estado de permisos nativos
+ *  - Notificaciones locales (cordova-plugin-local-notification)
+ *
+ * Cuando la app se carga desde una URL remota (https://jarvis365.net),
+ * el launcher (www/index.html) carga cordova.js y navega aquí.
+ * Cordova mantiene los plugins accesibles si allow-navigation está configurado.
  */
 
-/** Detecta si estamos en un entorno Cordova/Capacitor */
+/** Detecta si estamos en un entorno Cordova (plugins disponibles tras navegación) */
 export function isCordovaEnv() {
     if (typeof window === 'undefined') return false;
     return (
         !!window.cordova ||
         !!window.Cordova ||
         !!window._cordovaNative ||
-        (document.URL.indexOf('http://') === -1 &&
-         document.URL.indexOf('https://') === -1)
+        !!window.TTS ||
+        !!window.PushNotification
     );
 }
 
@@ -31,32 +35,51 @@ let _onPushRegistration = null;
 
 
 /**
- * Espera a que Cordova esté completamente listo (deviceready).
- * Si no estamos en Cordova, resuelve inmediatamente.
+ * Espera a que los plugins de Cordova estén disponibles.
+ * Tras la navegación desde el launcher, los plugins pueden tardar
+ * un momento en estar accesibles.
  */
 export function waitForDeviceReady() {
-    if (!isCordovaEnv()) return Promise.resolve(false);
+    if (typeof window === 'undefined') return Promise.resolve(false);
     if (_deviceReady) return Promise.resolve(true);
+
+    // Si ya hay plugins disponibles, estamos listos
+    if (isCordovaEnv()) {
+        _deviceReady = true;
+        return Promise.resolve(true);
+    }
 
     if (!_deviceReadyPromise) {
         _deviceReadyPromise = new Promise((resolve) => {
+            // Escuchar deviceready (por si cordova.js está cargado)
             const onReady = () => {
                 _deviceReady = true;
                 document.removeEventListener('deviceready', onReady);
                 console.log('[CordovaInit] deviceready disparado');
                 resolve(true);
             };
-
             document.addEventListener('deviceready', onReady, false);
 
-            // Timeout de seguridad: si deviceready no se dispara en 5s, resolver igualmente
-            setTimeout(() => {
-                if (!_deviceReady) {
-                    console.warn('[CordovaInit] deviceready no se disparó en 5s, continuando...');
+            // Polling: verificar si los plugins aparecen tras la navegación
+            let attempts = 0;
+            const maxAttempts = 25; // 5 segundos (25 * 200ms)
+            const checkPlugins = () => {
+                attempts++;
+                if (isCordovaEnv()) {
                     _deviceReady = true;
+                    document.removeEventListener('deviceready', onReady);
+                    console.log('[CordovaInit] Plugins Cordova detectados');
                     resolve(true);
+                } else if (attempts < maxAttempts) {
+                    setTimeout(checkPlugins, 200);
+                } else {
+                    // No estamos en Cordova
+                    document.removeEventListener('deviceready', onReady);
+                    console.log('[CordovaInit] No se detectó entorno Cordova');
+                    resolve(false);
                 }
-            }, 5000);
+            };
+            setTimeout(checkPlugins, 200);
         });
     }
 
@@ -66,12 +89,10 @@ export function waitForDeviceReady() {
 
 /**
  * Inicializa Push Notifications con @havesource/cordova-plugin-push.
- * Debe llamarse después de `deviceready`.
- *
  * En Android 13+ el plugin pide automáticamente el permiso POST_NOTIFICATIONS.
  */
 export function initPushNotifications() {
-    if (!isCordovaEnv() || !window.PushNotification) {
+    if (!window.PushNotification) {
         console.log('[CordovaInit] PushNotification plugin no disponible');
         return null;
     }
@@ -84,7 +105,7 @@ export function initPushNotifications() {
             badge: true,
             sound: true,
             vibrate: true,
-            forceShow: true, // Muestra notificación aunque la app esté en foreground
+            forceShow: true,
         },
         ios: {
             alert: true,
@@ -130,13 +151,11 @@ export function onPushRegistration(cb) {
 
 /**
  * Muestra una notificación local en Cordova.
- * Requiere cordova-plugin-local-notification (opcional).
- * Si no está disponible, usa el título como fallback con un alert.
+ * Requiere cordova-plugin-local-notification.
  */
 export function showLocalNotification(title, options = {}) {
-    if (!isCordovaEnv()) return;
+    if (typeof window === 'undefined') return;
 
-    // Si tiene cordova-plugin-local-notification
     if (window.cordova?.plugins?.notification?.local) {
         window.cordova.plugins.notification.local.schedule({
             title: title,
@@ -148,13 +167,12 @@ export function showLocalNotification(title, options = {}) {
         return;
     }
 
-    // Fallback: no hay plugin de notificaciones locales
     console.warn('[CordovaInit] cordova-plugin-local-notification no disponible');
 }
 
 
 /**
- * Devuelve true si deviceready ya se disparó.
+ * Devuelve true si los plugins de Cordova están disponibles.
  */
 export function isDeviceReady() {
     return _deviceReady;
