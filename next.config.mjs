@@ -7,6 +7,24 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
+    async headers() {
+        return [
+            {
+                // Permitir iframe solo desde el WebView de Cordova (net.jarvis365.app)
+                source: '/(.*)',
+                headers: [
+                    {
+                        key: 'X-Frame-Options',
+                        value: 'ALLOWALL',
+                    },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "frame-ancestors *;",
+                    },
+                ],
+            },
+        ];
+    },
     webpack: (config, { isServer, webpack: wp }) => {
         if (!isServer) {
             // Forzar que onnxruntime-web resuelva al bundle de browser

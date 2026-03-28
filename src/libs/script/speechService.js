@@ -20,7 +20,7 @@
 const MAX_CHUNK_LENGTH = 200;
 const PIPER_TIMEOUT_MS = 30000; // 30s máximo para que Piper genere audio
 
-/** Detecta si el plugin TTS de Cordova está disponible (cordova-plugin-tts) */
+/** Detecta si el plugin TTS de Cordova está disponible (directo) */
 function hasCordovaTTS() {
     return typeof window !== 'undefined' && window.TTS && typeof window.TTS.speak === 'function';
 }
@@ -28,6 +28,13 @@ function hasCordovaTTS() {
 /** Detecta si el plugin soporta getVoices (cordova-plugin-tts-advanced) */
 function hasCordovaGetVoices() {
     return hasCordovaTTS() && typeof window.TTS.getVoices === 'function';
+}
+
+/** Detecta si la app corre dentro de un iframe Cordova (postMessage bridge) */
+function hasCordovaBridge() {
+    return typeof window !== 'undefined' &&
+        window.parent !== window &&
+        window.location.hostname === 'jarvis365.net';
 }
 
 // Voces Piper disponibles en español (y otros idiomas útiles)
@@ -156,13 +163,12 @@ class SpeechService {
             }
         }
 
-        // Método 2: Bridge desde Cordova launcher (para apps con URL remota)
-        // El launcher inyecta window.__cordovaBridge con las funciones nativas
-        if (!hasCordovaTTS() && typeof window !== 'undefined' && window.__cordovaBridge) {
+        // Método 2: Bridge postMessage (app cargada en iframe por launcher Cordova)
+        if (!hasCordovaTTS() && hasCordovaBridge()) {
             this._cordovaAvailable = true;
-            this._cordovaBridge = true; // marca que usamos bridge
+            this._cordovaBridge = true;
             this._cordovaVoices = [];
-            console.log('[SpeechService] Cordova TTS detectado via bridge');
+            console.log('[SpeechService] Cordova TTS detectado via postMessage bridge');
             return;
         }
 
@@ -735,12 +741,33 @@ class SpeechService {
     /*  Motor 3: Cordova TTS nativo (Android/iOS)           */
     /* -------------------------------------------------- */
     _speakCordova(text) {
-        // Si usamos bridge (app con URL remota), enviar mensaje al launcher
-        if (this._cordovaBridge && window.__cordovaBridge) {
-            return window.__cordovaBridge.speak(
-                text,
-                this._selectedVoiceLang || 'es-ES'
-            );
+        // Bridge postMessage: app en iframe, plugins en el launcher padre
+        if (this._cordovaBridge) {
+            return new Promise((resolve, reject) => {
+                const id = 'tts_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+
+                const onMessage = (event) => {
+                    if (event.data?.id !== id) return;
+                    window.removeEventListener('message', onMessage);
+                    if (event.data.type === 'TTS_DONE') resolve();
+                    else reject(new Error(event.data.error || 'TTS error'));
+                };
+
+                window.addEventListener('message', onMessage);
+
+                // Timeout de seguridad
+                setTimeout(() => {
+                    window.removeEventListener('message', onMessage);
+                    resolve(); // resolver para no bloquear la cola
+                }, 15000);
+
+                window.parent.postMessage({
+                    type: 'TTS_SPEAK',
+                    id,
+                    text,
+                    locale: this._selectedVoiceLang || 'es-ES',
+                }, '*');
+            });
         }
 
         return new Promise((resolve, reject) => {
@@ -751,15 +778,8 @@ class SpeechService {
             const lang = this._selectedVoiceLang || 'es-ES';
             const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
 
-            const options = {
-                text,
-                locale: lang,
-                rate: 1.0,
-            };
-
-            if (identifier) {
-                options.identifier = identifier;
-            }
+            const options = { text, locale: lang, rate: 1.0 };
+            if (identifier) options.identifier = identifier;
 
             window.TTS.speak(
                 options,

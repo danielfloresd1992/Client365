@@ -156,6 +156,17 @@ export function onPushRegistration(cb) {
 export function showLocalNotification(title, options = {}) {
     if (typeof window === 'undefined') return;
 
+    // Si estamos en iframe, enviar al launcher vía postMessage
+    if (window.parent !== window) {
+        window.parent.postMessage({
+            type: 'LOCAL_NOTIFICATION',
+            title,
+            body: options.body || '',
+            icon: options.icon || '',
+        }, '*');
+        return;
+    }
+
     if (window.cordova?.plugins?.notification?.local) {
         window.cordova.plugins.notification.local.schedule({
             title: title,
