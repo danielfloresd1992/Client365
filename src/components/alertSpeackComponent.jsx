@@ -8,6 +8,10 @@ import {
     registerServiceWorker,
     requestNotificationPermission,
 } from '@/libs/notification_push/native';
+import {
+    waitForDeviceReady,
+    initPushNotifications,
+} from '@/libs/script/cordovaInit';
 
 
 
@@ -16,9 +20,21 @@ export default function AlertLiveJarvis() {
     const { speak, voice_definitive } = useSpeckAlert();
 
 
-    // Registrar Service Worker y pedir permiso al primer gesto del usuario
+    // Inicializar plataforma: Cordova o Web
     useEffect(() => {
-        registerServiceWorker();
+        async function initPlatform() {
+            const inCordova = await waitForDeviceReady();
+
+            if (inCordova) {
+                // En Cordova: inicializar push plugin (pide permisos automáticamente en Android 13+)
+                initPushNotifications();
+            } else {
+                // En Web: registrar Service Worker
+                registerServiceWorker();
+            }
+        }
+
+        initPlatform();
 
         const askPermission = () => {
             requestNotificationPermission();

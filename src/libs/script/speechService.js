@@ -30,9 +30,14 @@ function isCordova() {
     );
 }
 
-/** Detecta si el plugin TTS de Cordova está disponible */
+/** Detecta si el plugin TTS de Cordova está disponible (cordova-plugin-tts) */
 function hasCordovaTTS() {
     return typeof window !== 'undefined' && window.TTS && typeof window.TTS.speak === 'function';
+}
+
+/** Detecta si el plugin soporta getVoices (cordova-plugin-tts-advanced) */
+function hasCordovaGetVoices() {
+    return hasCordovaTTS() && typeof window.TTS.getVoices === 'function';
 }
 
 // Voces Piper disponibles en español (y otros idiomas útiles)
@@ -163,12 +168,18 @@ class SpeechService {
         if (hasCordovaTTS()) {
             this._cordovaAvailable = true;
             try {
-                // Obtener voces disponibles del sistema Android/iOS
-                const voices = await new Promise((resolve, reject) => {
-                    window.TTS.getVoices((v) => resolve(v), (e) => reject(e));
-                });
-                this._cordovaVoices = voices || [];
-                console.log(`[SpeechService] Cordova TTS detectado con ${this._cordovaVoices.length} voces`);
+                // getVoices solo está en cordova-plugin-tts-advanced
+                if (hasCordovaGetVoices()) {
+                    const voices = await new Promise((resolve, reject) => {
+                        window.TTS.getVoices((v) => resolve(v), (e) => reject(e));
+                    });
+                    this._cordovaVoices = voices || [];
+                    console.log(`[SpeechService] Cordova TTS detectado con ${this._cordovaVoices.length} voces`);
+                } else {
+                    // cordova-plugin-tts no tiene getVoices — usar voces genéricas
+                    this._cordovaVoices = [];
+                    console.log('[SpeechService] Cordova TTS detectado (cordova-plugin-tts, sin getVoices)');
+                }
             } catch (e) {
                 this._cordovaVoices = [];
                 console.log('[SpeechService] Cordova TTS detectado (sin listado de voces)');
@@ -247,7 +258,14 @@ class SpeechService {
     }
 
     _autoDetectEngine() {
-        // Prioridad: Piper > Native > Cordova > Audio Fallback
+        // En Cordova: prioridad al TTS nativo del dispositivo
+        // En navegador: Piper > Native > Audio Fallback
+        if (this._cordovaAvailable) {
+            this._engine = 'cordova';
+            console.log('[SpeechService] Motor principal: Cordova TTS nativo (prioridad en móvil)');
+            return;
+        }
+
         if (this._piperAvailable) {
             this._engine = 'piper';
             console.log('[SpeechService] Motor principal: Piper TTS (WASM)');
@@ -261,12 +279,6 @@ class SpeechService {
                 console.log('[SpeechService] Motor principal: Web Speech API');
                 return;
             }
-        }
-
-        if (this._cordovaAvailable) {
-            this._engine = 'cordova';
-            console.log('[SpeechService] Motor principal: Cordova TTS nativo');
-            return;
         }
 
         this._engine = 'audio-fallback';
@@ -723,31 +735,30 @@ class SpeechService {
     /* -------------------------------------------------- */
     /*  Motor 3: Cordova TTS nativo (Android/iOS)           */
     /* -------------------------------------------------- */
-    _speakCordova(text) {
-        return new Promise((resolve, reject) => {
-            if (!hasCordovaTTS()) {
-                return reject(new Error('Cordova TTS no disponible'));
-            }
+    async _speakCordova(text) {
+        if (!hasCordovaTTS()) {
+            throw new Error('Cordova TTS no disponible');
+        }
 
-            const lang = this._selectedVoiceLang || 'es-ES';
-            const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
+        const lang = this._selectedVoiceLang || 'es-ES';
+        const identifier = this._selectedVoice?.cordovaVoice?.identifier || null;
 
-            const options = {
-                text,
-                locale: lang,
-                rate: 1.0,
-            };
+        const options = {
+            text,
+            locale: lang,
+            rate: 1.0,
+        };
 
-            if (identifier) {
-                options.identifier = identifier;
-            }
+        if (identifier) {
+            options.identifier = identifier;
+        }
 
-            window.TTS.speak(
-                options,
-                () => resolve(),
-                (err) => reject(new Error(`Cordova TTS error: ${err}`))
-            );
-        });
+        try {
+            // cordova-plugin-tts usa API basada en promesas
+            await window.TTS.speak(options);
+        } catch (err) {
+            throw new Error(`Cordova TTS error: ${err}`);
+        }
     }
 
     /* -------------------------------------------------- */

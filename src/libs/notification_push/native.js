@@ -1,5 +1,7 @@
 'use client';
 
+import { isCordovaEnv, showLocalNotification } from '@/libs/script/cordovaInit';
+
 let swRegistration = null;
 let permissionState = typeof window !== 'undefined' && 'Notification' in window
     ? Notification.permission
@@ -8,9 +10,14 @@ let permissionState = typeof window !== 'undefined' && 'Notification' in window
 
 /**
  * Registra el Service Worker. Debe llamarse una vez al montar la app.
+ * En Cordova no se usan Service Workers — se omite silenciosamente.
  */
 export async function registerServiceWorker() {
     if (typeof window === 'undefined') return null;
+    if (isCordovaEnv()) {
+        console.log('[Notifications] Cordova detectado — Service Worker omitido');
+        return null;
+    }
     if (!('serviceWorker' in navigator)) {
         console.warn('[Notifications] Service Worker no soportado');
         return null;
@@ -34,9 +41,15 @@ export async function registerServiceWorker() {
  * Retorna 'granted', 'denied', o 'default'.
  */
 export async function requestNotificationPermission() {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-        return 'denied';
+    if (typeof window === 'undefined') return 'denied';
+
+    // En Cordova, los permisos los gestiona el plugin push al init()
+    if (isCordovaEnv()) {
+        permissionState = 'granted';
+        return 'granted';
     }
+
+    if (!('Notification' in window)) return 'denied';
 
     if (Notification.permission === 'granted') {
         permissionState = 'granted';
@@ -79,6 +92,12 @@ export function getPermissionState() {
  */
 export async function showBrowserNotification(title, options = {}) {
     if (typeof window === 'undefined') return;
+
+    // En Cordova, usar notificación local nativa
+    if (isCordovaEnv()) {
+        showLocalNotification(title, options);
+        return;
+    }
 
     // Si no hay permiso, intentar pedirlo
     if (permissionState !== 'granted') {
