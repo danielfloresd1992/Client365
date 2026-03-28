@@ -20,16 +20,6 @@
 const MAX_CHUNK_LENGTH = 200;
 const PIPER_TIMEOUT_MS = 30000; // 30s máximo para que Piper genere audio
 
-/** Detecta si estamos en un entorno Cordova/Capacitor */
-function isCordova() {
-    return typeof window !== 'undefined' && (
-        !!window.cordova ||
-        !!window.Cordova ||
-        !!window._cordovaNative ||
-        document.URL.indexOf('http://') === -1 && document.URL.indexOf('https://') === -1
-    );
-}
-
 /** Detecta si el plugin TTS de Cordova está disponible (cordova-plugin-tts) */
 function hasCordovaTTS() {
     return typeof window !== 'undefined' && window.TTS && typeof window.TTS.speak === 'function';
@@ -152,17 +142,35 @@ class SpeechService {
 
     async _tryDetectCordovaTTS() {
         if (!hasCordovaTTS()) {
-            // Si estamos en Cordova pero el plugin aún no cargó, esperar
-            if (isCordova()) {
-                await new Promise((resolve) => {
+            // Esperar a deviceready — window.cordova y window.TTS no existen
+            // hasta que Cordova haya inicializado todos los plugins
+            await new Promise((resolve) => {
+                if (typeof document === 'undefined') return resolve();
+
+                const onDeviceReady = () => {
+                    document.removeEventListener('deviceready', onDeviceReady);
+                    // Después de deviceready, dar tiempo extra para que el plugin TTS se registre
                     const check = () => {
                         if (hasCordovaTTS()) resolve();
                         else setTimeout(check, 200);
                     };
                     check();
-                    setTimeout(resolve, 3000); // máximo 3s de espera
-                });
-            }
+                };
+
+                document.addEventListener('deviceready', onDeviceReady, false);
+
+                // Si deviceready ya se disparó antes, verificar directamente
+                if (window.cordova || window._cordovaNative) {
+                    const check = () => {
+                        if (hasCordovaTTS()) resolve();
+                        else setTimeout(check, 200);
+                    };
+                    check();
+                }
+
+                // Timeout máximo: 6s (deviceready + carga de plugin)
+                setTimeout(resolve, 6000);
+            });
         }
 
         if (hasCordovaTTS()) {
