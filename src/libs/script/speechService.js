@@ -197,8 +197,8 @@ class SpeechService {
     _buildVoiceList() {
         this._voices = [];
 
-        // Voces Piper (solo si Piper cargó)
-        if (this._piperAvailable) {
+        // Voces Piper (solo si Piper cargó y NO estamos en Cordova bridge)
+        if (this._piperAvailable && !this._cordovaBridge) {
             for (const v of PIPER_VOICES) {
                 this._voices.push({
                     name: v.name,
@@ -434,12 +434,17 @@ class SpeechService {
         if (v) {
             this._selectedVoice = v;
             this._selectedVoiceLang = v.lang || 'es-MX';
-            this._engine = v.engine || 'audio-fallback';
             this._selectedVoiceId = v.piperVoiceId || null;
 
-            // Si es voz Piper, pre-descargar modelo
-            if (v.engine === 'piper' && v.piperVoiceId) {
-                this._preloadPiperModel(v.piperVoiceId);
+            // En Cordova bridge, mantener siempre el motor cordova
+            if (this._cordovaBridge) {
+                this._engine = 'cordova';
+            } else {
+                this._engine = v.engine || 'audio-fallback';
+                // Si es voz Piper, pre-descargar modelo
+                if (v.engine === 'piper' && v.piperVoiceId) {
+                    this._preloadPiperModel(v.piperVoiceId);
+                }
             }
 
             console.log(`[SpeechService] Voz seleccionada: "${name}" (motor: ${this._engine})`);
