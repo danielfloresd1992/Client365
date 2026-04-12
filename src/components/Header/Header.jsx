@@ -44,13 +44,7 @@ export default function Header() {
         });
 
         socket_jarvis.on('connect_error', error => {
-            dispatch(setConfigModal({
-                type: 'error',
-                title: 'Error al comunicarse con el servidor',
-                description: 'Há ocurrido un error en unos de los socked , por favor comuníquese con el administrador.',
-                isCallback: null,
-                modalOpen: true
-            }));
+            console.log(error);
             /////////////////
         });
 

@@ -118,6 +118,7 @@ function Form({
 
         useOnlyForTheReportingDocument: false,
         useOfLiveAlertForTheCustomer: false,
+        noSubtitleInTheReport: false,
         groupingInTheReport: 'individual',
         descriptionNoteForReportDocument: false,
         doesItrequireVideo: false
@@ -1102,6 +1103,25 @@ function Form({
                                         onChange={
                                             e => {
                                                 setMenu({ ...menu, useOnlyForTheReportingDocument: e.target.checked });
+                                            }
+                                        }
+                                    />
+                                </label>
+                            </div>
+
+
+                            
+                            <div className='flex columns __width-complete __oneGap'>
+                                <label className='__label' >
+                                    <p className='__text-center'>Remover el subtítulo en el documento de imagenes en reporte</p>
+                                    <input
+                                        className='__input'
+                                        type='checkbox'
+                                        name='noSubtitleInTheReport'
+                                        checked={Boolean(menu.noSubtitleInTheReport)}
+                                        onChange={
+                                            e => {
+                                                setMenu({ ...menu, noSubtitleInTheReport: e.target.checked });
                                             }
                                         }
                                     />
