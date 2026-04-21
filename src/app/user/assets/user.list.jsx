@@ -407,12 +407,13 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const extra = config?.scheduleOverride?.workType === 'extra';
         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
         const lackOfWork = config?.scheduleOverride?.workType === 'falta'
+        const laboral = config?.scheduleOverride?.workType === 'laboral'
         const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
         const endTime = config?.scheduleOverride?.endTime || dayConfig?.endTime;
 
         if (lackOfWork) return returnLack();
 
-        if (dayFree && !extra) return returFreeDay();
+        if (dayFree && !extra && !laboral) return returFreeDay();
         if (!config?.checkIn && !config?.checkOut && !config && !toDay) return returnEmpyt();
 
         return !config?.checkIn ?
