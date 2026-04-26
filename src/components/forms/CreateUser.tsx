@@ -15,6 +15,23 @@ import { NumbeTeUser } from '@/types/dataBasic';
 
 //fetching
 import { handdlerCreateUserFetch, handdlerUpdateUserFetch } from '@/libs/ajaxClient/authFetch';
+import axios from 'axios';
+
+
+import axiosInstance from '@/libs/ajaxClient/axios.fetch';
+;
+async function isExistNumberTel(number: string): any {
+    try {
+        const res: any = await axiosInstance.get(`/auth/existPhone=${number}`);
+        if (res.status === 200) {
+            return res.data.exist || false;
+        }
+    } 
+    catch (error) {
+        console.log(error);
+        return false;
+    }
+}
 
 
 
@@ -58,6 +75,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
 
     const handler = (err: unknown, userResult: DateToCreateComplete | null) => {
         if (err) {
+            console.log(err);
             return callback(err, null);
         }
         else {
@@ -80,7 +98,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
         };
 
         if (update) data_for_submit.newPassword = data.newPassword;
-
+        console.log(data_for_submit);
         if (update) {
             handdlerUpdateUserFetch(data_for_submit, handler);
         }
@@ -95,9 +113,18 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
             const code: string = getValues('code_tel');
             const tel: string = getValues('tel');
             if (!code || !tel) return;
+
+            
+            const existNumber = await isExistNumberTel(`${code}${tel}`);
+            console.log(`${code}${tel}`)
+            if (existNumber) {
+                setError('tel', { message: 'El número ya está registrado en el sistema con un usuario' });
+                return;
+            }
+            console.warn(CODE_FOR_CONFIRM_NUMBER.current);
             const numberComplete: NumbeTeUser = `58${code}${tel}@c.us`;
             const textForMsm: string = `El codigo de verificación es:\n*${CODE_FOR_CONFIRM_NUMBER.current}*`;
-            const res: unknown = await sendTextJarvis(textForMsm, numberComplete);
+           // const res: unknown = await sendTextJarvis(textForMsm, numberComplete);
 
         }
         catch (error) {
