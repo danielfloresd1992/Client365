@@ -407,12 +407,13 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const extra = config?.scheduleOverride?.workType === 'extra';
         const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
         const lackOfWork = config?.scheduleOverride?.workType === 'falta'
+        const laboral = config?.scheduleOverride?.workType === 'laboral'
         const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
         const endTime = config?.scheduleOverride?.endTime || dayConfig?.endTime;
 
         if (lackOfWork) return returnLack();
 
-        if (dayFree && !extra) return returFreeDay();
+        if (dayFree && !extra && !laboral) return returFreeDay();
         if (!config?.checkIn && !config?.checkOut && !config && !toDay) return returnEmpyt();
 
         return !config?.checkIn ?
@@ -456,21 +457,27 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
 
-    const preMarkedHour = (config) => {
+    const preMarkedHour = (attendanceData, dayConfig) => {
 
-        const extra = config?.scheduleOverride?.workType === 'extra';
-        const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-        const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
-        const checkEnd = config?.scheduleOverride?.endTime || dayConfig?.endTime;  
+        const extra = attendanceData?.scheduleOverride?.workType === 'extra';
+        const laboral = attendanceData?.scheduleOverride?.workType === 'laboral';
+        const dayFree = attendanceData?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
+        const startTime = attendanceData?.scheduleOverride?.startTime || dayConfig?.startTime;
+        const checkEnd = attendanceData?.scheduleOverride?.endTime || dayConfig?.endTime;  
         
 
 
-        if (dayFree && !extra) return returFreeDay();
+        if (dayFree &&  !extra && !laboral) return returFreeDay();
 
 
         return (
             <>
-                <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${extra ? 'text-[#ffe600] bg-[#000]' : 'text-teal-600'}`}>
+                <div 
+                    onClick={() => {
+                        console.error(attendanceData)
+                        console.error(dayConfig)
+                   } }
+                    className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${extra ? 'text-[#ffe600] bg-[#000]' : 'text-teal-600'}`}>
                     {extra ? '✦ EXTRA' : '✦ Guardia'}
                 </div>
                 {InOut(startTime, checkEnd, extra)}
@@ -495,7 +502,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                 isToday || isPast ? 
                 markedHour(attendanceData, isToday)
                     :
-                preMarkedHour(attendanceData)
+                preMarkedHour(attendanceData, dayConfig)
             }
         </div>
     );

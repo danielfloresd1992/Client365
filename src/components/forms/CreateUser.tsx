@@ -15,7 +15,6 @@ import { NumbeTeUser } from '@/types/dataBasic';
 
 //fetching
 import { handdlerCreateUserFetch, handdlerUpdateUserFetch } from '@/libs/ajaxClient/authFetch';
-import axios from 'axios';
 
 
 import axiosInstance from '@/libs/ajaxClient/axios.fetch';
