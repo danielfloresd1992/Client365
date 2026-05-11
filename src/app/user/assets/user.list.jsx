@@ -1,4 +1,5 @@
-import { useState, useEffect, useImperativeHandle, forwardRef, useContext, useMemo } from 'react';
+import { useState, useEffect, useImperativeHandle, forwardRef, useContext, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import useContextMenuPosition from '@/hook/useContextMenuPosition';
 import ContextMenu from '@/components/ContextMenu';
 import { myUserContext } from '@/contexts/userContext';
@@ -174,6 +175,29 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     const [status, setStatus] = useState('initial');
     const [attendanceData, setAttendanceData] = useState(null);
+    const [showDetails, setShowDetails] = useState(false);
+    const [imageZoom, setImageZoom] = useState(null);
+    const closeTimeoutRef = useRef(null);
+
+    const handleOpenDetails = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+        if (attendanceData?.checkIn) {
+            setShowDetails(true);
+        }
+    };
+
+    const handleCloseDetails = () => {
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+        }
+        closeTimeoutRef.current = setTimeout(() => {
+            setShowDetails(false);
+            closeTimeoutRef.current = null;
+        }, 400);
+    };
 
     const today = startOfDay(new Date());
     const currentCellDate = startOfDay(dateObj);
@@ -463,8 +487,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const laboral = attendanceData?.scheduleOverride?.workType === 'laboral';
         const dayFree = attendanceData?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
         const startTime = attendanceData?.scheduleOverride?.startTime || dayConfig?.startTime;
-        const checkEnd = attendanceData?.scheduleOverride?.endTime || dayConfig?.endTime;  
-        
+        const checkEnd = attendanceData?.scheduleOverride?.endTime || dayConfig?.endTime;
+
 
 
         if (dayFree &&  !extra && !laboral) return returFreeDay();
@@ -472,7 +496,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
         return (
             <>
-                <div 
+                <div
                     onClick={() => {
                         console.error(attendanceData)
                         console.error(dayConfig)
@@ -485,26 +509,204 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         )
     };
 
+    const calculateWorkDuration = () => {
+        if (!attendanceData?.checkIn || !attendanceData?.checkOut) return null;
+        const checkIn = new Date(attendanceData.checkIn);
+        const checkOut = new Date(attendanceData.checkOut);
+        const diffMs = checkOut - checkIn;
+        const hours = Math.floor(diffMs / (1000 * 60 * 60));
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        return `${hours}h ${minutes}m`;
+    };
+
+    const getStatusColor = () => {
+        if (attendanceData?.status === 'presente') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
+        if (attendanceData?.isLate) return 'bg-red-50 border-red-200 text-red-700';
+        if (attendanceData?.status === 'falta') return 'bg-red-50 border-red-200 text-red-700';
+        if (attendanceData?.isJustified) return 'bg-blue-50 border-blue-200 text-blue-700';
+        return 'bg-gray-50 border-gray-200 text-gray-700';
+    };
+
+    const getStatusLabel = () => {
+        if (attendanceData?.status === 'presente') return '✓ Presente';
+        if (attendanceData?.isLate) return '⚠️ Llegada Tarde';
+        if (attendanceData?.status === 'falta') return '✗ Falta';
+        if (attendanceData?.isJustified) return '✓ Justificado';
+        return 'Sin estado';
+    };
+
+    const DetailPopover = ({ onMouseEnter, onMouseLeave }) => {
+        if (!showDetails || !attendanceData?.checkIn) return null;
+
+        const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
+            timeZone: 'America/Caracas',
+            timeStyle: 'short'
+        }) : 'N/A';
+
+        const checkOutTime = attendanceData?.checkOut ? new Date(attendanceData.checkOut).toLocaleString('es-VE', {
+            timeZone: 'America/Caracas',
+            timeStyle: 'short'
+        }) : 'N/A';
+
+        const images = attendanceData?.imageReference || [];
+        const workDuration = calculateWorkDuration();
+
+        const content = (
+            <div
+                className='fixed inset-0 z-[999] flex items-center justify-center p-4'
+                onClick={() => setShowDetails(false)}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+                style={{ pointerEvents: 'none' }}
+            >
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                    className='bg-white rounded-xl shadow-2xl border border-gray-300 p-6 max-w-md w-full'
+                    style={{ animation: 'slideUp 0.3s ease-out', pointerEvents: 'auto' }}
+                >
+                    {/* Header */}
+                    <div className='flex justify-between items-start mb-4'>
+                        <div>
+                            <h3 className='text-base font-bold text-gray-900'>{user?.name} {user?.surName}</h3>
+                            <p className='text-xs text-gray-500 mt-1'>DNI: {user?.dni}</p>
+                        </div>
+                        <button
+                            onClick={() => setShowDetails(false)}
+                            className='text-gray-400 hover:text-gray-600 text-2xl leading-none'
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div className='space-y-3'>
+                        {/* Info Quick */}
+                        <div className='grid grid-cols-2 gap-2 text-xs'>
+                            <div className='bg-gray-50 p-2 rounded'>
+                                <p className='text-gray-600 font-semibold'>Depto</p>
+                                <p className='font-bold text-gray-900'>{user?.jobInformation?.department || 'N/A'}</p>
+                            </div>
+                            <div className='bg-gray-50 p-2 rounded'>
+                                <p className='text-gray-600 font-semibold'>Puesto</p>
+                                <p className='font-bold text-gray-900'>{user?.jobInformation?.position || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        {/* Estado Badge */}
+                        <div className={`p-2 rounded text-xs font-semibold ${getStatusColor()}`}>
+                            {getStatusLabel()}
+                        </div>
+
+                        {/* Check In */}
+                        <div className='bg-emerald-50 p-3 rounded border border-emerald-200'>
+                            <p className='text-xs text-emerald-700 font-semibold mb-1'>ENTRADA</p>
+                            <p className='text-sm text-emerald-900 font-bold'>{checkInTime}</p>
+                            {images?.[0] && (
+                                <img
+                                    src={images[0]}
+                                    alt='entrada'
+                                    className='w-full h-32 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
+                                    onClick={() => setImageZoom(images[0])}
+                                    onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                                />
+                            )}
+                        </div>
+
+                        {/* Check Out */}
+                        <div className='bg-orange-50 p-3 rounded border border-orange-200'>
+                            <p className='text-xs text-orange-700 font-semibold mb-1'>SALIDA</p>
+                            <p className='text-sm text-orange-900 font-bold'>{checkOutTime}</p>
+                            {images?.[1] && (
+                                <img
+                                    src={images[1]}
+                                    alt='salida'
+                                    className='w-full h-32 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
+                                    onClick={() => setImageZoom(images[1])}
+                                    onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                                />
+                            )}
+                        </div>
+
+                        {/* Duración */}
+                        {workDuration && (
+                            <div className='bg-purple-50 p-2 rounded border border-purple-200 text-xs'>
+                                <p className='text-purple-600 font-semibold'>Duración: <span className='text-purple-900'>{workDuration}</span></p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Image Zoom */}
+                {imageZoom && (
+                    <div
+                        className='fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4'
+                        onClick={() => setImageZoom(null)}
+                    >
+                        <div
+                            onClick={(e) => e.stopPropagation()}
+                            className='relative max-w-2xl w-full'
+                        >
+                            <img
+                                src={imageZoom}
+                                alt='zoom'
+                                className='w-full h-auto rounded-lg'
+                                onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                            />
+                            <button
+                                onClick={() => setImageZoom(null)}
+                                className='absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2'
+                            >
+                                ×
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <style jsx>{`
+                    @keyframes slideUp {
+                        from {
+                            opacity: 0;
+                            transform: translateY(10px);
+                        }
+                        to {
+                            opacity: 1;
+                            transform: translateY(0);
+                        }
+                    }
+                `}</style>
+            </div>
+        );
+
+        return typeof window !== 'undefined' ? createPortal(content, document.body) : null;
+    };
+
 
 
     return (
-        <div ref={ref}
-            onClick={() => {
-                console.log(attendanceData);
-                console.log(dayConfig);
-
-            }}
-            title={overrideTooltip}
-            className={`w-full h-full flex flex-col justify-center ${isToday ? 'bg-blue-50/30' : ''} ${overrideTooltip ? 'cursor-help' : ''}`}
-            style={attendanceData?.isLate ? { backgroundColor: '#ffdbdb' } : null}
-        >
-            {
-                isToday || isPast ? 
-                markedHour(attendanceData, isToday)
-                    :
-                preMarkedHour(attendanceData, dayConfig)
-            }
-        </div>
+        <>
+            <div ref={ref}
+                onClick={() => {
+                    console.log(attendanceData);
+                    console.log(dayConfig);
+                }}
+                onMouseEnter={handleOpenDetails}
+                onMouseLeave={handleCloseDetails}
+                title={overrideTooltip}
+                className={`relative w-full h-full flex flex-col justify-center ${isToday ? 'bg-blue-50/30' : ''} ${overrideTooltip ? 'cursor-help' : ''} ${attendanceData?.checkIn ? 'cursor-pointer' : ''}`}
+                style={attendanceData?.isLate ? { backgroundColor: '#ffdbdb' } : null}
+            >
+                <div style={{ pointerEvents: 'none' }} className='w-full h-full flex flex-col justify-center'>
+                    {
+                        isToday || isPast ?
+                        markedHour(attendanceData, isToday)
+                            :
+                        preMarkedHour(attendanceData, dayConfig)
+                    }
+                </div>
+            </div>
+            {showDetails && <DetailPopover onMouseEnter={handleOpenDetails} onMouseLeave={handleCloseDetails} />}
+        </>
     );
 
 }// 26 749 038
