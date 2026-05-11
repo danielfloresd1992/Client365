@@ -19,13 +19,14 @@ import { handdlerCreateUserFetch, handdlerUpdateUserFetch } from '@/libs/ajaxCli
 
 import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 ;
-async function isExistNumberTel(number: string): any {
+async function isExistNumberTel(number: string): Promise<boolean> {
     try {
         const res: any = await axiosInstance.get(`/auth/existPhone=${number}`);
         if (res.status === 200) {
             return res.data.exist || false;
         }
-    } 
+        return false;
+    }
     catch (error) {
         console.log(error);
         return false;

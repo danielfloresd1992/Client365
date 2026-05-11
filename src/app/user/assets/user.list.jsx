@@ -176,28 +176,68 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const [status, setStatus] = useState('initial');
     const [attendanceData, setAttendanceData] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
+    const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [imageZoom, setImageZoom] = useState(null);
     const closeTimeoutRef = useRef(null);
+    const openTimeoutRef = useRef(null);
+    const manuallyClosedRef = useRef(false);
+
+    const HOVER_DELAY_MS = 1000;
 
     const handleOpenDetails = () => {
         if (closeTimeoutRef.current) {
             clearTimeout(closeTimeoutRef.current);
             closeTimeoutRef.current = null;
         }
-        if (attendanceData?.checkIn) {
+        if (manuallyClosedRef.current) return;
+        if (!attendanceData?.checkIn) return;
+        if (showDetails) return;
+        if (openTimeoutRef.current) return;
+
+        setIsLoadingDetails(true);
+        openTimeoutRef.current = setTimeout(() => {
+            setIsLoadingDetails(false);
             setShowDetails(true);
-        }
+            openTimeoutRef.current = null;
+        }, HOVER_DELAY_MS);
     };
 
     const handleCloseDetails = () => {
+        if (openTimeoutRef.current) {
+            clearTimeout(openTimeoutRef.current);
+            openTimeoutRef.current = null;
+            setIsLoadingDetails(false);
+        }
         if (closeTimeoutRef.current) {
             clearTimeout(closeTimeoutRef.current);
         }
         closeTimeoutRef.current = setTimeout(() => {
             setShowDetails(false);
             closeTimeoutRef.current = null;
+            manuallyClosedRef.current = false;
         }, 400);
     };
+
+    const handleManualClose = () => {
+        if (openTimeoutRef.current) {
+            clearTimeout(openTimeoutRef.current);
+            openTimeoutRef.current = null;
+        }
+        if (closeTimeoutRef.current) {
+            clearTimeout(closeTimeoutRef.current);
+            closeTimeoutRef.current = null;
+        }
+        manuallyClosedRef.current = true;
+        setIsLoadingDetails(false);
+        setShowDetails(false);
+    };
+
+    useEffect(() => {
+        return () => {
+            if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+            if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+        };
+    }, []);
 
     const today = startOfDay(new Date());
     const currentCellDate = startOfDay(dateObj);
@@ -554,7 +594,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const content = (
             <div
                 className='fixed inset-0 z-[999] flex items-center justify-center p-4'
-                onClick={() => setShowDetails(false)}
+                onClick={handleManualClose}
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
                 style={{ pointerEvents: 'none' }}
@@ -573,7 +613,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                             <p className='text-xs text-gray-500 mt-1'>DNI: {user?.dni}</p>
                         </div>
                         <button
-                            onClick={() => setShowDetails(false)}
+                            onClick={handleManualClose}
                             className='text-gray-400 hover:text-gray-600 text-2xl leading-none'
                         >
                             ×
@@ -704,6 +744,16 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         preMarkedHour(attendanceData, dayConfig)
                     }
                 </div>
+
+                {isLoadingDetails && (
+                    <div
+                        className='absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 px-1.5 py-0.5 rounded-full shadow-sm border border-blue-200'
+                        style={{ pointerEvents: 'none' }}
+                    >
+                        <div className='w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin' />
+                        <span className='text-[9px] font-semibold text-blue-600'>Cargando</span>
+                    </div>
+                )}
             </div>
             {showDetails && <DetailPopover onMouseEnter={handleOpenDetails} onMouseLeave={handleCloseDetails} />}
         </>
