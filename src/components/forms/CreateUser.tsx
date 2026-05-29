@@ -124,7 +124,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
             console.warn(CODE_FOR_CONFIRM_NUMBER.current);
             const numberComplete: NumbeTeUser = `58${code}${tel}@c.us`;
             const textForMsm: string = `El codigo de verificación es:\n*${CODE_FOR_CONFIRM_NUMBER.current}*`;
-           // const res: unknown = await sendTextJarvis(textForMsm, numberComplete);
+            const res: unknown = await sendTextJarvis(textForMsm, numberComplete);
 
         }
         catch (error) {
