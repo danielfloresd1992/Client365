@@ -9,9 +9,11 @@
  *   • Editar → PUT  /managerlocal/id=:id  (JSON)
  *
  * Props:
- *   editData  {object|null}  – Gerente a editar. null = modo creación.
- *   onSave    {function}     – Callback(savedManager, isEdit) al guardar con éxito.
- *   close     {function}     – Cierra el modal.
+ *   editData       {object|null}  – Gerente a editar. null = modo creación.
+ *   onSave         {function}     – Callback(savedManager, isEdit) al guardar con éxito.
+ *   close          {function}     – Cierra el modal.
+ *   defaultLocalId {string?}      – Local pre-seleccionado al crear (ej. desde la
+ *                                   tarjeta de un establecimiento concreto).
  *
  * Campos del modelo Manager:
  *   burden          (String, required) – cargo / etiqueta del puesto
@@ -24,44 +26,27 @@
  */
 import { useState, useEffect }    from 'react';
 import { useForm }                from 'react-hook-form';
-import { useDispatch }            from 'react-redux';
+import { useDispatch, useSelector }            from 'react-redux';
 import { setConfigModal }         from '@/store/slices/globalModal.js';
 import Image                      from 'next/image';
 import useAxios                   from '@/hook/useAxios';
 
 
-export default function FormManager({ editData, onSave, close }) {
+export default function FormManager({ editData, onSave, close, establishmentId, defaultLocalId }) {
 
-    /* ── Hooks ─────────────────────────────────────────────────────────────── */
+   
     const dispatch          = useDispatch();
     const { requestAction } = useAxios();
 
-    const {
-        register,
-        handleSubmit,
-        reset,
-        formState: { errors },
-    } = useForm();
 
-    /* ── Estado ────────────────────────────────────────────────────────────── */
-    const [locals,  setLocals]  = useState([]);   // lista de locales para el select
+    const { register,handleSubmit,reset,formState: { errors } } = useForm();
+
+  
     const [loading, setLoading] = useState(false); // estado de envío del form
     const isEdit = !!editData;
 
 
-    /* ── Cargar locales al montar ──────────────────────────────────────────── */
-    useEffect(() => {
-        /**
-         * Se usa el endpoint /localLigth que devuelve la lista de locales
-         * con campos mínimos (_id, name) para no sobrecargar la respuesta.
-         */
-        requestAction({ url: '/localLigth', action: 'GET' })
-            .then(res => {
-                if (res.status === 200) setLocals(res.data);
-            })
-            .catch(err => console.error('Error al cargar locales:', err));
-    }, []);
-
+  
 
     /* ── Pre-rellenar campos en modo edición ───────────────────────────────── */
     useEffect(() => {
@@ -70,16 +55,20 @@ export default function FormManager({ editData, onSave, close }) {
                 name:           editData.name           || '',
                 burden:         editData.burden         || '',
                 numberManager:  editData.numberManager  || '',
-                status:         editData.status         || 'activo',
+                // El <select> trabaja con strings; normalizamos por si el backend
+                // ya devuelve un booleano (true → 'activo', false → 'inactivo').
+                status: (editData.status === false || editData.status === 'inactivo') ? 'inactivo' : 'activo',
                 characteristic: editData.characteristic || '',
                 // En modo edición el local ya viene populado; usamos su _id
-                localName: editData.local?._id || editData.localName || '',
+     
             });
-        } else {
-            // Valores por defecto al crear
-            reset({ status: 'activo', otherLocals: '[]' });
+        } 
+        else {
+            // Valores por defecto al crear (local pre-seleccionado si se indicó)
+            reset({ status: 'activo', otherLocals: '[]', localName: defaultLocalId || '' });
         }
-    }, [editData]);
+    }, [editData, defaultLocalId]);
+
 
 
     /* ── Envío del formulario ──────────────────────────────────────────────── */
@@ -87,6 +76,10 @@ export default function FormManager({ editData, onSave, close }) {
         setLoading(true);
         try {
             let res;
+
+            // El <select> entrega 'activo'/'inactivo' (string); lo enviamos como
+            // booleano: true = activo, false = inactivo.
+            const payload = { ...data, status: data.status === 'activo' };
 
             if (isEdit) {
                 /*
@@ -98,13 +91,10 @@ export default function FormManager({ editData, onSave, close }) {
                 res = await requestAction({
                     url:    `/managerlocal/id=${editData._id}`,
                     action: 'PUT',
-                    body: {
-                        ...data,
-                        local:       data.localName,        // el controller espera local como _id
-                        otherLocals: editData.otherLocals ?? [],
-                    },
+                    body: payload,
                 });
-            } else {
+            }
+            else {
                 /*
                  * POST /managerlocal
                  * La ruta usa multer (uploadNoveltie.fields), por lo que el
@@ -113,15 +103,15 @@ export default function FormManager({ editData, onSave, close }) {
                  * El campo otherLocals se envía como JSON string (el controller lo parsea).
                  */
                 const formData = new FormData();
-                Object.entries(data).forEach(([key, val]) => {
+                Object.entries(payload).forEach(([key, val]) => {
                     formData.append(key, val ?? '');
                 });
-                formData.append('otherLocals', '[]'); // el manager nuevo comienza sin otros locales
+              
 
                 res = await requestAction({
-                    url:    '/managerlocal',
+                    url:    `/managerlocal?establishment=${establishmentId}`,
                     action: 'POST',
-                    body:   formData,
+                    body:   payload,
                 });
             }
 
@@ -138,7 +128,8 @@ export default function FormManager({ editData, onSave, close }) {
                 onSave(res.data, isEdit);
             }
 
-        } catch (err) {
+        } 
+        catch (err) {
             const msg = err?.response?.data?.message
                      || err?.response?.data
                      || 'Error al guardar el gerente';
@@ -150,15 +141,17 @@ export default function FormManager({ editData, onSave, close }) {
                 type:       'error',
                 isCallback: null,
             }));
-        } finally {
+        } 
+        finally {
             setLoading(false);
         }
     };
 
 
+
     /* ── Render ────────────────────────────────────────────────────────────── */
     return (
-        <div className='bg-white rounded-2xl p-8 w-[480px] max-h-[85vh] overflow-y-auto shadow-2xl'>
+        <div className='bg-white rounded-2xl p-8 w-[480px] max-h-[85vh] overflow-y-auto shadow-2xl z-100'>
 
             {/* Encabezado del formulario */}
             <div className='flex items-center gap-3 mb-6'>
@@ -171,10 +164,10 @@ export default function FormManager({ editData, onSave, close }) {
                     />
                 </div>
                 <div>
-                    <h2 className='text-lg font-bold text-gray-800'>
+                    <h2 className='text-lg font-semibold text-slate-800 tracking-tight'>
                         {isEdit ? 'Editar gerente' : 'Nuevo gerente'}
                     </h2>
-                    <p className='text-xs text-gray-400'>
+                    <p className='text-xs text-slate-400'>
                         {isEdit
                             ? `Modificando: ${editData?.name || editData?.burden}`
                             : 'Completa los campos para registrar un gerente'}
@@ -233,27 +226,14 @@ export default function FormManager({ editData, onSave, close }) {
                     />
                 </Field>
 
-                {/* ── Local asignado ─────────────────────────────────────────── */}
-                <Field label='Local asignado *' error={errors.localName?.message}>
-                    <select
-                        {...register('localName', { required: 'Debes seleccionar un local' })}
-                        className={inputCls}
-                    >
-                        <option value=''>— Seleccionar local —</option>
-                        {locals.map(local => (
-                            <option key={local._id} value={local._id}>
-                                {local.name}
-                            </option>
-                        ))}
-                    </select>
-                </Field>
+               
 
                 {/* ── Botones ────────────────────────────────────────────────── */}
                 <div className='flex gap-3 pt-2'>
                     <button
                         type='button'
                         onClick={close}
-                        className='flex-1 border border-gray-300 text-gray-600 py-2 rounded-lg text-sm hover:bg-gray-50 transition-colors'
+                        className='flex-1 border border-slate-300 text-slate-600 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors'
                     >
                         Cancelar
                     </button>
@@ -274,6 +254,7 @@ export default function FormManager({ editData, onSave, close }) {
 }
 
 
+
 /* ─────────────────────────────────────────────────────────────────────────────
  * Field — wrapper de campo de formulario con label y mensaje de error.
  * Props: label, error?, children
@@ -281,8 +262,8 @@ export default function FormManager({ editData, onSave, close }) {
  */
 function Field({ label, error, children }) {
     return (
-        <div className='flex flex-col gap-1'>
-            <label className='text-sm font-medium text-gray-700'>{label}</label>
+        <div className='flex flex-col gap-1.5'>
+            <label className='text-[13px] font-medium text-slate-700'>{label}</label>
             {children}
             {error && (
                 <p className='text-red-500 text-xs mt-[2px]'>{error}</p>
@@ -293,7 +274,7 @@ function Field({ label, error, children }) {
 
 /* Clases base para los inputs / selects / textarea */
 const inputCls = `
-    w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-    focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-200
-    transition-colors bg-white text-gray-800
+    w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm
+    focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100
+    transition-colors bg-white text-slate-800 placeholder:text-slate-400
 `.trim();

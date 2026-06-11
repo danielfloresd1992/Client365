@@ -11,7 +11,7 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { setTypeForm }              from '@/store/slices/typeForm';
 import FormFranchise                from './FormFranchise';
-import FormClient                   from './FormClient';
+import FormClient                   from './client/FormClient';
 import Image                        from 'next/image';
 
 

@@ -75,4 +75,29 @@ const nextConfig = {
     },
 };
 
-export default withFlowbiteReact(nextConfig);
+/*
+ * flowbite-react (su plugin de Next) arranca en desarrollo un watcher
+ * `chokidar.watch(".")` que vigila TODO el proyecto de forma recursiva y agota
+ * los inotify watchers del sistema (ENOSPC) en este entorno — disco externo +
+ * varios proyectos corriendo a la vez.
+ *
+ * Solución: en desarrollo aplicamos únicamente el patch que necesita flowbite
+ * (optimizePackageImports) sin lanzar el watcher; en `next build` se usa el
+ * plugin completo. Los componentes flowbite siguen funcionando porque sus
+ * clases ya están en `.flowbite-react/class-list.json` (que lee Tailwind).
+ */
+function withFlowbitePatchOnly(config) {
+    const experimental = config.experimental || {};
+    const optimizePackageImports = experimental.optimizePackageImports || [];
+    return {
+        ...config,
+        experimental: {
+            ...experimental,
+            optimizePackageImports: [...optimizePackageImports, "flowbite-react"],
+        },
+    };
+}
+
+export default process.env.NODE_ENV === "production"
+    ? withFlowbiteReact(nextConfig)
+    : withFlowbitePatchOnly(nextConfig);

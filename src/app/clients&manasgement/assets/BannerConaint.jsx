@@ -81,12 +81,12 @@ export default function BannerContain({ clients }) {
 
                     {/* Dropdown de resultados */}
                     {searchResult.open && searchResult.result.length > 0 && (
-                        <div className='absolute z-20 top-[38px] left-0 w-full bg-[#1a3c2a] border border-emerald-600/40 rounded-lg shadow-xl max-h-[220px] overflow-y-auto'>
+                        <div className='absolute z-20 top-[42px] left-0 w-full bg-[#0c2a1c] ring-1 ring-emerald-400/20 rounded-xl shadow-2xl max-h-[220px] overflow-y-auto'>
                             {searchResult.result.map(item => (
                                 <button
                                     key={item._id}
                                     onClick={() => handleSelectResult(item)}
-                                    className='w-full text-left text-xs px-3 py-2 text-emerald-100 hover:bg-emerald-600/30 transition-colors flex items-center gap-2'
+                                    className='w-full text-left text-sm px-3 py-2.5 text-emerald-50/80 hover:bg-emerald-400/15 hover:text-white transition-colors flex items-center gap-2'
                                 >
                                     <span className='w-[5px] h-[5px] rounded-full bg-emerald-400 shrink-0' />
                                     {item.name}

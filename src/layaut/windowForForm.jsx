@@ -17,7 +17,8 @@ export default function WindowFormLayaut({ close, children }){
                 backgroundColor: '#0000007c',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                zIndex: 50,
             }}
         >
             <button

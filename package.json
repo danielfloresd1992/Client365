@@ -33,6 +33,7 @@
     "express": "^4.19.2",
     "flowbite-react": "^0.12.17",
     "fuse.js": "^7.1.0",
+    "geist": "^1.7.2",
     "html-to-image": "^1.11.11",
     "moment-timezone": "^0.5.45",
     "next": "14.2.4",

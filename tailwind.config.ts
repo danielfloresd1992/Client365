@@ -26,9 +26,9 @@ const config: Config = {
               }
         },
         fontFamily: {
-            sans: ['Helvetica', 'Arial', 'sans-serif'],
+            sans: ['var(--font-geist-sans)', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
             serif: ['Georgia', 'serif'],
-            mono: ['SFMono-Regular', 'monospace'],
+            mono: ['var(--font-geist-mono)', 'SFMono-Regular', 'monospace'],
         },
     },
     plugins: [flowbiteReact],

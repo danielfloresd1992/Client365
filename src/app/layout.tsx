@@ -8,7 +8,8 @@ import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
 import dynamic from 'next/dynamic';
-import { Inter } from 'next/font/google';
+import { GeistSans } from 'geist/font/sans';
+import { GeistMono } from 'geist/font/mono';
 import Head from 'next/head';
 import Header from '@/components/Header/Header';
 import LoandingPage from '@/components/loandingComponent/loandingPage';
@@ -28,7 +29,6 @@ import Favicon from '/public/favicon.ico';
 //redux
 import Providers from '../store/Providers';
 import { SessionProvider } from '@/contexts/userContext'
-const inter = Inter({ subsets: ['latin'] });
 
 
 export const metadata = {
@@ -46,12 +46,12 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
 
 
     return (
-        <html lang="en">
+        <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
             <Head>
                 <meta name="robots" content="noindex, nofollow"></meta>
                 <meta name="google-site-verification" content="y0qtg0BfcGqooJZXzWhcf5_0W04rodr3hPdyLLr8qN0" />
             </Head>
-            <body className={`${inter.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
+            <body className={`${GeistSans.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
                 <SessionProvider>
                     <Providers>
                         <LoandingPage title='loanding...'>

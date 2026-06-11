@@ -1,51 +1,33 @@
 'use strict';
+/**
+ * objectDefaultClient — valores por defecto de un establecimiento nuevo.
+ * Usado por FormClient.jsx en modo creación.
+ */
 const clientDefault = {
     location: '',
     franchise: '',
     name: '',
     idLocal: '',
-
-    franchiseReference:{
+    franchiseReference: {
         name_franchise: '',
-        franchise: ''
+        franchise: '',
     },
-
     isActive: true,
-
-    status: 'activo',
     typeMonitoring: '',
-    order: '',
     lang: '',
-
     touchs: {
         totalManager: '',
         totalAttendee: '',
         typeEvaluationTouch: '',
         isRequiredeEvaluation: false,
-        isEvaluationGroup: false
+        isEvaluationGroup: false,
     },
-
-    dishMenu: {  
-        appetizer: '',
-        mainDish: '' ,
-        dessert: '',
-        
-        dishEvaluation: '',
-        isRequiredeEvaluation: false,
-        isEvaluationGroup: false
-    },
-
-
     timestamps: {
-        createdAt : {},
-        updatedAt : []
+        createdAt: {},
+        updatedAt: [],
     },
-
-
     alertLength: 'extended',
-
-    
-    image: ''
+    image: '',
 };
 
 export default clientDefault;

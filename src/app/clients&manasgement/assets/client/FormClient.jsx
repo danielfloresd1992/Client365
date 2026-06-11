@@ -35,7 +35,8 @@ import useAuthOnServer                       from '@/hook/auth';
 import moment                                from 'moment-timezone';
 import { useSingleFetch }                    from '@/hook/ajax_hook/useFetch';
 
-import clientDefault from './objectDefault/objectDefaultClient';
+import clientDefault from '../objectDefault/objectDefaultClient';
+
 
 
 export default function FormClient({ id = null, action }) {
@@ -54,6 +55,7 @@ export default function FormClient({ id = null, action }) {
         resetDataFetch,
         setChangeData,
     } = useSingleFetch({ resource: '/establishment', method: 'get' }, false);
+
 
     const [franchiseSelect, setFranchiseSelect] = useState(null);
 
@@ -170,7 +172,7 @@ export default function FormClient({ id = null, action }) {
     if (!upDateClient) {
         return (
             <div className='bg-white rounded-2xl shadow-xl p-12 flex items-center justify-center'>
-                <div className='flex items-center gap-3 text-gray-400 text-sm'>
+                <div className='flex items-center gap-3 text-slate-400 text-sm'>
                     <span className='w-5 h-5 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin' />
                     Cargando datos del establecimiento…
                 </div>
@@ -362,84 +364,7 @@ export default function FormClient({ id = null, action }) {
                 </div>
 
 
-                {/* ═══════════════════════════════════════════════════════ */}
-                {/* SECCIÓN 3: PLATILLOS POR DEFECTO                        */}
-                {/* ═══════════════════════════════════════════════════════ */}
-                <SectionHeader icon='🍽️' title='Platillos por defecto' />
-
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                    <InputBorderBlue
-                        textLabel='Platillo de entrada'
-                        name='appetizer'
-                        value={upDateClient ? upDateClient.dishMenu.appetizer : null}
-                        important={true}
-                        eventChengue={text => setChangeData({
-                            ...upDateClient,
-                            dishMenu: { ...upDateClient.dishMenu, appetizer: text },
-                        })}
-                    />
-                    <InputBorderBlue
-                        textLabel='Plato fuerte'
-                        name='mainDish'
-                        value={upDateClient ? upDateClient.dishMenu.mainDish : null}
-                        important={true}
-                        eventChengue={text => setChangeData({
-                            ...upDateClient,
-                            dishMenu: { ...upDateClient.dishMenu, mainDish: text },
-                        })}
-                    />
-                </div>
-
-                <InputBorderBlue
-                    textLabel='Postre'
-                    name='dessert'
-                    value={upDateClient ? upDateClient.dishMenu.dessert : null}
-                    important={true}
-                    eventChengue={text => setChangeData({
-                        ...upDateClient,
-                        dishMenu: { ...upDateClient.dishMenu, dessert: text },
-                    })}
-                />
-
-                <InputBorderBlue
-                    textLabel='Tipo de evaluación de procesos'
-                    name='typeEvaluationDish'
-                    value={upDateClient ? upDateClient.dishMenu.dishEvaluation : null}
-                    type='select'
-                    childSelect={[
-                        { value: 'completo', text: 'Completo' },
-                        { value: 'simple',   text: 'Simple'   },
-                    ]}
-                    eventChengue={text => setChangeData({
-                        ...upDateClient,
-                        dishMenu: { ...upDateClient.dishMenu, dishEvaluation: Boolean(text) },
-                    })}
-                />
-
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                    <InputBorderBlue
-                        textLabel='¿Requiere evaluación?'
-                        name='isRequiredeEvaluationDish'
-                        value={upDateClient ? upDateClient.dishMenu.isRequiredeEvaluation : null}
-                        type='checkbox'
-                        important={false}
-                        eventChengue={text => setChangeData({
-                            ...upDateClient,
-                            dishMenu: { ...upDateClient.dishMenu, isRequiredeEvaluation: Boolean(text) },
-                        })}
-                    />
-                    <InputBorderBlue
-                        textLabel='¿Grupal o individual?'
-                        name='isEvaluationGroupDish'
-                        value={upDateClient ? upDateClient.dishMenu.isEvaluationGroup : null}
-                        type='checkbox'
-                        important={false}
-                        eventChengue={text => setChangeData({
-                            ...upDateClient,
-                            dishMenu: { ...upDateClient.dishMenu, isEvaluationGroup: Boolean(text) },
-                        })}
-                    />
-                </div>
+                
 
 
                 {/* ═══════════════════════════════════════════════════════ */}
@@ -481,8 +406,8 @@ export default function FormClient({ id = null, action }) {
                 />
 
                 {upDateClient.DST && (
-                    <div className='bg-gray-50 rounded-lg p-3 flex items-center gap-2'>
-                        <span className='text-xs text-gray-500'>Hora actual en esta zona:</span>
+                    <div className='bg-slate-50 rounded-lg p-3 flex items-center gap-2'>
+                        <span className='text-xs text-slate-500'>Hora actual en esta zona:</span>
                         <span className='text-sm font-mono font-semibold text-blue-600'>
                             {moment().tz(upDateClient.DST.TimeZone).format('YYYY-MM-DD HH:mm:ss')}
                         </span>
@@ -506,11 +431,11 @@ export default function FormClient({ id = null, action }) {
                 {/* ═══════════════════════════════════════════════════════ */}
                 <SectionHeader icon='🖼️' title='Logo del establecimiento' />
 
-                <div className='flex flex-col items-center gap-4 bg-gray-50 rounded-xl p-5'>
+                <div className='flex flex-col items-center gap-4 bg-slate-50 rounded-xl p-5'>
                     {/* Preview del logo */}
                     {upDateClient.image &&
                      !upDateClient.image.includes('default.jpg') && (
-                        <div className='w-[180px] h-[180px] rounded-xl overflow-hidden border-2 border-dashed border-gray-300 bg-white flex items-center justify-center'>
+                        <div className='w-[180px] h-[180px] rounded-xl overflow-hidden border-2 border-dashed border-slate-300 bg-white flex items-center justify-center'>
                             <img
                                 className='w-full h-full object-contain p-2'
                                 src={upDateClient.image}
@@ -532,7 +457,7 @@ export default function FormClient({ id = null, action }) {
                         <span className='text-sm text-blue-600 font-medium'>
                             Seleccionar imagen
                         </span>
-                        <span className='text-[11px] text-gray-400'>
+                        <span className='text-[11px] text-slate-400'>
                             JPG, PNG o WebP
                         </span>
                         <input
@@ -573,10 +498,10 @@ export default function FormClient({ id = null, action }) {
  */
 function SectionHeader({ icon, title }) {
     return (
-        <div className='flex items-center gap-2 pt-4 pb-2 mt-2 border-t border-gray-100 first:border-t-0 first:mt-0 first:pt-0'>
+        <div className='flex items-center gap-2 pt-4 pb-2 mt-2 border-t border-slate-100 first:border-t-0 first:mt-0 first:pt-0'>
             <span className='text-base'>{icon}</span>
-            <h3 className='text-sm font-bold text-gray-700'>{title}</h3>
-            <div className='flex-1 border-t border-gray-200 ml-2' />
+            <h3 className='text-sm font-semibold text-slate-700 tracking-tight'>{title}</h3>
+            <div className='flex-1 border-t border-slate-200 ml-2' />
         </div>
     );
 }
