@@ -195,7 +195,7 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
         <div className='bg-white rounded-2xl shadow-xl overflow-hidden w-[480px] max-h-[85vh] flex flex-col z-100'>
 
             {/* ── HEADER ────────────────────────────────────────────────── */}
-            <div className='bg-gradient-to-r from-slate-600 to-slate-500 px-6 py-5'>
+            <div className='bg-[#8f8f8f] px-6 py-5'>
                 <div className='flex items-center gap-3'>
                     <div className='w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center'>
                         <Image
