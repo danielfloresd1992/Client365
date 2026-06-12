@@ -26,23 +26,26 @@
  */
 import { useState, useEffect }    from 'react';
 import { useForm }                from 'react-hook-form';
-import { useDispatch, useSelector }            from 'react-redux';
+import { useDispatch }            from 'react-redux';
 import { setConfigModal }         from '@/store/slices/globalModal.js';
 import Image                      from 'next/image';
 import useAxios                   from '@/hook/useAxios';
+import { DropZoneImage }          from '@/components/dropZone';
 
 
 export default function FormManager({ editData, onSave, close, establishmentId, defaultLocalId }) {
 
-   
+
     const dispatch          = useDispatch();
     const { requestAction } = useAxios();
 
 
     const { register,handleSubmit,reset,formState: { errors } } = useForm();
 
-  
+
     const [loading, setLoading] = useState(false); // estado de envío del form
+    // Resultado dual del DropZone: { files: nuevas (subir), urls: existentes que se conservan }
+    const [imagesResult, setImagesResult] = useState({ files: [], urls: [] });
     const isEdit = !!editData;
 
 
@@ -91,7 +94,8 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                 res = await requestAction({
                     url:    `/managerlocal/id=${editData._id}`,
                     action: 'PUT',
-                    body: payload,
+                    // img: URLs existentes que el usuario conserva (sincroniza eliminaciones)
+                    body: { ...payload, img: imagesResult.urls },
                 });
             }
             else {
@@ -106,12 +110,14 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                 Object.entries(payload).forEach(([key, val]) => {
                     formData.append(key, val ?? '');
                 });
-              
+
+                // Imágenes nuevas del DropZone → campo 'img' (multer del backend: maxCount 3)
+                imagesResult.files.forEach(({ file }) => formData.append('img', file));
 
                 res = await requestAction({
                     url:    `/managerlocal?establishment=${establishmentId}`,
                     action: 'POST',
-                    body:   payload,
+                    body:   formData,
                 });
             }
 
@@ -229,7 +235,15 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                     />
                 </Field>
 
-               
+                {/* ── Imágenes (DropZone) ──────────────────────────────────── */}
+                <Field label='Imágenes del gerente'>
+                    <DropZoneImage
+                        getImageCallback={(result) => setImagesResult(result)}
+                        initialImages={editData?.img ?? []}
+                        filesLimit={3}
+                        maxSizeMB={10}
+                    />
+                </Field>
 
                 {/* ── Botones ────────────────────────────────────────────────── */}
                 <div className='flex gap-3 pt-2'>
