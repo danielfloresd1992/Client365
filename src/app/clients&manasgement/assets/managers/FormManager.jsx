@@ -46,7 +46,11 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
     const [loading, setLoading] = useState(false); // estado de envío del form
     // Resultado dual del DropZone: { files: nuevas (subir), urls: existentes que se conservan }
     const [imagesResult, setImagesResult] = useState({ files: [], urls: [] });
+    const [imageError, setImageError]     = useState(''); // error de validación de imágenes
     const isEdit = !!editData;
+
+    // Nº de imágenes obligatorias al crear un gerente
+    const REQUIRED_IMAGES = 3;
 
 
   
@@ -74,8 +78,43 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
 
 
 
+    /* ── Subida de imágenes ────────────────────────────────────────────────── */
+    /*
+     * Sube cada imagen nueva al endpoint POST /multimedia (campo 'img', maxCount 1)
+     * y devuelve la lista de URLs retornadas por el backend. El endpoint procesa
+     * un solo archivo por petición, por lo que se sube una por una.
+     */
+    const uploadImages = async (files) => {
+        const urls = [];
+        for (const { file } of files) {
+            const formData = new FormData();
+            formData.append('img', file);
+
+            const upload = await requestAction({
+                url:    '/multimedia',
+                action: 'POST',
+                body:   formData,
+            });
+
+            if (upload?.data?.url) urls.push(upload.data.url);
+        }
+        return urls;
+    };
+
+
     /* ── Envío del formulario ──────────────────────────────────────────────── */
     const onSubmit = async data => {
+
+        // Las 3 imágenes del gerente son obligatorias tanto al crear como al editar.
+        // Se valida el total (existentes conservadas + nuevas) antes de subir nada
+        // ni enviar el manager.
+        const totalImages = imagesResult.urls.length + imagesResult.files.length;
+        if (totalImages < REQUIRED_IMAGES) {
+            setImageError(`Debes agregar las ${REQUIRED_IMAGES} imágenes del gerente`);
+            return;
+        }
+        setImageError('');
+
         setLoading(true);
         try {
             let res;
@@ -84,40 +123,33 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
             // booleano: true = activo, false = inactivo.
             const payload = { ...data, status: data.status === 'activo' };
 
+            // Procesamos las imágenes primero: subimos las nuevas a /multimedia
+            // y combinamos sus URLs con las existentes que el usuario conserva.
+            const uploadedUrls = await uploadImages(imagesResult.files);
+            payload.img = [...imagesResult.urls, ...uploadedUrls];
+
             if (isEdit) {
                 /*
                  * PUT /managerlocal/id=:id
                  * El controller actualiza el documento directamente con el body.
-                 * Se incluye local (= localName) y otherLocals para que
-                 * putManagerId sincronice correctamente las referencias.
+                 * img: URLs existentes conservadas + URLs de las nuevas imágenes.
                  */
                 res = await requestAction({
                     url:    `/managerlocal/id=${editData._id}`,
                     action: 'PUT',
-                    // img: URLs existentes que el usuario conserva (sincroniza eliminaciones)
-                    body: { ...payload, img: imagesResult.urls },
+                    body:   payload,
                 });
             }
             else {
                 /*
                  * POST /managerlocal
-                 * La ruta usa multer (uploadNoveltie.fields), por lo que el
-                 * Content-Type debe ser multipart/form-data. Axios lo gestiona
-                 * automáticamente al recibir una instancia de FormData.
-                 * El campo otherLocals se envía como JSON string (el controller lo parsea).
+                 * Las imágenes ya fueron subidas y convertidas a URLs, por lo que
+                 * el body se envía como JSON con img = lista de URLs.
                  */
-                const formData = new FormData();
-                Object.entries(payload).forEach(([key, val]) => {
-                    formData.append(key, val ?? '');
-                });
-
-                // Imágenes nuevas del DropZone → campo 'img' (multer del backend: maxCount 3)
-                imagesResult.files.forEach(({ file }) => formData.append('img', file));
-
                 res = await requestAction({
                     url:    `/managerlocal?establishment=${establishmentId}`,
                     action: 'POST',
-                    body:   formData,
+                    body:   payload,
                 });
             }
 
@@ -160,31 +192,40 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
 
     /* ── Render ────────────────────────────────────────────────────────────── */
     return (
-        <div className='bg-white rounded-2xl p-8 w-[480px] max-h-[85vh] overflow-y-auto shadow-2xl z-100'>
+        <div className='bg-white rounded-2xl shadow-xl overflow-hidden w-[480px] max-h-[85vh] flex flex-col z-100'>
 
-            {/* Encabezado del formulario */}
-            <div className='flex items-center gap-3 mb-6'>
-                <div className='w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center shrink-0'>
-                    <Image
-                        src='/ico/userList/patient_list.svg'
-                        alt='gerente'
-                        width={22}
-                        height={22}
-                    />
-                </div>
-                <div>
-                    <h2 className='text-lg font-semibold text-slate-800 tracking-tight'>
-                        {isEdit ? 'Editar gerente' : 'Nuevo gerente'}
-                    </h2>
-                    <p className='text-xs text-slate-400'>
-                        {isEdit
-                            ? `Modificando: ${editData?.name || editData?.burden}`
-                            : 'Completa los campos para registrar un gerente'}
-                    </p>
+            {/* ── HEADER ────────────────────────────────────────────────── */}
+            <div className='bg-gradient-to-r from-slate-600 to-slate-500 px-6 py-5'>
+                <div className='flex items-center gap-3'>
+                    <div className='w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center'>
+                        <Image
+                            src='/ico/userList/patient_list.svg'
+                            alt='gerente'
+                            width={20}
+                            height={20}
+                            style={{ filter: 'brightness(10)' }}
+                        />
+                    </div>
+                    <div>
+                        <h2 className='text-white font-bold text-base'>
+                            {isEdit ? 'Editar gerente' : 'Nuevo gerente'}
+                        </h2>
+                        <p className='text-slate-100 text-xs'>
+                            {isEdit
+                                ? `Editando: ${editData?.name || editData?.burden || ''}`
+                                : 'Completa los campos para registrar un gerente'}
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className='flex flex-col gap-4'>
+            {/* ── FORM ──────────────────────────────────────────────────── */}
+            <form onSubmit={handleSubmit(onSubmit)} className='p-6 flex flex-col gap-4 overflow-y-auto'>
+
+                {/* ═══════════════════════════════════════════════════════ */}
+                {/* SECCIÓN 1: DATOS DEL GERENTE                            */}
+                {/* ═══════════════════════════════════════════════════════ */}
+                <SectionHeader icon='👤' title='Datos del gerente' />
 
                 {/* ── Nombre ────────────────────────────────────────────────── */}
                 <Field label='Nombre completo'>
@@ -235,10 +276,18 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                     />
                 </Field>
 
+                {/* ═══════════════════════════════════════════════════════ */}
+                {/* SECCIÓN 2: IMÁGENES                                     */}
+                {/* ═══════════════════════════════════════════════════════ */}
+                <SectionHeader icon='🖼️' title='Imágenes del gerente' />
+
                 {/* ── Imágenes (DropZone) ──────────────────────────────────── */}
-                <Field label='Imágenes del gerente'>
+                <Field label='Imágenes del gerente *' error={imageError}>
                     <DropZoneImage
-                        getImageCallback={(result) => setImagesResult(result)}
+                        getImageCallback={(result) => {
+                            setImagesResult(result);
+                            if (imageError) setImageError('');
+                        }}
                         initialImages={editData?.img ?? []}
                         filesLimit={3}
                         maxSizeMB={10}
@@ -250,14 +299,25 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                     <button
                         type='button'
                         onClick={close}
-                        className='flex-1 border border-slate-300 text-slate-600 py-2.5 rounded-lg text-sm font-medium hover:bg-slate-50 transition-colors'
+                        className='
+                            flex-1 py-3 rounded-xl
+                            border border-slate-300 text-slate-600 font-medium text-sm
+                            hover:bg-slate-50 active:scale-[0.99]
+                            transition-all duration-200
+                        '
                     >
                         Cancelar
                     </button>
                     <button
                         type='submit'
                         disabled={loading}
-                        className='flex-1 bg-emerald-600 text-white py-2 rounded-lg text-sm font-semibold hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                        className='
+                            flex-1 py-3 rounded-xl
+                            bg-emerald-600 text-white font-semibold text-sm
+                            hover:bg-emerald-700 active:scale-[0.99]
+                            transition-all duration-200
+                            disabled:opacity-50 disabled:cursor-not-allowed
+                        '
                     >
                         {loading
                             ? 'Guardando...'
@@ -271,6 +331,21 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
 }
 
 
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * SectionHeader — Separador visual de sección dentro del formulario.
+ * Muestra un icono + título + línea divisora.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+function SectionHeader({ icon, title }) {
+    return (
+        <div className='flex items-center gap-2 pt-4 pb-2 mt-2 border-t border-slate-100 first:border-t-0 first:mt-0 first:pt-0'>
+            <span className='text-base'>{icon}</span>
+            <h3 className='text-sm font-semibold text-slate-700 tracking-tight'>{title}</h3>
+            <div className='flex-1 border-t border-slate-200 ml-2' />
+        </div>
+    );
+}
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Field — wrapper de campo de formulario con label y mensaje de error.

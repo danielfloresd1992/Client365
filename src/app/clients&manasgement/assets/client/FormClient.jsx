@@ -39,7 +39,7 @@ import clientDefault from '../objectDefault/objectDefaultClient';
 
 
 
-export default function FormClient({ id = null, action }) {
+export default function FormClient({ id = null, action }) { 
 
     /* ── Auth ──────────────────────────────────────────────────────────────── */
     const { dataSessionState } = useAuthOnServer();
@@ -159,7 +159,7 @@ export default function FormClient({ id = null, action }) {
     }, [upDateClient]);
 
 
-    
+
     /* ── Upload de imagen ──────────────────────────────────────────────────── */
     const handleImageChange = e => {
         const file     = e.target.files[0];
@@ -197,7 +197,7 @@ export default function FormClient({ id = null, action }) {
         <div className='bg-white rounded-2xl shadow-xl overflow-hidden'>
 
             {/* ── HEADER ────────────────────────────────────────────────── */}
-            <div className='bg-gradient-to-r from-blue-600 to-blue-500 px-6 py-5'>
+            <div className='bg-gradient-to-r from-slate-600 to-slate-500 px-6 py-5'>
                 <div className='flex items-center gap-3'>
                     <div className='w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center'>
                         <img
@@ -211,7 +211,7 @@ export default function FormClient({ id = null, action }) {
                         <h2 className='text-white font-bold text-base'>
                             {isEdit ? 'Editar establecimiento' : 'Nuevo establecimiento'}
                         </h2>
-                        <p className='text-blue-100 text-xs'>
+                        <p className='text-slate-100 text-xs'>
                             {isEdit ? `Editando: ${upDateClient.name || ''}` : 'Registra un nuevo local o cliente'}
                         </p>
                     </div>
@@ -419,7 +419,7 @@ export default function FormClient({ id = null, action }) {
                 {upDateClient.DST && (
                     <div className='bg-slate-50 rounded-lg p-3 flex items-center gap-2'>
                         <span className='text-xs text-slate-500'>Hora actual en esta zona:</span>
-                        <span className='text-sm font-mono font-semibold text-blue-600'>
+                        <span className='text-sm font-mono font-semibold text-emerald-600'>
                             {moment().tz(upDateClient.DST.TimeZone).format('YYYY-MM-DD HH:mm:ss')}
                         </span>
                     </div>
@@ -458,14 +458,14 @@ export default function FormClient({ id = null, action }) {
                     {/* Input de archivo */}
                     <label className='
                         flex flex-col items-center gap-2 cursor-pointer
-                        border-2 border-dashed border-blue-300 rounded-xl
-                        p-4 w-full hover:border-blue-400 hover:bg-blue-50/50
+                        border-2 border-dashed border-emerald-300 rounded-xl
+                        p-4 w-full hover:border-emerald-400 hover:bg-emerald-50/50
                         transition-colors
                     '>
-                        <svg className='w-8 h-8 text-blue-400' fill='none' stroke='currentColor' strokeWidth='1.5' viewBox='0 0 24 24'>
+                        <svg className='w-8 h-8 text-emerald-400' fill='none' stroke='currentColor' strokeWidth='1.5' viewBox='0 0 24 24'>
                             <path strokeLinecap='round' strokeLinejoin='round' d='M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5' />
                         </svg>
-                        <span className='text-sm text-blue-600 font-medium'>
+                        <span className='text-sm text-emerald-600 font-medium'>
                             Seleccionar imagen
                         </span>
                         <span className='text-[11px] text-slate-400'>
@@ -487,8 +487,8 @@ export default function FormClient({ id = null, action }) {
                     disabled={isEdit && !upDateClient}
                     className='
                         w-full py-3 rounded-xl mt-4
-                        bg-blue-600 text-white font-semibold text-sm
-                        hover:bg-blue-700 active:scale-[0.99]
+                        bg-emerald-600 text-white font-semibold text-sm
+                        hover:bg-emerald-700 active:scale-[0.99]
                         transition-all duration-200
                         disabled:opacity-50 disabled:cursor-not-allowed
                     '

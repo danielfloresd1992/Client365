@@ -148,7 +148,7 @@ export default function ClientBox({ data }) {
     };
 
 
-    console.log(client)
+
 
  
     const handleManagerReorder = newOrder => {
