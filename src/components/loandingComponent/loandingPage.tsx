@@ -2,7 +2,8 @@
 import { useContext, useRef, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter, usePathname } from 'next/navigation';
-import Image from 'next/image';
+
+import Loader3D from './Loader3D';
 
 import { myUserContext } from '@/contexts/userContext';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
@@ -146,15 +147,8 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
     }
 
 
-    if (dataSessionState?.stateSession === 'loading' && clientsStore.length === 0) {
-        return (
-            <div className='__width-complete __center_center' style={{ height: '100%', width: '100%', top: '0', position: 'fixed', backgroundColor: '#fff', zIndex: 1000 }}>
-                <div className='__center_center columns' style={{ gap: '1rem' }}>
-                    <Image className='logo-loadingPage_animated' src='/logo-page-removebg.png' width={100} height={100} alt='logo-bg_transparent' />
-                    <h3 className='text-intermittence' style={{ color: '#676767', textAlign: 'center' }} >{title}</h3>
-                </div>
-            </div>
-        );
+    if (/*dataSessionState?.stateSession === 'loading' && clientsStore.length === 0*/ true) {
+        return <Loader3D title={title} />;
     }
 
     return children;
