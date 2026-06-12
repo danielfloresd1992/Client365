@@ -45,37 +45,34 @@ export default function ClientBox({ data }) {
     const { requestAction }    = useAxios();
     const router               = useRouter();
 
-
-  
-    /* ── Estado del modal de gerentes ──────────────────────────────────────── */
     const [showManagerForm, setShowManagerForm] = useState(false);
     const [editManager,     setEditManager]     = useState(null);
 
-    /** Lazy-load: solo fetch cuando el card entra en viewport */
+   
     const { ref, inView } = useInView({ triggerOnce: true });
 
 
 
-    /**
-     * fetchClient
-     * Recarga el establecimiento completo. Se usa al entrar en viewport y
-     * tras crear / editar un gerente para reflejar los cambios en la ficha.
-     */
-    const fetchClient = useCallback(() => {
-        return requestAction({ url: `/local/id=${data._id}`, action: 'GET' })
-            .then(res => { 
-                console.log('fetchClient', res.data);
-                if (res.status === 200) setClient(res.data); 
-            
-            })
-            .catch(err => console.error(err));
-    }, [data._id]);
+   
+    const fetchData = async () => {
+        try {
+            const response = await requestAction({ url: `/local/id=${data._id}?populate=managers`, action: 'GET' });
+            if (response.status === 200) setClient(response.data); 
+        }
+        catch(error){
+            console.error('Error fetching client data:', error);
+            dispatch(setConfigModal({
+                title: 'Error al cargar datos', description: 'No se han podido cargar los datos del establecimiento. Inténtalo de nuevo más tarde.',
+                type: 'error', modalOpen: true, isCallback: null,
+            }));
+        }
+    };
 
 
 
     /* ── Fetch del establecimiento completo al entrar en viewport ──────────── */
     useEffect(() => {
-        if (inView) fetchClient();
+        if (inView) fetchData();
     }, [inView]);
 
 
@@ -89,6 +86,9 @@ export default function ClientBox({ data }) {
             }));
         } else { callback(); }
     }, [user]);
+
+
+
 
     /** Abre el formulario de edición del establecimiento */
     const handleEdit = () => {
@@ -105,6 +105,7 @@ export default function ClientBox({ data }) {
             setShowManagerForm(true);
         });
     };
+
 
     /** Abre el formulario en modo edición con el gerente seleccionado */
     const openEditManager = manager => {
@@ -126,11 +127,28 @@ export default function ClientBox({ data }) {
 
 
 
-    const handleManagerSave = () => {
-        fetchClient();
+    const handleManagerSave = (managerUpdate, dataEdit) => {
+        setClient(state => {
+            
+            if(dataEdit){
+                const indexManagerEdit = state.managers.findIndex(manager => manager._id === managerUpdate._id);
+                console.log(indexManagerEdit);
+                const cloneList = [...state.managers]
+                cloneList[indexManagerEdit] = managerUpdate;
+                state.managers = cloneList;
+                return state;
+            }
+            else{
+                state.managers = [...client.manager, managerUpdate];
+                return state
+            }
+          
+        });
         closeManagerForm();
     };
 
+
+    console.log(client)
 
  
     const handleManagerReorder = newOrder => {
@@ -141,7 +159,7 @@ export default function ClientBox({ data }) {
         if (newOrder.join() === prevOrder.join()) return;
        
         setClient(prev => prev ? { ...prev, managers: newOrder } : prev); // optimista
-        console.log({ ...client, managers: newOrder })
+       
         const bodyForRequest = { ...client , managers: newOrder }
         if (bodyForRequest?.img) {
             delete bodyForRequest.img;
@@ -263,17 +281,22 @@ export default function ClientBox({ data }) {
                             count={client?.managers?.length ?? 0}
                             color='blue'
                         >
+
+
                             <div className='flex flex-col gap-2 h-full'>
-                                {client?.managers?.length > 0 ? (
+                                {
+                                    client?.managers?.length > 0 ? 
+
                                     <ManagerList
                                         ids={client.managers}
                                         onEdit={openEditManager}
                                         onReorder={handleManagerReorder}
                                         canReorder={!!user?.admin}
                                     />
-                                ) : (
+                                :
                                     <p className='text-xs text-slate-400 italic'>Sin gerentes asignados</p>
-                                )}
+                                }
+
 
                                 {/* Botón añadir gerente */}
                                 <button
@@ -448,7 +471,7 @@ function ManagerList({ ids, onEdit, onReorder, canReorder = false }) {
         <ul className='space-y-1'>
             {order.map((id, idx) => (
                 <ManagerItem
-                    key={id}
+                    key={id._id}
                     id={id}
                     onEdit={onEdit}
                     draggable={canReorder}

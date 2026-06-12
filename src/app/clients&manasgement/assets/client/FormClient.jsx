@@ -82,12 +82,18 @@ export default function FormClient({ id = null, action }) {
         }
     }, [upDateClient]);
 
+
+
+
     useEffect(() => {
         if (id && listFranchiseState.length > 1) {
             fetchData({ url: `/local/id=${id}`, autoGetData: true, method: 'get' });
         }
         return () => resetDataFetch();
     }, [listFranchiseState]);
+
+
+
 
 
     /* ── Submit ────────────────────────────────────────────────────────────── */
@@ -114,6 +120,8 @@ export default function FormClient({ id = null, action }) {
         delete bodyRequest.img;
         handleRequest(bodyRequest);
     }, [upDateClient]);
+
+
 
 
     /* ── Petición HTTP (crear / actualizar) ────────────────────────────────── */
@@ -151,6 +159,7 @@ export default function FormClient({ id = null, action }) {
     }, [upDateClient]);
 
 
+    
     /* ── Upload de imagen ──────────────────────────────────────────────────── */
     const handleImageChange = e => {
         const file     = e.target.files[0];
@@ -166,6 +175,8 @@ export default function FormClient({ id = null, action }) {
     const onImageUploaded = useCallback(response => {
         setChangeData({ ...upDateClient, image: response.data.url });
     }, [upDateClient]);
+
+
 
 
     /* ── Loading ───────────────────────────────────────────────────────────── */

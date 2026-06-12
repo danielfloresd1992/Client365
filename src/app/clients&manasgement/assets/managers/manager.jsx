@@ -3,26 +3,14 @@ import useAxios from '@/hook/useAxios';
 
 
 export default function ManagerItem({
-    id, onEdit, draggable = false, isOver = false,
+    id: mgr, onEdit, draggable = false, isOver = false,
     onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd,
 }) {
 
     
-    const [mgr, setMgr] = useState(null);
-    const { requestAction } = useAxios();
 
 
-
-    useEffect(() => {
-        requestAction({ url: `/managerLocalAndImgById/id=${id}`, action: 'GET' })
-            .then(res => { 
-                if (res.data?.[0]) setMgr(res.data[0]); 
-            })
-            .catch((error) => {
-                console.log(error);
-            });
-    }, [id]);
-
+    
 
 
     if (!mgr) return <li className='h-4 w-24 bg-slate-200/60 rounded animate-pulse' />;
@@ -33,20 +21,26 @@ export default function ManagerItem({
      * Si llega como string ('activo'/'inactivo') o indefinido, es un registro
      * antiguo que hay que migrar → se marca de forma visible.
      */
-    const statusIsBool = typeof mgr.status === 'boolean';
-    const needsUpdate  = !statusIsBool;
-    const isActive     = mgr.status === true;
+    const statusManagerIsBool = typeof mgr.status === 'boolean';
+    const needsUpdate  = !statusManagerIsBool;
+    const managerIsActive = mgr.status === true;
+
+
 
     // Fondo de la fila (prioridad: arrastre > pendiente de migrar > activo/inactivo)
-    const rowBg = isOver
-        ? 'bg-blue-100 ring-1 ring-blue-300'
-        : needsUpdate
-            ? 'bg-amber-50 ring-1 ring-amber-200'
-            : isActive
-                ? 'bg-emerald-50/70'
-                : 'bg-slate-100/70';
+    const dotColor = needsUpdate ? 'bg-amber-400' : managerIsActive ? 'bg-emerald-500' : 'bg-slate-400';
+    const dragStyles = draggable ? 'hover:bg-blue-100 hover:ring-blue-200 cursor-grab active:cursor-grabbing hover:bg-blue200  active:ring-1 active:ring-blue-500' : ''
 
-    const dotColor = needsUpdate ? 'bg-amber-400' : isActive ? 'bg-emerald-500' : 'bg-slate-400';
+
+    const styleSatus = () => {
+        if(isOver) return 'bg-blue-200 ring-1 ring-blue-500';
+        if(needsUpdate) return 'bg-amber-200 ring-1 ring-amber-500';
+        if(managerIsActive) return 'bg-green-200 ring-1 ring-green-500';
+      
+        return 'bg-red-200 ring-1 ring-red-500';
+    };
+
+
 
 
     return (
@@ -60,18 +54,20 @@ export default function ManagerItem({
             title={draggable ? 'Arrastra para reordenar' : undefined}
             className={`
                 group flex items-center gap-[6px] rounded-lg px-1.5 py-1 text-[13px] transition-colors
-                ${rowBg}
-                ${draggable ? 'cursor-grab active:cursor-grabbing hover:bg-blue-100/60' : ''}
+                ${styleSatus()}
+                ${dragStyles}
             `}
         >
-            {draggable ? (
-                <span className='shrink-0 text-slate-300 group-hover:text-slate-500 select-none leading-none text-[11px]'>⠿</span>
-            ) : (
-                <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dotColor}`} />
-            )}
-            <p className={`truncate select-none ${isActive || needsUpdate ? 'text-slate-700' : 'text-slate-400'}`}>
+            {
+                draggable ? 
+                    <span className='shrink-0 text-slate-300 group-hover:text-slate-500 select-none leading-none text-[11px]'>⠿</span>
+                : 
+                    <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dotColor}`} />
+            }
+
+            <p className={`truncate select-none ${managerIsActive || needsUpdate ? 'text-slate-700' : 'text-slate-400'}`}>
                 <span className='font-medium'>{mgr?.burden}</span>
-                {mgr.name && <span className='text-slate-400'> · {mgr.name}</span>}
+                {mgr.name && <span className='text-slate-500'> · {mgr.name}</span>}
             </p>
 
             {/* Lado derecho: aviso de migración (siempre visible) + editar (al hover) */}

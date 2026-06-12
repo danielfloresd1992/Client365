@@ -125,6 +125,9 @@ export default function FormManager({ editData, onSave, close, establishmentId, 
                     type:       'successfull',
                     isCallback: null,
                 }));
+
+                const returnData = {...res.data}
+                if(isEdit) returnData._id = editData?._id
                 onSave(res.data, isEdit);
             }
 
