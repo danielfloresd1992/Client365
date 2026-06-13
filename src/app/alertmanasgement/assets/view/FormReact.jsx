@@ -36,21 +36,21 @@ import {
 // cada bloque del formulario sin alterar la lógica de los campos.
 const SectionHeader = ({ icon: Icon, label, color = '#374151', bg = '#f3f4f6' }) => (
     <div style={{
-        display:         'flex',
-        alignItems:      'center',
-        gap:             '7px',
-        padding:         '5px 10px',
-        borderRadius:    '7px',
-        background:      bg,
-        marginBottom:    '6px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '7px',
+        padding: '5px 10px',
+        borderRadius: '7px',
+        background: bg,
+        marginBottom: '6px',
     }}>
         <Icon size={13} color={color} />
         <span style={{
-            fontWeight:     700,
-            fontSize:       '11px',
-            color:          color,
-            letterSpacing:  '0.06em',
-            textTransform:  'uppercase',
+            fontWeight: 700,
+            fontSize: '11px',
+            color: color,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
         }}>
             {label}
         </span>
@@ -85,7 +85,8 @@ function Form({
         timeUnique: false,
         category: '--Selecione una categoria--',
         isArea: false,
-        manager: false,
+        managerReferenceTitle: false,
+        managerReferenceId: false,
         isDescriptionPerson: false,
         photos: {
             length: '',
@@ -105,15 +106,15 @@ function Form({
         bonusCalculationRules: {
             activate: false,
             defaultRule: {
-                worth:  1,          // multiplicador: 1=X1, 2=X2, 3=X3, 5=X5
-                acum:   1,          // ocurrencias para contar como bono
+                worth: 1,          // multiplicador: 1=X1, 2=X2, 3=X3, 5=X5
+                acum: 1,          // ocurrencias para contar como bono
                 valueBonusForTheStaffOnDuty: {
-                    day:   0.20,    // valor por punto turno diurno
+                    day: 0.20,    // valor por punto turno diurno
                     nigth: 0.30     // valor por punto turno nocturno / extra
                 },
                 reglamentoCode: '', // código del reglamento (ej: "1.1", "R2.3")
-                description:    '', // descripción interna de la regla
-                defaultActive:  true
+                description: '', // descripción interna de la regla
+                defaultActive: true
             },
             localSpecificRules: []
         },
@@ -294,7 +295,7 @@ function Form({
                 id='menu-render'
             >
                 {/* ── Cabecera del panel: ícono + título + botón reset ───────── */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%'}}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <FaBell size={20} color='#d97706' />
                         <span style={{ fontWeight: 700, fontSize: '16px', color: '#111827' }}>
@@ -837,25 +838,54 @@ function Form({
                         <hr />
 
 
-                        <SectionHeader icon={ FaUserTie} label="Configuraciòn de Gerentes o MAnagers" color='#FF2700' bg='#FFE5E0' />
-                        
+                        <SectionHeader icon={FaUserTie} label="Configuración de Gerentes o MAnagers en título y referencias" color='#FF2700' bg='#FFE5E0' />
+
                         <div className='flex columns __width-complete __oneGap'>
 
+
                             <label className='__label' style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                           
-                                <p className='__text-center'>Se anexara una referencia al manager o gerente de turno</p>
+
+                                <p className='__text-center'>Referencia de gerentes en la novedad</p>
                                 <input
                                     className='__input'
                                     type='checkbox'
                                     name='table'
-                                    checked={Boolean(menu.isArea)}
+                                    checked={Boolean(menu.managerReferenceId)}
                                     onChange={
                                         e => {
-                                            setMenu({ ...menu, null: e.target.checked });
+                                            setMenu({ ...menu, managerReferenceId: e.target.checked });
                                         }
                                     }
                                 />
                             </label>
+                            <label className='__label' style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+
+                                <p className='__text-center'>Referencia de gerentes en el título</p>
+                                <input
+                                    className='__input'
+                                    type='checkbox'
+                                    name='table'
+                                    checked={Boolean(menu.managerReferenceTitle)}
+                                    onChange={
+                                        e => {
+                                            setMenu({ ...menu, managerReferenceTitle: e.target.checked });
+                                        }
+                                    }
+                                />
+                            </label>
+                            {
+                                menu?.managerReferenceTitle && (
+                                    <>
+                                        <p style={{ fontSize: '12px', color: '#666', fontWeight: 'semibold' }}>Nota a considerar, acomode el titulo acerde al nombre del manager o gerente
+                                            <br />
+                                            <b>Ejemplo en castellano: "{menu?.es} Gerente JARVIS"</b>
+                                            <br />
+                                            <b>Ejemplo en ingles: "Manager JARVIS {menu?.en}"</b>
+                                        </p>
+                                    </>
+                                )
+
+                            }
                         </div>
                         <hr />
 
@@ -1135,7 +1165,7 @@ function Form({
                             </div>
 
 
-                            
+
                             <div className='flex columns __width-complete __oneGap'>
                                 <label className='__label' >
                                     <p className='__text-center'>Remover el subtítulo en el documento de imagenes en reporte</p>
