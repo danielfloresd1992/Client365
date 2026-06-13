@@ -7,7 +7,8 @@ export default function page_auth() {
 
     return (
         <div className='auth-page'>
-            {/* Decorative brand panel — hidden on mobile */}
+          <div className='auth-shell'>
+            {/* Brand panel (bienvenida) */}
             <div className='auth-brand-panel'>
                 <div className='auth-brand-panel__glow' />
                 <div className='auth-brand-panel__content'>
@@ -42,6 +43,7 @@ export default function page_auth() {
             <div className='auth-form-side'>
                 <ContentForm />
             </div>
+          </div>
         </div>
     )
 }

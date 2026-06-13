@@ -7,6 +7,10 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     output: "standalone",
+    // Permite aislar el build en otro directorio para no chocar con un .next
+    // creado por otra sesión (p.ej. servers corriendo como root). Solo se activa
+    // con DEV_ALT_DIST=1; en condiciones normales usa el ".next" por defecto.
+    ...(process.env.DEV_ALT_DIST ? { distDir: ".next-dev" } : {}),
     async headers() {
         return [
             {

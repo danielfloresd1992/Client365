@@ -28,8 +28,8 @@ export default function Login({ eventSubmit, errorHttp, setType }) {
             {/* Logo */}
             <div className='auth-logo'>
                 <Image src='/logo-page-removebg.png' alt='Jarvis365' width={64} height={56} priority />
-                <h1 className='auth-logo__title'>Bienvenido</h1>
-                <p className='auth-logo__subtitle'>Inicia sesión en tu cuenta de Jarvis365</p>
+                <h1 className='auth-logo__title'>Iniciar sesión</h1>
+                <p className='auth-logo__subtitle'>Accede a tu cuenta de Jarvis365</p>
             </div>
 
             {/* Fields */}

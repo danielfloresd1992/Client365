@@ -28,6 +28,7 @@ import {
     FaFileContract,   // configuración de reporte y alerta en vivo
     FaRedo,           // botón reset
     FaCheck,          // botón crear / editar
+    FaUserTie         // managers
 } from 'react-icons/fa';
 
 // ── Encabezado visual de sección ─────────────────────────────────────────────
@@ -84,6 +85,7 @@ function Form({
         timeUnique: false,
         category: '--Selecione una categoria--',
         isArea: false,
+        manager: false,
         isDescriptionPerson: false,
         photos: {
             length: '',
@@ -827,6 +829,29 @@ function Form({
                                     onChange={
                                         e => {
                                             setMenu({ ...menu, isArea: e.target.checked });
+                                        }
+                                    }
+                                />
+                            </label>
+                        </div>
+                        <hr />
+
+
+                        <SectionHeader icon={ FaUserTie} label="Configuraciòn de Gerentes o MAnagers" color='#FF2700' bg='#FFE5E0' />
+                        
+                        <div className='flex columns __width-complete __oneGap'>
+
+                            <label className='__label' style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                           
+                                <p className='__text-center'>Se anexara una referencia al manager o gerente de turno</p>
+                                <input
+                                    className='__input'
+                                    type='checkbox'
+                                    name='table'
+                                    checked={Boolean(menu.isArea)}
+                                    onChange={
+                                        e => {
+                                            setMenu({ ...menu, null: e.target.checked });
                                         }
                                     }
                                 />

@@ -147,7 +147,7 @@ export default function LoadingGuard({ title = "Cargando...", children }: any): 
     }
 
 
-    if (/*dataSessionState?.stateSession === 'loading' && clientsStore.length === 0*/ true) {
+    if (dataSessionState?.stateSession === 'loading' && clientsStore.length === 0) {
         return <Loader3D title={title} />;
     }
 

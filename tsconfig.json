@@ -34,7 +34,8 @@
     ".next/types/**/*.ts",
     "src/hook/useAxios.jsx",
     "middleware.tse.ts",
-    "src/store/slices/filterAlert.js"
+    "src/store/slices/filterAlert.js",
+    ".next-dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

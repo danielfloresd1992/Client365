@@ -134,3 +134,10 @@ label {
   position: sticky;
   top: 50px
 }
+
+
+.tag-yelow{
+  border: 1px solid #ffc500;
+  background-color: #ffe281;
+}
+   

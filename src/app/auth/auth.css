@@ -1,6 +1,6 @@
 /* ═══════════════════════════════════════════════════════════════════
    Auth Styles — Login & Register
-   Paleta: Verde earthy #4e8300 de la página principal + slate moderno
+   Paleta: Verde earthy #29c50c de la página principal + slate moderno
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ─── Background & Container ─────────────────────────────────────── */
@@ -8,22 +8,44 @@
     width: 100%;
     min-height: 100%;
     display: flex;
-    flex-direction: row;
-    background: linear-gradient(135deg, #f0f5ea 0%, #e7efdc 40%, #dde7cc 100%);
+    align-items: center;
+    justify-content: center;
+    padding: clamp(0.75rem, 3vw, 2.5rem);
+    background: linear-gradient(135deg, #f7f2e4 0%, #efe7d4 40%, #e0d4ba 100%);
     position: relative;
-    overflow: hidden;
+    overflow-x: hidden;
 }
 
-/* ─── Brand Panel (left side) ─────────────────────────────────────── */
-.auth-brand-panel {
-    display: none;
+/* ─── Shell: tarjeta única que une bienvenida + formulario ────────── */
+.auth-shell {
     position: relative;
-    width: 44%;
-    min-height: 100vh;
-    background: linear-gradient(160deg, #3a6c00 0%, #4e8300 40%, #5d9a10 100%);
-    padding: 3rem 2.5rem;
+    z-index: 1;
+    width: 100%;
+    max-width: 940px;
+    display: flex;
+    flex-direction: column;
+    /* móvil: apilado */
+    background: #fbf6ea;
+    border: 1px solid rgba(227, 216, 192, 0.7);
+    border-radius: 24px;
     overflow: hidden;
-    flex-shrink: 0;
+    box-shadow:
+        0 30px 70px -25px rgba(31, 154, 8, 0.18),
+        0 8px 24px rgba(0, 0, 0, 0.06);
+    animation: authCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* ─── Brand Panel (mitad bienvenida) ──────────────────────────────── */
+.auth-brand-panel {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    background: linear-gradient(160deg, #1f9a08 0%, #29c50c 45%, #34d40f 100%);
+    padding: clamp(1.75rem, 4vw, 2.75rem);
+    overflow: hidden;
+    text-align: center;
 }
 
 .auth-brand-panel__glow {
@@ -33,7 +55,7 @@
     transform: translate(-50%, -50%);
     width: 300px;
     height: 300px;
-    background: radial-gradient(circle, rgba(130, 201, 30, 0.25) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(41, 197, 12, 0.25) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -51,10 +73,10 @@
 
 .auth-brand-panel__logo {
     width: 80%;
-    max-width: 280px;
+    max-width: clamp(160px, 42vw, 260px);
     height: auto;
     object-fit: contain;
-    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.15));
+    filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.18));
 }
 
 .auth-brand-panel__title {
@@ -136,28 +158,53 @@
     border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-/* Form side wrapper */
+/* Form side (mitad formulario) */
 .auth-form-side {
     flex: 1;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 2rem 1rem;
-    min-height: 100vh;
+    padding: clamp(1.75rem, 4vw, 2.75rem);
+    background: #fbf6ea;
 }
 
-@media (min-width: 960px) {
-    .auth-brand-panel {
-        display: block;
+/* Escritorio: bienvenida y formulario lado a lado dentro de la misma tarjeta */
+@media (min-width: 820px) {
+    .auth-shell {
+        flex-direction: row;
+        min-height: 560px;
     }
 
-    .auth-page {
-        padding: 0;
+    .auth-brand-panel {
+        width: 42%;
+        flex-shrink: 0;
     }
 
     .auth-form-side {
-        padding: 2rem;
+        width: 58%;
     }
+}
+
+/* Aplanar la tarjeta interna del formulario: que sea parte del shell, no otra tarjeta */
+.auth-form-side .auth-card {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    width: 100%;
+    max-width: 380px;
+}
+
+.auth-form-side .auth-card--wide {
+    max-width: 520px;
+}
+
+/* Evitar logo duplicado: el panel ya muestra el logo de marca */
+.auth-form-side .auth-logo img {
+    display: none;
 }
 
 .auth-page::before {
@@ -168,7 +215,7 @@
     width: 400px;
     height: 400px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(78, 131, 0, 0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(41, 197, 12, 0.08) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -180,7 +227,7 @@
     width: 300px;
     height: 300px;
     border-radius: 50%;
-    background: radial-gradient(circle, rgba(78, 131, 0, 0.06) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(41, 197, 12, 0.06) 0%, transparent 70%);
     pointer-events: none;
 }
 
@@ -192,9 +239,9 @@
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-radius: 20px;
-    border: 1px solid rgba(212, 222, 200, 0.6);
+    border: 1px solid rgba(227, 216, 192, 0.6);
     box-shadow:
-        0 20px 60px rgba(56, 88, 20, 0.08),
+        0 20px 60px rgba(31, 154, 8, 0.08),
         0 4px 16px rgba(0, 0, 0, 0.04);
     padding: 2.5rem 2rem;
     display: flex;
@@ -273,8 +320,8 @@
     display: flex;
     align-items: center;
     width: 100%;
-    background: #f8faf6;
-    border: 1.5px solid #e2e8d8;
+    background: #fbf6ea;
+    border: 1.5px solid #e6dcc6;
     border-radius: 12px;
     padding: 0 0.875rem;
     transition: all 0.25s ease;
@@ -282,14 +329,14 @@
 }
 
 .auth-input-wrapper:hover {
-    border-color: #c8d6b8;
-    background: #f4f8f0;
+    border-color: #d8ccb2;
+    background: #f5eedd;
 }
 
 .auth-input-wrapper:focus-within {
-    border-color: #4e8300;
+    border-color: #29c50c;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(78, 131, 0, 0.1);
+    box-shadow: 0 0 0 3px rgba(41, 197, 12, 0.1);
 }
 
 .auth-input-wrapper--error {
@@ -421,37 +468,37 @@
 }
 
 .auth-btn--primary {
-    background: linear-gradient(135deg, #4e8300 0%, #3f6b00 100%);
+    background: linear-gradient(135deg, #29c50c 0%, #1f9a08 100%);
     color: #fff;
-    box-shadow: 0 4px 14px rgba(78, 131, 0, 0.25);
+    box-shadow: 0 4px 14px rgba(41, 197, 12, 0.25);
 }
 
 .auth-btn--primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 20px rgba(78, 131, 0, 0.35);
-    background: linear-gradient(135deg, #5a9400 0%, #4a7d00 100%);
+    box-shadow: 0 6px 20px rgba(41, 197, 12, 0.35);
+    background: linear-gradient(135deg, #2fb00d 0%, #1f9a08 100%);
 }
 
 .auth-btn--primary:active {
     transform: translateY(0);
-    box-shadow: 0 2px 8px rgba(78, 131, 0, 0.2);
+    box-shadow: 0 2px 8px rgba(41, 197, 12, 0.2);
 }
 
 .auth-btn--secondary {
     background: transparent;
     color: #475569;
-    border: 1.5px solid #e2e8d8;
+    border: 1.5px solid #e6dcc6;
 }
 
 .auth-btn--secondary:hover {
-    background: #f8faf6;
-    border-color: #c8d6b8;
+    background: #fbf6ea;
+    border-color: #d8ccb2;
     color: #1e293b;
 }
 
 .auth-btn--ghost {
     background: transparent;
-    color: #4e8300;
+    color: #29c50c;
     height: auto;
     padding: 0.25rem 0;
     font-size: 0.85rem;
@@ -459,7 +506,7 @@
 }
 
 .auth-btn--ghost:hover {
-    color: #3f6b00;
+    color: #1f9a08;
     text-decoration: underline;
 }
 
@@ -482,7 +529,7 @@
 .auth-divider__line {
     flex: 1;
     height: 1px;
-    background: #e2e8d8;
+    background: #e6dcc6;
 }
 
 .auth-divider__text {
@@ -502,7 +549,7 @@
 
 .auth-footer-text a,
 .auth-footer-text span.auth-link {
-    color: #4e8300;
+    color: #29c50c;
     font-weight: 600;
     cursor: pointer;
     transition: color 0.2s ease;
@@ -510,7 +557,7 @@
 
 .auth-footer-text a:hover,
 .auth-footer-text span.auth-link:hover {
-    color: #3f6b00;
+    color: #1f9a08;
     text-decoration: underline;
 }
 
@@ -525,7 +572,7 @@
     flex: 1;
     height: 4px;
     border-radius: 2px;
-    background: #e2e8d8;
+    background: #e6dcc6;
     transition: background 0.3s ease;
 }
 
@@ -548,7 +595,7 @@
 .auth-section-header__divider {
     width: 48px;
     height: 3px;
-    background: linear-gradient(90deg, #4e8300, #82c91e);
+    background: linear-gradient(90deg, #29c50c, #82c91e);
     border-radius: 2px;
     margin: 0.75rem auto 0;
 }
@@ -607,4 +654,25 @@
         opacity: 1;
         transform: translateX(0);
     }
+}
+
+/* ── Acentos oro/bronce para combinar con la paleta marfil del sitio ── */
+.auth-brand-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #29c50c 0%, #d9a441 55%, #b5763b 100%);
+    z-index: 2;
+}
+
+.auth-brand-panel__circle--1 {
+    background: rgba(217, 164, 65, 0.12);
+    border-color: rgba(217, 164, 65, 0.22);
+}
+
+.auth-brand-panel__circle--3 {
+    border-color: rgba(181, 118, 59, 0.32);
 }
