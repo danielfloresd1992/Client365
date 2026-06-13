@@ -1944,7 +1944,7 @@ a:hover {
     width: 100%;
     height: 56px;
     padding: 0.45rem 0.9rem;
-    background: linear-gradient(90deg, #29c50c 0%, #d0d90e 45%, #c28713 100%);
+    background: linear-gradient(90deg, #29c50c 0%, #c28713 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.22);
     box-shadow: 0 10px 24px rgba(10, 46, 31, 0.25);
     display: flex;
@@ -2037,16 +2037,7 @@ a:hover {
     letter-spacing: 0.01em;
 }
 
-.header-main__login {
-    color: #3b3b3b;
-    padding: 0.38rem 0.7rem;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 999px;
-    font-size: 0.77rem;
-    font-weight: 600;
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.12);
-}
+
 
 @media screen and (max-width: 1200px) {
     .header-main__title {

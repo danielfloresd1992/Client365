@@ -30,6 +30,9 @@ yarn-error.log*
 .env
 .env*.local
 
+# npm config local (prefix/globalconfig rompe nvm en Netlify)
+.npmrc
+
 # vercel
 .vercel
 .claude
