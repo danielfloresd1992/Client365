@@ -32,7 +32,9 @@ yarn-error.log*
 
 # vercel
 .vercel
-
+.claude
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.next-dev/
+.next.broken-root-owned
