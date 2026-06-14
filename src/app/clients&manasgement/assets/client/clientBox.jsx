@@ -229,13 +229,8 @@ export default function ClientBox({ data }) {
                     </h3>
 
                     {/* Badge de estado */}
-                    <span className={`
-                        inline-flex items-center gap-[5px] px-2.5 py-1 rounded-full text-[11px] font-semibold mb-3
-                        ${client?.status === 'activo'
-                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200'
-                            : 'bg-amber-50 text-amber-700 ring-1 ring-amber-200'}
-                    `}>
-                        <span className={`w-[6px] h-[6px] rounded-full ${client?.status === 'activo' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                    <span className={`${client?.status === 'activo' ? 'tag-green' : 'tag-amber'} gap-[5px] px-2.5 py-1 mb-3`}>
+                        <span className={client?.status === 'activo' ? 'dot-green' : 'dot-amber'} />
                         {client?.status || 'sin estado'}
                     </span>
 
@@ -326,10 +321,7 @@ export default function ClientBox({ data }) {
                             configured={!!client?.schedules}
                         >
                             <div className='flex flex-col items-center gap-2 pt-1'>
-                                <span className={`
-                                    text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1
-                                    ${client?.schedules ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-slate-100 text-slate-500 ring-slate-200'}
-                                `}>
+                                <span className={`${client?.schedules ? 'tag-green' : 'tag-gray'} px-2.5 py-1`}>
                                     {client?.schedules ? 'Configurado' : 'Sin configurar'}
                                 </span>
                                 <button

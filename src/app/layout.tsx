@@ -1,8 +1,5 @@
 
-import "./globals.css";
-import "./page.module.css";
-import '../style/style.css';
-import '../style/Lobby.css';
+import '../style/styles.css';
 import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';

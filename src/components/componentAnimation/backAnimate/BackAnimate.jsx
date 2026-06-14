@@ -2,7 +2,6 @@
 import { useEffect, useRef } from 'react';
 import Cotton from 'cottonjs'
 
-import './style.css';
 
 
 export default function BackAnimate() {

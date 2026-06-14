@@ -28,8 +28,8 @@ export default function ManagerItem({
 
 
     // Fondo de la fila (prioridad: arrastre > pendiente de migrar > activo/inactivo)
-    const dotColor = needsUpdate ? 'bg-amber-400' : managerIsActive ? 'bg-emerald-500' : 'bg-slate-400';
-    const dragStyles = draggable ? 'hover:bg-blue-100 hover:ring-blue-200 cursor-grab active:cursor-grabbing hover:bg-blue200  active:ring-1 active:ring-blue-500' : ''
+    const dotColor = needsUpdate ? 'dot-amber' : managerIsActive ? 'dot-green' : 'dot-gray';
+    const dragStyles = draggable ? 'hover:bg-blue-100 hover:ring-blue-200 cursor-grab active:cursor-grabbing active:ring-1 active:ring-blue-500' : ''
 
 
     const styleSatus = () => {
@@ -62,7 +62,7 @@ export default function ManagerItem({
                 draggable ? 
                     <span className='shrink-0 text-slate-300 group-hover:text-slate-500 select-none leading-none text-[11px]'>⠿</span>
                 : 
-                    <span className={`w-[6px] h-[6px] rounded-full shrink-0 ${dotColor}`} />
+                    <span className={dotColor} />
             }
 
             <p className={`truncate select-none ${managerIsActive || needsUpdate ? 'text-slate-700' : 'text-slate-400'}`}>
@@ -77,7 +77,7 @@ export default function ManagerItem({
                 {needsUpdate && (
                     <span
                         title='El estado de este gerente está en formato antiguo. Edítalo y guárdalo para migrarlo a activo/inactivo.'
-                        className='flex items-center gap-1 text-[10px] font-semibold text-amber-700 bg-amber-100 ring-1 ring-amber-300 rounded-full px-1.5 py-[1px] cursor-help'
+                        className='tag-amber text-[10px] cursor-help'
                     >
                         ⚠ Actualizar
                     </span>

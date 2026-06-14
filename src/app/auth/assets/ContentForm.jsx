@@ -8,7 +8,6 @@ import { setConfigModal } from '@/store/slices/globalModal';
 import Login from './login';
 import CreatUser from '../../../components/forms/CreateUser';
 import LegaceLoginForm from '../../../components/forms/legaceLoginForm';
-import '../auth.css'
 
 //login
 import useAuthOnServer from '@/hook/auth'

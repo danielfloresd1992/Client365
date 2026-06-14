@@ -1,4 +1,3 @@
-import './assets/style.css';
 
 export const metadata = {
     title: 'Gestion de clientes',

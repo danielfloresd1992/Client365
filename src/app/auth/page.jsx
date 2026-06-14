@@ -1,6 +1,5 @@
 import ContentForm from './assets/ContentForm';
 import Jarvis365Logo from '../../components/fx/Jarvis365Logo';
-import './auth.css';
 
 
 export default function page_auth() {

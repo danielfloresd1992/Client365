@@ -2,7 +2,6 @@
 import { useEffect, useRef } from 'react';
 import ButtonForBanner from '../../buttons/ButtonForBanner';
 import Image from 'next/image';
-import './style.css'
 
 
 

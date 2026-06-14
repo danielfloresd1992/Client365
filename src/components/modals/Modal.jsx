@@ -2,7 +2,6 @@
 import React, { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { closeModal } from '@/store/slices/globalModal.js';
-import './modal.css'
 
 export default function Modal() {
     const selectModal = useSelector(state => state.modal);

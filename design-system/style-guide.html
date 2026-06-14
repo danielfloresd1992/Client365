@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Jarvis365 · Design System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Mismas definiciones que el @layer components de src/style/styles.css.
+         DERIVADAS de la presentación (page.tsx) y el loader (Loader3D).
+         Si cambias el framework en styles.css, refleja el cambio aquí. -->
+    <style type="text/tailwindcss">
+        @layer components {
+            .accent-strip { @apply block h-1 w-full bg-gradient-to-r from-[#29c50c] via-[#d9a441] to-[#b5763b]; }
+
+            .eyebrow { @apply inline-flex items-center gap-2 rounded-full border border-[#dce8d4] bg-[#f5eedd]/80 backdrop-blur-sm px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#29c50c]; }
+            .eyebrow-sand { @apply eyebrow border-[#c8ddb4] bg-[#f2ead8]; }
+            .eyebrow-green { @apply eyebrow border-[#29c50c]/40 bg-[#29c50c]/10 text-[#2e8b3e]; }
+
+            .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1; }
+            .btn-primary { @apply btn bg-[#29c50c] text-white hover:bg-[#1f9a08] hover:shadow-lg hover:shadow-[#d9a441]/40 hover:-translate-y-0.5 focus-visible:ring-[#29c50c]; }
+            .btn-secondary { @apply btn border border-[#d4dec8] bg-[#faf5ea]/80 backdrop-blur-sm text-slate-700 hover:bg-[#f7f2e4] hover:border-[#29c50c]/30 focus-visible:ring-[#29c50c]; }
+            .btn-outline { @apply btn border border-[#29c50c] bg-transparent text-[#1f9a08] hover:bg-[#29c50c]/10 focus-visible:ring-[#29c50c]; }
+            .btn-ghost { @apply btn bg-transparent text-slate-600 hover:bg-gray-100 hover:text-slate-800 focus-visible:ring-gray-300; }
+            .btn-danger { @apply btn bg-red-500 text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/30 hover:-translate-y-0.5 focus-visible:ring-red-500; }
+            .btn-icon { @apply inline-flex items-center justify-center rounded-xl p-2.5 text-slate-600 transition-colors cursor-pointer hover:bg-gray-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300; }
+            .btn-sm { @apply px-4 py-2 text-[13px] gap-1.5 rounded-lg; }
+            .btn-lg { @apply px-8 py-3.5 text-base gap-2.5; }
+            .btn-block { @apply w-full; }
+            .btn-pill { @apply rounded-full; }
+            .icon-badge { @apply inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-[#29c50c] to-[#5cc41f] text-white; }
+            .icon-badge-sm { @apply inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-[#29c50c] to-[#5cc41f] text-white; }
+
+            .tag { @apply inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[11px] font-semibold ring-1 leading-tight whitespace-nowrap; }
+            .tag-green { @apply tag bg-[#29c50c]/10 text-[#1f9a08] ring-[#29c50c]/30; }
+            .tag-amber { @apply tag bg-amber-100 text-amber-700 ring-amber-300; }
+            .tag-blue { @apply tag bg-blue-100 text-blue-700 ring-blue-300; }
+            .tag-red { @apply tag bg-red-100 text-red-700 ring-red-300; }
+            .tag-gray { @apply tag bg-gray-100 text-gray-600 ring-gray-300; }
+            .tag-gold { @apply tag bg-[#d9a441]/15 text-[#9a6c1f] ring-[#d9a441]/40; }
+            .chip-drag { @apply group flex items-center gap-[6px] rounded-lg px-1.5 py-1 text-[13px] transition-colors bg-red-200 ring-1 ring-red-500 hover:bg-blue-100 hover:ring-blue-200 cursor-grab active:cursor-grabbing active:ring-1 active:ring-blue-500; }
+            .dot { @apply inline-block w-[6px] h-[6px] rounded-full shrink-0; }
+            .dot-green { @apply dot bg-[#29c50c]; }
+            .dot-amber { @apply dot bg-amber-400; }
+            .dot-red { @apply dot bg-red-500; }
+            .dot-gray { @apply dot bg-slate-300; }
+
+            .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:outline-none focus:border-[#29c50c] focus:ring-2 focus:ring-[#29c50c]/20 disabled:bg-slate-50 disabled:text-slate-400; }
+            .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-500/20; }
+            .label { @apply block text-sm font-medium text-slate-700 mb-1; }
+            .form-field { @apply flex flex-col gap-1 mb-4; }
+            .form-hint { @apply text-xs text-slate-500; }
+            .form-error { @apply text-xs font-medium text-red-600; }
+
+            .card { @apply rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea] p-5 shadow-sm; }
+            .card-glass { @apply rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea]/80 backdrop-blur-xl p-6 shadow-[0_24px_48px_rgba(31,154,8,0.12),0_8px_20px_rgba(0,0,0,0.04)]; }
+            .card-soft { @apply rounded-xl border border-slate-200 bg-[#fbf6ea] p-5; }
+            .card-stat { @apply rounded-xl border border-[#dde8d0] bg-gradient-to-b from-[#f8f3e6] to-[#f4edda] p-4 text-center; }
+            .card-hover { @apply transition-all hover:border-[#29c50c]/30 hover:shadow-md hover:-translate-y-0.5; }
+            .card-header { @apply flex items-center justify-between mb-3; }
+            .card-title { @apply text-base font-semibold text-slate-800; }
+            .badge { @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wide; }
+            .badge-green { @apply badge bg-[#29c50c] text-white; }
+            .badge-gold { @apply badge bg-[#d9a441] text-white; }
+            .badge-gray { @apply badge bg-slate-200 text-slate-700; }
+            .divider { @apply h-px w-full bg-slate-200 my-4 border-0; }
+            .divider-soft { @apply h-px w-full bg-[#e6dcc6] my-4 border-0; }
+        }
+    </style>
+    <style>
+        body { background: linear-gradient(135deg, #f1e9d7, #e9dec8); }
+        code { font-family: ui-monospace, "SFMono-Regular", Menlo, monospace; }
+        .codeblock { background: #1e2430; color: #d6e2c4; border-radius: 8px; padding: 10px 12px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
+        @media print {
+            body { background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            section { break-inside: avoid; page-break-inside: avoid; }
+            h2 { break-before: page; page-break-before: always; }
+            h2:first-of-type { break-before: avoid; page-break-before: avoid; }
+        }
+    </style>
+</head>
+
+<body class="text-slate-700">
+    <div class="max-w-5xl mx-auto px-6 py-10">
+
+        <!-- Portada -->
+        <header class="card-glass mb-10 relative overflow-hidden">
+            <div class="accent-strip absolute top-0 left-0"></div>
+            <div class="mt-2">
+                <h1 class="text-4xl font-extrabold text-slate-800 tracking-tight">Jarvis365 · Design System</h1>
+                <p class="mt-3 text-base text-slate-600 max-w-2xl">
+                    Framework de componentes reutilizables (<code>@layer components</code> + <code>@apply</code>)
+                    en <code>src/style/styles.css</code>, <strong>derivado del look de la presentación principal</strong>
+                    (<code>page.tsx</code>) y del loader (<code>Loader3D</code>).
+                </p>
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <span class="badge-green">v2.0</span>
+                    <span class="eyebrow-green">marfil · verde · oro · bronce</span>
+                </div>
+                <p class="no-print mt-5 text-xs text-slate-600 bg-white/60 border border-[#e6dcc6] rounded-lg px-3 py-2 inline-block">
+                    💡 Exportar a PDF: <strong>Ctrl/Cmd + P</strong> → Destino: <strong>Guardar como PDF</strong> → activa "Gráficos de fondo".
+                </p>
+            </div>
+        </header>
+
+        <!-- Uso -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-4">Cómo se usa</h2>
+            <p class="text-sm text-slate-600 mb-3">
+                Aplica las clases directamente en el JSX. Las utilidades sueltas de Tailwind siempre pueden
+                sobreescribir (ej. <code>className="btn-primary mt-4 w-full"</code>).
+            </p>
+            <div class="codeblock">&lt;button className="btn-primary"&gt;Contactar&lt;/button&gt;
+&lt;span className="eyebrow-green"&gt;Panel analítico&lt;/span&gt;
+&lt;div className="card-glass"&gt; ... &lt;/div&gt;</div>
+        </section>
+
+        <!-- EYEBROWS + ACENTO -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Eyebrows y franja de acento</h2>
+            <p class="text-sm text-slate-500 mb-5">Las píldoras de sección y la franja verde→oro→cobre de la portada.</p>
+            <div class="card space-y-5">
+                <div class="flex flex-wrap items-center gap-3">
+                    <span class="eyebrow">Gestión 24/7 · 365</span>
+                    <span class="eyebrow-sand">Quiénes somos</span>
+                    <span class="eyebrow-green">Panel analítico</span>
+                </div>
+                <div class="relative h-10 rounded-lg bg-white border border-[#e6dcc6] overflow-hidden">
+                    <div class="accent-strip absolute top-0 left-0"></div>
+                    <span class="absolute inset-0 flex items-center justify-center text-xs text-slate-500">.accent-strip (franja superior de cards)</span>
+                </div>
+                <div class="codeblock">&lt;span className="eyebrow-green"&gt;Panel analítico&lt;/span&gt;
+&lt;div className="accent-strip" /&gt;</div>
+            </div>
+        </section>
+
+        <!-- BOTONES -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Botones</h2>
+            <p class="text-sm text-slate-500 mb-5">Base <code>.btn</code> (rounded-xl, como los CTA de la portada) + variantes.</p>
+            <div class="card space-y-6">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Variantes</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button class="btn-primary">Primary</button>
+                        <button class="btn-secondary">Secondary</button>
+                        <button class="btn-outline">Outline</button>
+                        <button class="btn-ghost">Ghost</button>
+                        <button class="btn-danger">Danger</button>
+                        <button class="btn-icon" aria-label="icono">⚙️</button>
+                    </div>
+                    <div class="codeblock mt-3">&lt;button className="btn-primary"&gt;Primary&lt;/button&gt;
+&lt;button className="btn-secondary"&gt;Secondary&lt;/button&gt;
+&lt;button className="btn-danger"&gt;Danger&lt;/button&gt;</div>
+                </div>
+                <hr class="divider-soft" />
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Tamaños · Icon badge</p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button class="btn-primary btn-sm">Small</button>
+                        <button class="btn-primary">Default</button>
+                        <button class="btn-primary btn-lg">Large</button>
+                        <button class="btn-primary btn-pill">Pill</button>
+                        <span class="icon-badge">★</span>
+                        <span class="icon-badge-sm">✓</span>
+                    </div>
+                    <div class="codeblock mt-3">&lt;button className="btn-primary btn-lg"&gt;Large&lt;/button&gt;
+&lt;span className="icon-badge"&gt;★&lt;/span&gt;</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAGS / CHIPS -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Tags / Chips</h2>
+            <p class="text-sm text-slate-500 mb-5">Base <code>.tag</code> + variantes, puntos de estado y chip arrastrable.</p>
+            <div class="card space-y-6">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Variantes de color</p>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="tag-green">Activo</span>
+                        <span class="tag-amber">Pendiente</span>
+                        <span class="tag-blue">Info</span>
+                        <span class="tag-red">Error</span>
+                        <span class="tag-gray">Neutro</span>
+                        <span class="tag-gold">Premium</span>
+                    </div>
+                </div>
+                <hr class="divider-soft" />
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Puntos de estado · Chip arrastrable</p>
+                    <div class="flex flex-wrap items-center gap-4 text-sm mb-3">
+                        <span class="inline-flex items-center gap-1.5"><span class="dot-green"></span> Operativo</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="dot-amber"></span> Aviso</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="dot-red"></span> Crítico</span>
+                        <span class="inline-flex items-center gap-1.5"><span class="dot-gray"></span> Inactivo</span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="chip-drag"><span class="text-slate-400 leading-none">⠿</span> Arrástrame</span>
+                        <span class="chip-drag"><span class="text-slate-400 leading-none">⠿</span> Sede Norte</span>
+                    </div>
+                    <div class="codeblock mt-3">&lt;span className="tag-green"&gt;Activo&lt;/span&gt;
+&lt;span className="dot-green" /&gt; Operativo
+&lt;span className="chip-drag"&gt;⠿ Sede Norte&lt;/span&gt;</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- INPUTS -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Inputs / Formularios</h2>
+            <p class="text-sm text-slate-500 mb-5">Campos con foco verde de marca y estado de error.</p>
+            <div class="card">
+                <div class="grid sm:grid-cols-2 gap-5">
+                    <div class="form-field">
+                        <label class="label">Correo</label>
+                        <input class="input" placeholder="usuario@empresa.com" />
+                        <span class="form-hint">Usa tu correo corporativo.</span>
+                    </div>
+                    <div class="form-field">
+                        <label class="label">Contraseña</label>
+                        <input class="input input-error" type="password" value="123" />
+                        <span class="form-error">La contraseña es muy corta.</span>
+                    </div>
+                </div>
+                <div class="codeblock mt-2">&lt;div className="form-field"&gt;
+  &lt;label className="label"&gt;Correo&lt;/label&gt;
+  &lt;input className="input" placeholder="usuario@empresa.com" /&gt;
+&lt;/div&gt;</div>
+            </div>
+        </section>
+
+        <!-- CARDS -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Cards</h2>
+            <p class="text-sm text-slate-500 mb-5">Las 4 superficies de la presentación: marfil, glass, soft y stat.</p>
+            <div class="grid sm:grid-cols-2 gap-5">
+                <div class="card card-hover">
+                    <div class="card-header"><span class="card-title">.card (marfil)</span><span class="badge-green">Activo</span></div>
+                    <p class="text-sm text-slate-600">Panel marfil sólido con borde de marca.</p>
+                </div>
+                <div class="card-glass card-hover relative overflow-hidden">
+                    <div class="accent-strip absolute top-0 left-0"></div>
+                    <div class="card-header mt-1"><span class="card-title">.card-glass</span><span class="badge-gold">Hero</span></div>
+                    <p class="text-sm text-slate-600">Translúcido + blur + sombra verde (el panel del hero).</p>
+                </div>
+                <div class="card-soft card-hover">
+                    <div class="card-header"><span class="card-title">.card-soft</span><span class="icon-badge-sm">✓</span></div>
+                    <p class="text-sm text-slate-600">Card de servicio, fondo más claro.</p>
+                </div>
+                <div class="card-stat">
+                    <p class="text-2xl font-bold text-[#29c50c]">24/7</p>
+                    <p class="mt-1 text-[11px] uppercase tracking-wider text-slate-500">.card-stat</p>
+                </div>
+            </div>
+            <div class="codeblock mt-4">&lt;div className="card-glass card-hover"&gt;
+  &lt;div className="accent-strip" /&gt;
+  &lt;div className="card-header"&gt;
+    &lt;span className="card-title"&gt;Título&lt;/span&gt;
+    &lt;span className="badge-green"&gt;Activo&lt;/span&gt;
+  &lt;/div&gt;
+&lt;/div&gt;</div>
+        </section>
+
+        <!-- PALETA -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-slate-800 mb-1">Paleta de marca</h2>
+            <p class="text-sm text-slate-500 mb-5">Tokens como variables CSS (<code>var(--brand-green)</code>) y valores arbitrarios.</p>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="card !p-0 overflow-hidden"><div class="h-16" style="background:#29c50c"></div><div class="p-2 text-xs"><strong>green</strong><br>#29c50c</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16" style="background:#1f9a08"></div><div class="p-2 text-xs"><strong>green-hover</strong><br>#1f9a08</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16" style="background:#d9a441"></div><div class="p-2 text-xs"><strong>gold</strong><br>#d9a441</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16" style="background:#b5763b"></div><div class="p-2 text-xs"><strong>copper</strong><br>#b5763b</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16 border-b border-slate-200" style="background:#f7f2e4"></div><div class="p-2 text-xs"><strong>ivory</strong><br>#f7f2e4</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16 border-b border-slate-200" style="background:#faf5ea"></div><div class="p-2 text-xs"><strong>panel</strong><br>#faf5ea</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16 border-b border-slate-200" style="background:#fbf6ea"></div><div class="p-2 text-xs"><strong>card</strong><br>#fbf6ea</div></div>
+                <div class="card !p-0 overflow-hidden"><div class="h-16" style="background:#e6dcc6"></div><div class="p-2 text-xs"><strong>line</strong><br>#e6dcc6</div></div>
+            </div>
+        </section>
+
+        <footer class="border-t border-[#e6dcc6] pt-6 mt-10 text-xs text-slate-500">
+            Jarvis365 Design System · Derivado de <code>src/app/page.tsx</code> y <code>Loader3D</code>,
+            codificado en <code>src/style/styles.css</code>. Mantén este archivo sincronizado con el <code>@layer components</code>.
+        </footer>
+    </div>
+</body>
+
+</html>

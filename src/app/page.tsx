@@ -10,6 +10,9 @@ import { useInView } from 'react-intersection-observer';
 import { useEffect, useState, useRef } from 'react';
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
 
+
+
+
 const services = [
     {
         icon: (
@@ -191,6 +194,9 @@ function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: str
         </span>
     );
 }
+
+
+
 
 export default function Page() {
     return (
