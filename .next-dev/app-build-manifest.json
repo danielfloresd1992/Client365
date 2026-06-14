@@ -16,17 +16,6 @@
       "static/chunks/main-app.js",
       "static/css/app/auth/page.css",
       "static/chunks/app/auth/page.js"
-    ],
-    "/Lobby/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/Lobby/page.js"
-    ],
-    "/Lobby/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/css/app/Lobby/layout.css",
-      "static/chunks/app/Lobby/layout.js"
     ]
   }
 }

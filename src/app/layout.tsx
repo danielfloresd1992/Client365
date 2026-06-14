@@ -51,7 +51,7 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                 <meta name="robots" content="noindex, nofollow"></meta>
                 <meta name="google-site-verification" content="y0qtg0BfcGqooJZXzWhcf5_0W04rodr3hPdyLLr8qN0" />
             </Head>
-            <body className={`${GeistSans.className} h-[100vh] p-[48px_10px_40px_10px] bg-white`}>
+            <body className={`${GeistSans.className} h-[100vh] pt-[62px] md:pt-[48px] px-[10px] pb-[40px] bg-white`}>
                 <SessionProvider>
                     <Providers>
                         <LoandingPage title='loanding...'>

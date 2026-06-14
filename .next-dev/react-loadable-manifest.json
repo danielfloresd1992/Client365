@@ -17,12 +17,6 @@
       "static/chunks/_app-pages-browser_node_modules_onnxruntime-web_dist_ort_min_mjs.js"
     ]
   },
-  "components/carruzel/slider.jsx -> react-slick": {
-    "id": "components/carruzel/slider.jsx -> react-slick",
-    "files": [
-      "static/chunks/_app-pages-browser_node_modules_react-slick_lib_index_js.js"
-    ]
-  },
   "libs/script/speechService.js -> @mintplex-labs/piper-tts-web": {
     "id": "libs/script/speechService.js -> @mintplex-labs/piper-tts-web",
     "files": [

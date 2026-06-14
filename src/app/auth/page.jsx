@@ -1,5 +1,5 @@
 import ContentForm from './assets/ContentForm';
-import Image from 'next/image';
+import Jarvis365Logo from '../../components/fx/Jarvis365Logo';
 import './auth.css';
 
 
@@ -12,7 +12,7 @@ export default function page_auth() {
             <div className='auth-brand-panel'>
                 <div className='auth-brand-panel__glow' />
                 <div className='auth-brand-panel__content'>
-                    <Image src='/Jarvis365.png' width={320} height={100} alt='Amazonas365' priority className='auth-brand-panel__logo' />
+                    <Jarvis365Logo variant='green' className='auth-brand-panel__logo' />
                     <h2 className='auth-brand-panel__title'>Bienvenido a Amazonas365</h2>
                     <p className='auth-brand-panel__text'>
                         Gestión y gerencia remota 24/7 · 365 días.<br />

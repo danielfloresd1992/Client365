@@ -4,6 +4,7 @@ import Footer from '../components/Footer/Footer.jsx';
 import Image from 'next/image';
 import RayTracingFX from '../components/fx/RayTracingFX';
 import NewsWallMini from '../components/fx/NewsWallMini';
+import Jarvis365Logo from '../components/fx/Jarvis365Logo';
 import type { ReactNode } from 'react';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState, useRef } from 'react';
@@ -196,7 +197,7 @@ export default function Page() {
         <>
             <main className='w-full bg-[#f7f2e4] text-slate-700'>
                 {/* ── HERO / PORTADA ── */}
-                <section className='relative w-full overflow-hidden bg-gradient-to-br from-[#f1e9d7] via-[#e9dec8] to-[#e0d4ba] px-4 sm:px-6 md:px-8 lg:px-12 py-16 sm:py-20 md:py-24'>
+                <section className='relative w-full overflow-hidden bg-gradient-to-br from-[#f1e9d7] via-[#e9dec8] to-[#e0d4ba] px-2.5 sm:px-6 md:px-8 lg:px-12 py-12 sm:py-20 md:py-24'>
                     {/* Capa de trazado de rayos (god-rays, orbes y partículas de luz) */}
                     <RayTracingFX className='absolute inset-0 w-full h-full z-0 pointer-events-none' intensity={1} />
 
@@ -268,9 +269,9 @@ export default function Page() {
                             {/* Decorative glow behind the card */}
                             <div className='absolute -inset-4 rounded-3xl bg-gradient-to-br from-[#d9a441]/20 via-[#b5763b]/12 to-transparent blur-2xl pointer-events-none' />
 
-                            <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea]/80 backdrop-blur-xl p-5 sm:p-6 md:p-8 shadow-[0_24px_48px_rgba(31,154,8,0.12),0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden'>
+                            <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea]/80 backdrop-blur-xl p-4 sm:p-6 md:p-8 shadow-[0_24px_48px_rgba(31,154,8,0.12),0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden'>
                                 {/* Fondo: muro de novedades en vivo, difuminado */}
-                                <NewsWallMini className='absolute inset-0 z-0 blur-[3px] opacity-70 pointer-events-none select-none' />
+                                <NewsWallMini className='absolute inset-0 z-0 blur-[6px] sm:blur-[3px] opacity-75 pointer-events-none select-none' />
                                 {/* Velo marfil para legibilidad del contenido */}
                                 <div className='absolute inset-0 z-0 bg-gradient-to-b from-[#faf5ea]/80 via-[#faf5ea]/60 to-[#faf5ea]/85 pointer-events-none' />
 
@@ -279,9 +280,7 @@ export default function Page() {
 
                                 {/* Logo */}
                                 <div className='relative z-10 flex justify-center items-center py-3 sm:py-4'>
-                                    {/* Halo oscuro detrás del logo para que resalte */}
-                                    <div className='absolute inset-x-4 inset-y-1 rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(18,38,22,0.28),rgba(18,38,22,0.10)_45%,transparent_72%)] blur-md pointer-events-none' />
-                                    <Image src='/Jarvis365.png' width={520} height={160} alt='Amazonas365' priority className='relative w-full max-w-[280px] sm:max-w-[340px] md:max-w-[380px] h-auto object-contain drop-shadow-[0_6px_16px_rgba(0,0,0,0.4)]' />
+                                    <Jarvis365Logo variant='light' className='relative w-full max-w-[300px] sm:max-w-[360px] md:max-w-[400px] h-auto' />
                                 </div>
 
                                 {/* Tagline */}

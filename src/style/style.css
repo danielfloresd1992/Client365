@@ -2053,14 +2053,16 @@ a:hover {
 @media screen and (max-width: 767px) {
     .header-main {
         height: auto;
-        padding: 0.5rem 0.55rem;
+        min-height: 52px;
+        padding: 0.4rem 0.6rem;
         flex-wrap: wrap;
-        align-items: flex-start;
+        align-items: center;
         gap: 0.5rem;
     }
 
+    /* Público (login/inicio): logo + botón en una sola fila compacta */
     .header-main__brand {
-        width: 100%;
+        width: auto;
     }
 
     .header-main__logo {
@@ -2073,7 +2075,19 @@ a:hover {
     }
 
     .header-main__actions {
+        width: auto;
+        margin-left: auto;
+    }
+
+    /* Autenticado (menú de botones): apilar a lo ancho como antes */
+    .header-main:has(.header-buttonContain) {
+        align-items: flex-start;
+    }
+
+    .header-main:has(.header-buttonContain) .header-main__brand,
+    .header-main:has(.header-buttonContain) .header-main__actions {
         width: 100%;
+        margin-left: 0;
     }
 
     .header-main .header-buttonContain {
