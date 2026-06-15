@@ -2430,7 +2430,6 @@ hr {
 
 
 .tag {
-    background: #1f3c67;
     border-radius: 5px;
     display: flex;
     justify-content: space-between;
@@ -7622,6 +7621,7 @@ tfoot {
     .tag-red   { @apply tag bg-red-100     text-red-700    ring-red-300; }
     .tag-gray  { @apply tag bg-gray-100    text-gray-600   ring-gray-300; }
     .tag-gold  { @apply tag bg-[#d9a441]/15 text-[#9a6c1f] ring-[#d9a441]/40; }
+
 
     /* Chip arrastrable (patrón de manager.jsx) */
     .chip-drag {

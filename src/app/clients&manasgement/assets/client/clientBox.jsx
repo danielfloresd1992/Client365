@@ -17,19 +17,19 @@
  * ─────────────────────────────────────────────────────────────────────────────
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useDispatch }                       from 'react-redux';
-import { useInView }                         from 'react-intersection-observer';
-import { useRouter }                         from 'next/navigation';
-import Image                                 from 'next/image';
+import { useDispatch } from 'react-redux';
+import { useInView } from 'react-intersection-observer';
+import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 
-import useAxios        from '@/hook/useAxios';
+import useAxios from '@/hook/useAxios';
 import useAuthOnServer from '@/hook/auth';
-import { setTypeForm }   from '@/store/slices/typeForm';
+import { setTypeForm } from '@/store/slices/typeForm';
 import { setConfigModal } from '@/store/slices/globalModal';
 
 import WindowFormLayaut from '@/layaut/windowForForm';
-import FormManager      from '@/app/clients&manasgement/assets/managers/FormManager';
-import ManagerItem from '../managers/manager'; 
+import FormManager from '@/app/clients&manasgement/assets/managers/FormManager';
+import ManagerItem from '../managers/manager';
 import DataFormart from '@/libs/time/dateFormat.js';
 
 
@@ -41,25 +41,25 @@ export default function ClientBox({ data }) {
     const user = dataSessionState?.dataSession;
 
     const [client, setClient] = useState(null);
-    const dispatch             = useDispatch();
-    const { requestAction }    = useAxios();
-    const router               = useRouter();
+    const dispatch = useDispatch();
+    const { requestAction } = useAxios();
+    const router = useRouter();
 
     const [showManagerForm, setShowManagerForm] = useState(false);
-    const [editManager,     setEditManager]     = useState(null);
+    const [editManager, setEditManager] = useState(null);
 
-   
+
     const { ref, inView } = useInView({ triggerOnce: true });
 
 
 
-   
+
     const fetchData = async () => {
         try {
             const response = await requestAction({ url: `/local/id=${data._id}?populate=managers`, action: 'GET' });
-            if (response.status === 200) setClient(response.data); 
+            if (response.status === 200) setClient(response.data);
         }
-        catch(error){
+        catch (error) {
             console.error('Error fetching client data:', error);
             dispatch(setConfigModal({
                 title: 'Error al cargar datos', description: 'No se han podido cargar los datos del establecimiento. Inténtalo de nuevo más tarde.',
@@ -73,7 +73,9 @@ export default function ClientBox({ data }) {
     /* ── Fetch del establecimiento completo al entrar en viewport ──────────── */
     useEffect(() => {
         if (inView) fetchData();
-    }, [inView]);
+    }, [inView, data]);
+
+
 
 
 
@@ -129,20 +131,20 @@ export default function ClientBox({ data }) {
 
     const handleManagerSave = (managerUpdate, dataEdit) => {
         setClient(state => {
-            
-            if(dataEdit){
+
+            if (dataEdit) {
                 const indexManagerEdit = state.managers.findIndex(manager => manager._id === managerUpdate._id);
-                console.log(indexManagerEdit);
+
                 const cloneList = [...state.managers]
                 cloneList[indexManagerEdit] = managerUpdate;
                 state.managers = cloneList;
                 return state;
             }
-            else{
+            else {
                 state.managers = [...client.manager, managerUpdate];
                 return state
             }
-          
+
         });
         closeManagerForm();
     };
@@ -150,17 +152,17 @@ export default function ClientBox({ data }) {
 
 
 
- 
+
     const handleManagerReorder = newOrder => {
         if (!user?.admin) return;
 
         const prevOrder = client?.managers ?? [];
         // Si el orden no cambió, no hacemos nada
         if (newOrder.join() === prevOrder.join()) return;
-       
+
         setClient(prev => prev ? { ...prev, managers: newOrder } : prev); // optimista
-       
-        const bodyForRequest = { ...client , managers: newOrder }
+
+        const bodyForRequest = { ...client, managers: newOrder }
         if (bodyForRequest?.img) {
             delete bodyForRequest.img;
         }
@@ -175,7 +177,7 @@ export default function ClientBox({ data }) {
                 console.error('Error al reordenar gerentes:', err);
                 setClient(prev => prev ? { ...prev, managers: prevOrder } : prev);
             });
-            
+
     };
 
 
@@ -229,9 +231,9 @@ export default function ClientBox({ data }) {
                     </h3>
 
                     {/* Badge de estado */}
-                    <span className={`${client?.status === 'activo' ? 'tag-green' : 'tag-amber'} gap-[5px] px-2.5 py-1 mb-3`}>
-                        <span className={client?.status === 'activo' ? 'dot-green' : 'dot-amber'} />
-                        {client?.status || 'sin estado'}
+                    <span className={`${client?.isActive ? 'tag-green' : 'tag-amber'} gap-[5px] px-2.5 py-1 mb-3`}>
+                        <span className={client?.isActive ? 'dot-green' : 'dot-amber'} />
+                        {client?.isActive ? 'Activo' : 'Inactivo'}
                     </span>
 
                     {/* Meta info */}
@@ -280,16 +282,16 @@ export default function ClientBox({ data }) {
 
                             <div className='flex flex-col gap-2 h-full'>
                                 {
-                                    client?.managers?.length > 0 ? 
+                                    client?.managers?.length > 0 ?
 
-                                    <ManagerList
-                                        ids={client.managers}
-                                        onEdit={openEditManager}
-                                        onReorder={handleManagerReorder}
-                                        canReorder={!!user?.admin}
-                                    />
-                                :
-                                    <p className='text-xs text-slate-400 italic'>Sin gerentes asignados</p>
+                                        <ManagerList
+                                            ids={client.managers}
+                                            onEdit={openEditManager}
+                                            onReorder={handleManagerReorder}
+                                            canReorder={!!user?.admin}
+                                        />
+                                        :
+                                        <p className='text-xs text-slate-400 italic'>Sin gerentes asignados</p>
                                 }
 
 
@@ -385,10 +387,10 @@ export default function ClientBox({ data }) {
  * ─────────────────────────────────────────────────────────────────────────────
  */
 const moduleColors = {
-    blue:   { bg: 'bg-blue-50/60 ring-blue-100',       icon: 'bg-blue-100',    text: 'text-blue-700'    },
-    amber:  { bg: 'bg-amber-50/60 ring-amber-100',     icon: 'bg-amber-100',   text: 'text-amber-700'   },
-    purple: { bg: 'bg-violet-50/60 ring-violet-100',   icon: 'bg-violet-100',  text: 'text-violet-700'  },
-    emerald:{ bg: 'bg-emerald-50/60 ring-emerald-100', icon: 'bg-emerald-100', text: 'text-emerald-700' },
+    blue: { bg: 'bg-blue-50/60 ring-blue-100', icon: 'bg-blue-100', text: 'text-blue-700' },
+    amber: { bg: 'bg-amber-50/60 ring-amber-100', icon: 'bg-amber-100', text: 'text-amber-700' },
+    purple: { bg: 'bg-violet-50/60 ring-violet-100', icon: 'bg-violet-100', text: 'text-violet-700' },
+    emerald: { bg: 'bg-emerald-50/60 ring-emerald-100', icon: 'bg-emerald-100', text: 'text-emerald-700' },
 };
 
 
@@ -433,7 +435,7 @@ function ManagerList({ ids, onEdit, onReorder, canReorder = false }) {
 
     // Orden local (optimista). Se re-sincroniza con los IDs del establecimiento.
     const [order, setOrder] = useState(ids);
-    const dragIndex            = useRef(null);   // índice del elemento que se arrastra
+    const dragIndex = useRef(null);   // índice del elemento que se arrastra
     const [overIndex, setOver] = useState(null); // índice sobre el que se está soltando
 
 
@@ -450,7 +452,7 @@ function ManagerList({ ids, onEdit, onReorder, canReorder = false }) {
         if (from === null || from === dropIndex) return;
 
         const newOrder = [...order];
-        const [moved]  = newOrder.splice(from, 1);
+        const [moved] = newOrder.splice(from, 1);
         newOrder.splice(dropIndex, 0, moved);
 
         setOrder(newOrder);        // feedback inmediato

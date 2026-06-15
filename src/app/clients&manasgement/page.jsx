@@ -28,83 +28,141 @@
  */
 
 
+import FormFranchise from './assets/FormFranchise';
+import FormClient from './assets/client/FormClient';
+import ClientBox from './assets/client/clientBox';
 
-import FormComponent  from './assets/FormComponent';
-import ClientBox      from './assets/client/clientBox';
-
-import { useSingleFetch }                from '@/hook/ajax_hook/useFetch';
+import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 
+import { useSelector, useDispatch } from 'react-redux';
+import { setTypeForm }              from '@/store/slices/typeForm';
+import { useCallback } from 'react';
 
 
 
 export default function Content() {
 
-    /* ── Fetch de establecimientos ─────────────────────────────────────────── */
-    const { data, loading } = useSingleFetch(
+
+    const { data, setChangeData, loading } = useSingleFetch(
         { resource: '/establishment&compressed', method: 'get' },
         true,
     );
-
-    /** Agrupa los establecimientos por franquicia para el render */
-    const groupClients = groupByFranchiseComprehensive(data);
+    const dispatch = useDispatch();
+    const groupClients = useCallback(groupByFranchiseComprehensive(data), [data]);
 
     /** Conteos rápidos para el encabezado */
-    const totalClients   = Array.isArray(data) ? data.length : 0;
+    const totalClients = Array.isArray(data) ? data.length : 0;
     const totalFranchise = groupClients ? Object.keys(groupClients).length : 0;
 
     /* ── Estados de la vista ───────────────────────────────────────────────── */
     const isLoading = loading && !data;
-    const isEmpty   = !loading && totalClients === 0;
+    const isEmpty = !loading && totalClients === 0;
+    const typeForm = useSelector(state => state.typeForm);
+    
+
+    
+    const openCreateFranchice = () => dispatch(setTypeForm('create-franchise'));
+
+    const openCreateClient = () => dispatch(setTypeForm({type: 'create-client'}));
+
+
+    const closeModal = () => dispatch(setTypeForm(null));
+
+
+    const setUpdateChange = (updateData) => {
+        const copy = [...data];
+        const index = copy.findIndex(doc => doc?._id === updateData?.result?._id);
+        copy[index] = updateData?.result;
+        setChangeData(copy);
+    };
+
+
+    console.log(groupClients)
+
 
 
     return (
         <>
             <main className='flex-1 h-full overflow-y-auto'>
+                <div className='mb-6 sticky top-0 bg-white/90 backdrop-blur-sm z-10 px-4 py-4 border-b border-slate-200 flex justify-between items-center'>
+                    <div>
+                        <h1 className='text-2xl font-semibold text-slate-800 mb-1 tracking-tight'>
+                            Establecimientos
+                        </h1>
+                        <p className='text-sm text-slate-400 mb-4'>
+                            Vista general de todos los locales y sus configuraciones
+                        </p>
 
-                <PageHeader
-                    totalClients={totalClients}
-                    totalFranchise={totalFranchise}
-                />
+                        <div className='flex flex-wrap gap-3'>
+                            <StatPill value={totalClients} label='Establecimientos' color='emerald' />
+                            <StatPill value={totalFranchise} label='Franquicias' color='blue' />
+                        </div>
+                    </div>
+                    <div className='flex flex-col gap-[1rem]'>
+                        <button  
+                            className='btn-primary btn-sm'
+                            onClick={openCreateFranchice}
+                        >+ Franquicia</button>
+                        <button className='btn-primary btn-sm' onClick={openCreateClient}>+ Establecimiento</button>
+                    </div>
+                </div>
+
+
+
 
                 {isLoading && <LoadingState />}
-                {isEmpty   && <EmptyState />}
+
+                {isEmpty && <EmptyState />}
 
                 {/* Grid de establecimientos agrupado por franquicia */}
-                {groupClients && Object.entries(groupClients).map(([franchise, items]) => (
-                    <FranchiseSection key={franchise} franchise={franchise} items={items} />
-                ))}
+                {groupClients && Object.entries(groupClients).map(([franchise, items]) => {
+
+
+                    return (
+                        <section className='mb-6' key={franchise}>
+
+                            {/* Encabezado de franquicia */}
+                            <div className='flex items-center gap-2 mb-3'>
+                                <span className='w-[7px] h-[7px] rounded-full bg-emerald-500' />
+                                <h2 className='text-[13px] font-semibold text-slate-600 uppercase tracking-[0.08em]'>
+                                    {franchise}
+                                </h2>
+                                <span className='text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-[2px] rounded-full ring-1 ring-slate-200/70'>
+                                    {items.length}
+                                </span>
+                                <div className='flex-1 border-t border-slate-200 ml-2' />
+                            </div>
+
+                            {/* Cards de establecimientos */}
+                            <div className='flex flex-wrap gap-4'>
+                                {items.map(client => (
+                                    <ClientBox data={client} key={client._id} />
+                                ))}
+                            </div>
+                        </section>
+                    );
+                })
+                }
 
             </main>
 
-            {/* Modal de formularios (franquicia / cliente) */}
-            <FormComponent />
+
+
+            {typeForm === 'create-franchise' && <FormFranchise closeModal={closeModal} />}
+            {typeForm?.type === 'create-client' && (
+                <FormClient 
+                    id={typeForm?.idData} 
+                    closeModal={closeModal} 
+                    action={closeModal}  
+                    setUpdateChange={setUpdateChange}
+                />)
+            }
         </>
     );
 }
 
 
-/* ─────────────────────────────────────────────────────────────────────────────
- * PageHeader — Título de la página + estadísticas rápidas.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-function PageHeader({ totalClients, totalFranchise }) {
-    return (
-        <div className='mb-6 sticky top-0 bg-white/90 backdrop-blur-sm z-10 px-4 py-4 border-b border-slate-200'>
-            <h1 className='text-2xl font-semibold text-slate-800 mb-1 tracking-tight'>
-                Establecimientos
-            </h1>
-            <p className='text-sm text-slate-400 mb-4'>
-                Vista general de todos los locales y sus configuraciones
-            </p>
-
-            <div className='flex flex-wrap gap-3'>
-                <StatPill value={totalClients}   label='Establecimientos' color='emerald' />
-                <StatPill value={totalFranchise} label='Franquicias'      color='blue'    />
-            </div>
-        </div>
-    );
-}
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -141,35 +199,6 @@ function EmptyState() {
 }
 
 
-/* ─────────────────────────────────────────────────────────────────────────────
- * FranchiseSection — Encabezado de una franquicia + sus tarjetas de local.
- * ─────────────────────────────────────────────────────────────────────────────
- */
-function FranchiseSection({ franchise, items }) {
-    return (
-        <section className='mb-6'>
-
-            {/* Encabezado de franquicia */}
-            <div className='flex items-center gap-2 mb-3'>
-                <span className='w-[7px] h-[7px] rounded-full bg-emerald-500' />
-                <h2 className='text-[13px] font-semibold text-slate-600 uppercase tracking-[0.08em]'>
-                    {franchise}
-                </h2>
-                <span className='text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-[2px] rounded-full ring-1 ring-slate-200/70'>
-                    {items.length}
-                </span>
-                <div className='flex-1 border-t border-slate-200 ml-2' />
-            </div>
-
-            {/* Cards de establecimientos */}
-            <div className='flex flex-wrap gap-4'>
-                {items.map(client => (
-                    <ClientBox data={client} key={client._id} />
-                ))}
-            </div>
-        </section>
-    );
-}
 
 
 /* ─────────────────────────────────────────────────────────────────────────────
@@ -178,8 +207,8 @@ function FranchiseSection({ franchise, items }) {
  */
 const pillColors = {
     emerald: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    blue:    'bg-blue-50 text-blue-700 ring-blue-200',
-    red:     'bg-red-50 text-red-700 ring-red-200',
+    blue: 'bg-blue-50 text-blue-700 ring-blue-200',
+    red: 'bg-red-50 text-red-700 ring-red-200',
 };
 
 function StatPill({ value, label, color = 'emerald' }) {

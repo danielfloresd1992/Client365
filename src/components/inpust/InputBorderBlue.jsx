@@ -25,6 +25,7 @@ export default function InputBorderBlue({
         setValueState(value ? value : null);
     }, [value]);
 
+    
 
     const printInput = () => {
         if (type === 'select') {
