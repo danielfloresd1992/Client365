@@ -277,7 +277,7 @@ export default function Page() {
 
                             <div className='relative rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea]/80 backdrop-blur-xl p-4 sm:p-6 md:p-8 shadow-[0_24px_48px_rgba(31,154,8,0.12),0_8px_20px_rgba(0,0,0,0.04)] overflow-hidden'>
                                 {/* Fondo: muro de novedades en vivo, difuminado */}
-                                <NewsWallMini className='absolute inset-0 z-0 blur-[6px] sm:blur-[3px] opacity-75 pointer-events-none select-none' />
+                                <NewsWallMini className='absolute inset-0 z-0 blur-[2px] sm:blur-[2px] opacity-75 pointer-events-none select-none' />
                                 {/* Velo marfil para legibilidad del contenido */}
                                 <div className='absolute inset-0 z-0 bg-gradient-to-b from-[#faf5ea]/80 via-[#faf5ea]/60 to-[#faf5ea]/85 pointer-events-none' />
 
