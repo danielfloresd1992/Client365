@@ -878,9 +878,9 @@ function Form({
                                     <>
                                         <p style={{ fontSize: '12px', color: '#666', fontWeight: 'semibold' }}>Nota a considerar, acomode el titulo acerde al nombre del manager o gerente
                                             <br />
-                                            <b>Ejemplo en castellano: "{menu?.es} Gerente JARVIS"</b>
+                                            <b>Ejemplo en castellano: &quot;{menu?.es} Gerente JARVIS&quot;</b>
                                             <br />
-                                            <b>Ejemplo en ingles: "Manager JARVIS {menu?.en}"</b>
+                                            <b>Ejemplo en ingles: &quot;Manager JARVIS {menu?.en}&quot;</b>
                                         </p>
                                     </>
                                 )
