@@ -344,20 +344,6 @@ export default function Loader3D({ title = 'Cargando...' }: { title?: string }) 
                     className="ld3d-logo"
                 />
             </div>
-
-            <style>{`
-                .ld3d-root{
-                    position:fixed; inset:0; z-index:1000; overflow:hidden;
-                    background:#f7f2e4;
-                    font-family:'Roboto', system-ui, sans-serif;
-                }
-                .ld3d-canvas{ position:absolute; inset:0; display:block; }
-                .ld3d-brand{ position:fixed; right:28px; bottom:24px; }
-                .ld3d-logo{ width:190px; height:auto; max-width:200px; object-fit:contain; opacity:.92; }
-                @media (max-width:600px){
-                    .ld3d-brand{ right:50%; transform:translateX(50%); bottom:20px; }
-                }
-            `}</style>
         </div>
     );
 }

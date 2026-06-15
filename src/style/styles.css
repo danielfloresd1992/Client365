@@ -7700,3 +7700,22 @@ tfoot {
     .divider      { @apply h-px w-full bg-slate-200 my-4 border-0; }
     .divider-soft { @apply h-px w-full bg-[#e6dcc6] my-4 border-0; }
 }
+
+
+/* ============================================================================
+   Loader3D — estilos de la pantalla de carga.
+   Movidos aquí desde el <style> inline del componente para evitar el error de
+   hidratación de React (las comillas en font-family se escapaban distinto en
+   servidor vs cliente). Ver src/components/loandingComponent/Loader3D.tsx
+   ============================================================================ */
+.ld3d-root {
+    position: fixed; inset: 0; z-index: 1000; overflow: hidden;
+    background: #f7f2e4;
+    font-family: 'Roboto', system-ui, sans-serif;
+}
+.ld3d-canvas { position: absolute; inset: 0; display: block; }
+.ld3d-brand { position: fixed; right: 28px; bottom: 24px; }
+.ld3d-logo { width: 190px; height: auto; max-width: 200px; object-fit: contain; opacity: .92; }
+@media (max-width: 600px) {
+    .ld3d-brand { right: 50%; transform: translateX(50%); bottom: 20px; }
+}
