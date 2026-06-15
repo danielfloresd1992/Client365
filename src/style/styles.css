@@ -7625,7 +7625,7 @@ tfoot {
 
     /* Chip arrastrable (patrón de manager.jsx) */
     .chip-drag {
-        @apply group flex items-center gap-[6px] rounded-lg px-1.5 py-1
+        @apply flex items-center gap-[6px] rounded-lg px-1.5 py-1
                text-[13px] transition-colors
                bg-red-200 ring-1 ring-red-500
                hover:bg-blue-100 hover:ring-blue-200

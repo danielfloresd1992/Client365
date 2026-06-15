@@ -1,0 +1,121 @@
+/* ============================================================================
+   _input.css — Fuente para compilar guide.css (la hoja de la guía visual).
+   Compilar con:
+     npx tailwindcss -i design-system/_input.css -o design-system/guide.css \
+       --content design-system/style-guide.html --minify
+   Contiene: tipografía base (escala/ritmo) + el MISMO @layer components que
+   src/style/styles.css. No depende del CDN → la guía se ve siempre.
+   ============================================================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --brand-green: #29c50c;  --brand-green-hover: #1f9a08;  --brand-green-soft: #5cc41f;  --brand-green-deep: #2e8b3e;
+        --brand-ivory: #f7f2e4;  --brand-panel: #faf5ea;  --brand-card: #fbf6ea;
+        --brand-warm-1: #f8f3e6; --brand-warm-2: #f4edda;  --brand-sand: #f2ead8;  --brand-eyebrow: #f5eedd;
+        --brand-gold: #d9a441;   --brand-copper: #b5763b;
+        --brand-border: #d4dec8; --brand-border-soft: #dde8d0; --brand-border-eyebrow: #dce8d4; --brand-line: #e6dcc6;
+        --ink: #2b2a26;          --ink-soft: #5b5a52;
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+        font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        font-feature-settings: 'cv02','cv03','cv04','ss01';
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        color: var(--ink-soft);
+        background: var(--brand-ivory);
+        line-height: 1.6;
+    }
+
+    /* — Escala tipográfica (ritmo claro, tracking intencional) — */
+    h1 { font-weight: 800; font-size: clamp(2.1rem, 4.5vw, 3rem); line-height: 1.05; letter-spacing: -0.025em; color: var(--ink); }
+    h2 { font-weight: 750; font-size: 1.6rem; line-height: 1.15; letter-spacing: -0.015em; color: var(--ink); }
+    h3 { font-weight: 650; font-size: 1.05rem; line-height: 1.3; letter-spacing: -0.01em; color: var(--ink); }
+    p  { max-width: 62ch; }
+
+    code, kbd, pre, .mono {
+        font-family: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+        font-feature-settings: 'zero';
+    }
+}
+
+@layer components {
+    /* ——— Utilidades propias de la GUÍA (no del framework de la app) ——— */
+    .eyebrow-mono {
+        @apply inline-flex items-center gap-2 font-mono text-[11px] font-semibold uppercase
+               tracking-[0.18em] text-[#9a6c1f];
+    }
+    .specimen {
+        @apply rounded-2xl border border-[#e6dcc6] bg-[#fbf6ea] p-7 sm:p-8;
+    }
+    .specimen-stage {
+        @apply rounded-xl border border-dashed border-[#dcd2bc] bg-[radial-gradient(circle_at_1px_1px,rgba(120,90,40,0.08)_1px,transparent_0)] [background-size:14px_14px] bg-[#fffdf7]
+               p-6 sm:p-8;
+    }
+    .codeblock {
+        @apply rounded-xl bg-[#23281f] text-[#d7e5c4] font-mono text-[12.5px] leading-relaxed
+               px-4 py-3.5 overflow-x-auto whitespace-pre;
+    }
+    .spec-label { @apply font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400; }
+
+    /* ============================ FRAMEWORK (idéntico a styles.css) ============================ */
+    .accent-strip { @apply block h-1 w-full bg-gradient-to-r from-[#29c50c] via-[#d9a441] to-[#b5763b]; }
+
+    .eyebrow { @apply inline-flex items-center gap-2 rounded-full border border-[#dce8d4] bg-[#f5eedd]/80 backdrop-blur-sm px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-[#29c50c]; }
+    .eyebrow-sand { @apply eyebrow border-[#c8ddb4] bg-[#f2ead8]; }
+    .eyebrow-green { @apply eyebrow border-[#29c50c]/40 bg-[#29c50c]/10 text-[#2e8b3e]; }
+
+    .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1; }
+    .btn-primary { @apply btn bg-[#29c50c] text-white hover:bg-[#1f9a08] hover:shadow-lg hover:shadow-[#d9a441]/40 hover:-translate-y-0.5 focus-visible:ring-[#29c50c]; }
+    .btn-secondary { @apply btn border border-[#d4dec8] bg-[#faf5ea]/80 backdrop-blur-sm text-slate-700 hover:bg-[#f7f2e4] hover:border-[#29c50c]/30 focus-visible:ring-[#29c50c]; }
+    .btn-outline { @apply btn border border-[#29c50c] bg-transparent text-[#1f9a08] hover:bg-[#29c50c]/10 focus-visible:ring-[#29c50c]; }
+    .btn-ghost { @apply btn bg-transparent text-slate-600 hover:bg-gray-100 hover:text-slate-800 focus-visible:ring-gray-300; }
+    .btn-danger { @apply btn bg-red-500 text-white hover:bg-red-600 hover:shadow-lg hover:shadow-red-500/30 hover:-translate-y-0.5 focus-visible:ring-red-500; }
+    .btn-icon { @apply inline-flex items-center justify-center rounded-xl p-2.5 text-slate-600 transition-colors cursor-pointer hover:bg-gray-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300; }
+    .btn-sm { @apply px-4 py-2 text-[13px] gap-1.5 rounded-lg; }
+    .btn-lg { @apply px-8 py-3.5 text-base gap-2.5; }
+    .btn-block { @apply w-full; }
+    .btn-pill { @apply rounded-full; }
+    .icon-badge { @apply inline-flex items-center justify-center w-11 h-11 rounded-xl bg-gradient-to-br from-[#29c50c] to-[#5cc41f] text-white; }
+    .icon-badge-sm { @apply inline-flex items-center justify-center w-10 h-10 rounded-lg bg-gradient-to-br from-[#29c50c] to-[#5cc41f] text-white; }
+
+    .tag { @apply inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[11px] font-semibold ring-1 leading-tight whitespace-nowrap; }
+    .tag-green { @apply tag bg-[#29c50c]/10 text-[#1f9a08] ring-[#29c50c]/30; }
+    .tag-amber { @apply tag bg-amber-100 text-amber-700 ring-amber-300; }
+    .tag-blue { @apply tag bg-blue-100 text-blue-700 ring-blue-300; }
+    .tag-red { @apply tag bg-red-100 text-red-700 ring-red-300; }
+    .tag-gray { @apply tag bg-gray-100 text-gray-600 ring-gray-300; }
+    .tag-gold { @apply tag bg-[#d9a441]/15 text-[#9a6c1f] ring-[#d9a441]/40; }
+    .chip-drag { @apply flex items-center gap-[6px] rounded-lg px-1.5 py-1 text-[13px] transition-colors bg-red-200 ring-1 ring-red-500 hover:bg-blue-100 hover:ring-blue-200 cursor-grab active:cursor-grabbing active:ring-1 active:ring-blue-500; }
+    .dot { @apply inline-block w-[6px] h-[6px] rounded-full shrink-0; }
+    .dot-green { @apply dot bg-[#29c50c]; }
+    .dot-amber { @apply dot bg-amber-400; }
+    .dot-red { @apply dot bg-red-500; }
+    .dot-gray { @apply dot bg-slate-300; }
+
+    .input { @apply w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 transition-colors focus:outline-none focus:border-[#29c50c] focus:ring-2 focus:ring-[#29c50c]/20 disabled:bg-slate-50 disabled:text-slate-400; }
+    .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-500/20; }
+    .label { @apply block text-sm font-medium text-slate-700 mb-1; }
+    .form-field { @apply flex flex-col gap-1 mb-4; }
+    .form-hint { @apply text-xs text-slate-500; }
+    .form-error { @apply text-xs font-medium text-red-600; }
+
+    .card { @apply rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea] p-5 shadow-sm; }
+    .card-glass { @apply rounded-2xl border border-[#d4dec8]/60 bg-[#faf5ea]/80 backdrop-blur-xl p-6 shadow-[0_24px_48px_rgba(31,154,8,0.12),0_8px_20px_rgba(0,0,0,0.04)]; }
+    .card-soft { @apply rounded-xl border border-slate-200 bg-[#fbf6ea] p-5; }
+    .card-stat { @apply rounded-xl border border-[#dde8d0] bg-gradient-to-b from-[#f8f3e6] to-[#f4edda] p-4 text-center; }
+    .card-hover { @apply transition-all hover:border-[#29c50c]/30 hover:shadow-md hover:-translate-y-0.5; }
+    .card-header { @apply flex items-center justify-between mb-3; }
+    .card-title { @apply text-base font-semibold text-slate-800; }
+    .badge { @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold uppercase tracking-wide; }
+    .badge-green { @apply badge bg-[#29c50c] text-white; }
+    .badge-gold { @apply badge bg-[#d9a441] text-white; }
+    .badge-gray { @apply badge bg-slate-200 text-slate-700; }
+    .divider { @apply h-px w-full bg-slate-200 my-4 border-0; }
+    .divider-soft { @apply h-px w-full bg-[#e6dcc6] my-4 border-0; }
+}
