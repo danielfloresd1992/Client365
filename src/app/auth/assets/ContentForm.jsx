@@ -67,6 +67,12 @@ export default function ContentForm() {
 
         signIn({ email, password }, () => {
             router.replace('/Lobby');
+            dispatch(setConfigModal({
+                type: '',
+                title: '',
+                description: '',
+                modalOpen: false,
+            }));
         });
     };
 

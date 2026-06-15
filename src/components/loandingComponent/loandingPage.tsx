@@ -135,6 +135,7 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
     }, [dataSessionState, pathName, router]);
 
 
+    
     // ── 4. Caída / recuperación del servidor vía socket (mismo puerto) ───────
     useEffect(() => {
         const onDown = () => setSocketDown(true);

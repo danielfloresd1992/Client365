@@ -6,12 +6,14 @@ import { useForm } from 'react-hook-form';
 
 export default function Login({ eventSubmit, errorHttp, setType }) {
 
+
     const [visibilityState, setVisibilityState] = useState(true);
     const { register, handleSubmit } = useForm();
 
     const PATH_VISIBILITY = '/ico/visibility/icons8-visible-48.png';
     const PATH_NO_VISIBILITY = '/ico/visibility/icons8-invisible-48.png';
 
+    
 
     const printErrorAuth = (errorHttp) => {
         if (errorHttp === 404) return 'El correo es inválido o no existe';
