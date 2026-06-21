@@ -111,7 +111,8 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
 
         if (!id) {
             clientEditBy.timestamps.createdAt = userSubmit;
-        } else {
+        } 
+        else {
             clientEditBy.timestamps.createdAt = upDateClient.timestamps.createdAt;
             clientEditBy.timestamps.updatedAt = Array.isArray(upDateClient?.timestamps.updatedAt)
                 ? [...upDateClient.timestamps.updatedAt, userSubmit]

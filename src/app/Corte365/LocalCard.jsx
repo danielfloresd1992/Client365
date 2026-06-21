@@ -1,5 +1,6 @@
 'use client';
 import { arrayBufferToBase64 } from '@/libs/script/arrayTo64';
+import { continuousColorLegendClasses } from '@mui/x-charts';
 
 
 export default function LocalCard({ local, formValues, onChange }) {
@@ -22,6 +23,7 @@ export default function LocalCard({ local, formValues, onChange }) {
     const setToque = (key, field, v) =>
         onChange('toques', { ...formValues.toques, [key]: { ...formValues.toques[key], [field]: v } });
 
+
     const togglePresence = key => {
         const current = formValues.toques[key];
         onChange('toques', { ...formValues.toques, [key]: { ...current, present: !current.present } });
@@ -34,10 +36,11 @@ export default function LocalCard({ local, formValues, onChange }) {
     const INPUT_CLS = 'w-full text-gray-800 border border-[#333] rounded-lg px-3 py-2 text-sm placeholder:text-gray-600 focus:outline-none focus:border-emerald-500 transition-colors';
     const INPUT_SM_CLS = 'w-[30%] flex-1 text-gray-800 font-black border border-[#333] rounded-lg px-2 py-1.5 text-xs  text-center placeholder:text-gray-600 disabled:bg-[#dddddd] disabled:text-gray-700 focus:outline-none focus:border-emerald-500';
     const LABEL_CLS = 'text-[11px] font-semibold text-gray-600 uppercase tracking-wide';
-
+    console.log(isDetailedTouch)
 
     const renderTouchRow = (managerKey, label) => {
         const t = formValues.toques[managerKey];
+        console.log(formValues)
         if (!t) return null;
 
         return (
@@ -77,12 +80,8 @@ export default function LocalCard({ local, formValues, onChange }) {
     };
 
     const buildTouchList = () => {
-        if (managers && managers.length > 0) {
-            return [
-                ...gerentes.map(m => ({ key: `${m.burden}_${m.name}`, label: `${m.burden} ${m.name}` })),
-                ...asistentes.map(m => ({ key: `${m.burden}_${m.name}`, label: `${m.burden} ${m.name}` })),
-            ];
-        }
+        
+
         const list = [];
         for (let i = 0; i < (touchs?.totalManager || 0); i++)
             list.push({ key: `Gerente_${i + 1}`, label: `Gerente ${i + 1}` });
@@ -92,6 +91,9 @@ export default function LocalCard({ local, formValues, onChange }) {
     };
 
     const touchList = buildTouchList();
+
+
+    console.log(local.name, touchList);
 
 
     return (
