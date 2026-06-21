@@ -386,7 +386,7 @@ export default function CorteForm() {
                             {Object.entries(groupByFranchiseComprehensive(locals)).map(([key, list]) => {
                                 console.log(key, list)
                                 return list.map(local => {
-                                    return (
+                                    if(local?.isActive) return (
                                         <LocalCard
                                             key={local._id}
                                             local={local}
