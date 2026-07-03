@@ -56,7 +56,7 @@ export default function ClientBox({ data }) {
 
     const fetchData = async () => {
         try {
-            const response = await requestAction({ url: `/local/id=${data._id}?populate=managers`, action: 'GET' });
+            const response = await requestAction({ url: `/local/id=${data._id}?populate=managers timeServices`, action: 'GET' });
             if (response.status === 200) setClient(response.data);
         }
         catch (error) {

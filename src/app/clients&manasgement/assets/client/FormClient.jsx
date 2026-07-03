@@ -40,7 +40,7 @@ import clientDefault from '../objectDefault/objectDefaultClient';
 
 
 
-export default function FormClient({ id = null, action, setUpdateChange= () => {} }) {
+export default function FormClient({ id = null, action, setUpdateChange = () => { } }) {
 
 
     /* ── Auth ──────────────────────────────────────────────────────────────── */
@@ -71,16 +71,27 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
     /* ── Efectos: cargar datos del local a editar ──────────────────────────── */
     useEffect(() => {
         if (id && upDateClient) {
-            if (!upDateClient?.DST) {
+            // Inicializa los campos que el backend puede no traer o traer sin poblar
+            // (DST / timeServices). Guard auto-terminante: al setear ambos, deja de cumplirse.
+            const hasTimeServices = upDateClient?.timeServices && typeof upDateClient.timeServices === 'object';
+            if (!upDateClient?.DST || !hasTimeServices) {
                 setChangeData({
                     ...upDateClient,
-                    DST: { isActive: false, TimeZone: 'America/Caracas' },
+                    DST: upDateClient?.DST ?? { isActive: false, TimeZone: 'America/Caracas' },
+                    timeServices: hasTimeServices
+                        ? upDateClient.timeServices          // ref ya poblada desde el backend
+                        : clientDefault.timeServices,
                 });
             }
             const selected = listFranchiseState.filter(item => item._id === upDateClient.idLocal);
             setFranchiseSelect(selected);
-        } else if (!id && !upDateClient) {
-            setChangeData(clientDefault);
+        }
+        else if (!id && !upDateClient) {
+            setChangeData({
+                ...clientDefault.establishment,
+                DST: { isActive: false, TimeZone: 'America/Caracas' },
+                timeServices: clientDefault.timeServices,
+            });
         }
     }, [upDateClient]);
 
@@ -89,7 +100,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
 
     useEffect(() => {
         if (id && listFranchiseState.length > 1) {
-            fetchData({ url: `/local/id=${id}`, autoGetData: true, method: 'get' });
+            fetchData({ url: `/local/id=${id}?populate=timeServices`, autoGetData: true, method: 'get' });
         }
         return () => resetDataFetch();
     }, [listFranchiseState]);
@@ -111,7 +122,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
 
         if (!id) {
             clientEditBy.timestamps.createdAt = userSubmit;
-        } 
+        }
         else {
             clientEditBy.timestamps.createdAt = upDateClient.timestamps.createdAt;
             clientEditBy.timestamps.updatedAt = Array.isArray(upDateClient?.timestamps.updatedAt)
@@ -119,9 +130,14 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                 : [userSubmit];
         }
 
-        const bodyRequest = { ...upDateClient, ...clientEditBy };
-        delete bodyRequest.img;
+        // Separa el estado plano en el mismo patrón del default: { establishment, timeServices }
+        const { timeServices = clientDefault.timeServices, ...establishmentData } = upDateClient;
+        const establishment = { ...establishmentData, ...clientEditBy };
+        delete establishment.img;
+
+        const bodyRequest = { establishment, timeServices };
         handleRequest(bodyRequest);
+
     }, [upDateClient]);
 
 
@@ -139,8 +155,9 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                     description: 'Establecimiento añadido con éxito',
                     isCallback: null, type: 'successfull',
                 }));
-            } else {
-                delete body._id;
+            }
+            else {
+                delete body.establishment._id;
                 const res = await requestAction({ url: `/local/${upDateClient._id}`, action: 'put', body });
                 resetDataFetch();
                 dispatch(addClient(res.data));
@@ -185,6 +202,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
     }, [upDateClient]);
 
 
+    console.log(upDateClient);
 
 
     /* ── Loading ───────────────────────────────────────────────────────────── */
@@ -314,26 +332,19 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                             eventChengue={text => setChangeData({ ...upDateClient, typeMonitoring: text })}
                         />
 
-                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-                            <InputBorderBlue
-                                textLabel='Orden de apilamiento'
-                                type='number'
-                                value={String(upDateClient.order)}
-                                name='order'
-                                eventChengue={text => setChangeData({ ...upDateClient, order: Number(text) })}
-                            />
-                            <InputBorderBlue
-                                textLabel='Idioma'
-                                type='select'
-                                value={upDateClient.lang}
-                                name='lang'
-                                childSelect={[
-                                    { value: 'es', text: 'Castellano' },
-                                    { value: 'en', text: 'Inglés' },
-                                ]}
-                                eventChengue={text => setChangeData({ ...upDateClient, lang: text })}
-                            />
-                        </div>
+
+                        <InputBorderBlue
+                            textLabel='Idioma'
+                            type='select'
+                            value={upDateClient.lang}
+                            name='lang'
+                            childSelect={[
+                                { value: 'es', text: 'Castellano' },
+                                { value: 'en', text: 'Inglés' },
+                            ]}
+                            eventChengue={text => setChangeData({ ...upDateClient, lang: text })}
+                        />
+
 
                         <InputBorderBlue
                             textLabel='Ubicación del establecimiento'
@@ -363,7 +374,9 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                                 eventChengue={text => setChangeData({
                                     ...upDateClient,
                                     touchs: { ...upDateClient.touchs, totalManager: Number(text) },
+
                                 })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
                             />
                             <InputBorderBlue
                                 textLabel='Cantidad de asistentes'
@@ -374,6 +387,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                                     ...upDateClient,
                                     touchs: { ...upDateClient.touchs, totalAttendee: Number(text) },
                                 })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
                             />
                         </div>
 
@@ -390,6 +404,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                                 ...upDateClient,
                                 touchs: { ...upDateClient.touchs, typeEvaluationTouch: Boolean(text) },
                             })}
+                            disable={upDateClient.typeMonitoring === 'perimeter'}
                         />
 
                         <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
@@ -403,6 +418,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                                     ...upDateClient,
                                     touchs: { ...upDateClient.touchs, isRequiredeEvaluation: Boolean(text) },
                                 })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
                             />
                             <InputBorderBlue
                                 textLabel='¿Grupal o individual?'
@@ -414,6 +430,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                                     ...upDateClient,
                                     touchs: { ...upDateClient.touchs, isEvaluationGroup: Boolean(text) },
                                 })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
                             />
                         </div>
 
@@ -422,12 +439,43 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
 
 
                         {/* ═══════════════════════════════════════════════════════ */}
+                        {/* SECCIÓN 3: TIEMPOS DE SERVICIO                         */}
+                        {/* ═══════════════════════════════════════════════════════ */}
+                        <SectionHeader icon='⏱️' title='Tiempos de servicio' />
+
+                        <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+                            <InputBorderBlue
+                                textLabel='Limpieza de mesa'
+                                name='TableCleaning'
+                                type='text'
+                                value={upDateClient.timeServices?.TableCleaning}
+                                eventChengue={text => setChangeData({
+                                    ...upDateClient,
+                                    timeServices: { ...upDateClient.timeServices, TableCleaning: text },
+                                })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
+                            />
+                            <InputBorderBlue
+                                textLabel='Primera atención'
+                                name='firstAtenttion'
+                                type='text'
+                                value={upDateClient.timeServices?.firstAtenttion}
+                                eventChengue={text => setChangeData({
+                                    ...upDateClient,
+                                    timeServices: { ...upDateClient.timeServices, firstAtenttion: text },
+                                })}
+                                disable={upDateClient.typeMonitoring === 'perimeter'}
+                            />
+                        </div>
+
+
+                        {/* ═══════════════════════════════════════════════════════ */}
                         {/* SECCIÓN 4: CONFIGURACIÓN AVANZADA                      */}
                         {/* ═══════════════════════════════════════════════════════ */}
                         <SectionHeader icon='⚙️' title='Configuración avanzada' />
 
                         <InputBorderBlue
-                            textLabel='Estatus del monitoreo'
+                            textLabel='Activar / Desactivar establecimiento'
                             name='status'
                             value={upDateClient ? upDateClient.isActive : null}
                             type='checkbox'
@@ -456,7 +504,7 @@ export default function FormClient({ id = null, action, setUpdateChange= () => {
                             })}
                         />
 
-                        {upDateClient.DST && (
+                        {upDateClient.DST?.TimeZone && (
                             <div className='bg-slate-50 rounded-lg p-3 flex items-center gap-2'>
                                 <span className='text-xs text-slate-500'>Hora actual en esta zona:</span>
                                 <span className='text-sm font-mono font-semibold text-emerald-600'>
