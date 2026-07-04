@@ -11,6 +11,11 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-04
+- **Envío a WhatsApp (`shareJarvis.js`):** infiere el tipo MIME por extensión cuando
+  el blob no trae uno válido (arreglando que el video no se procesara), protege el
+  caption (`menu || ''`) y quita un `console.log` del blob. Acompaña el fix del
+  endpoint `sendImg_text_api` en el bot (ava_bot): error real en vez de `{name:"t"}`,
+  `filename` con extensión y fallback a documento si el envío inline falla. _(Claude Code)_
 - **Noveltie (mejora significativa):** corrige la clave `isValidate` duplicada en el
   guardado del menú (se perdía data), **debounce** de 600 ms al guardar (antes 1 PUT
   por tecla), listeners de socket con refs (sin re-suscribir en cada render),

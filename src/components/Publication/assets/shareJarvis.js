@@ -10,6 +10,7 @@ let connectionString = process.env.NEXT_PUBLIC_SOCKET_AVA_CHAT || 'https://72.68
 export default function typeShareJarvis(res, GROUP_KEY) {
     return new Promise((resolve, reject) => {
         let menu = res[0].menu;
+        const mediaUrl = res[0].videoUrl ? res[0].videoUrl : res[0].imageToShare;
         const URL = `${connectionString}/bot/imgV2/number=${GROUP_KEY}`;
         const configRes = {
             withCredentials: true,
@@ -19,14 +20,25 @@ export default function typeShareJarvis(res, GROUP_KEY) {
                 'Version-App': '1.1',
             }
         };
-        axiosInstance.get(res[0].videoUrl ? res[0].videoUrl : res[0].imageToShare, configRes)
+        axiosInstance.get(mediaUrl, configRes)
             .then(response => {
-                console.log(response.data)
                 blobToFileAndUrl(response.data, data => {
+                    // Tipo MIME robusto: si el blob no trae uno válido, se infiere por la extensión
+                    let mediaType = data.file.type;
+                    if (!mediaType || mediaType === 'application/octet-stream') {
+                        const ext = (mediaUrl.split('?')[0].split('.').pop() || '').toLowerCase();
+                        const extToMime = {
+                            mp4: 'video/mp4', mov: 'video/quicktime', webm: 'video/webm',
+                            jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+                            webp: 'image/webp', gif: 'image/gif'
+                        };
+                        mediaType = extToMime[ext] || mediaType || 'application/octet-stream';
+                    }
+
                     const formData = new FormData();
                     formData.append('my-file', data.base64.split(';base64,')[1]);
-                    formData.append('type', data.file.type);
-                    formData.append('my-text', menu);
+                    formData.append('type', mediaType);
+                    formData.append('my-text', menu || '');
 
                     axios.post(URL, formData)
                         .then(response => {
