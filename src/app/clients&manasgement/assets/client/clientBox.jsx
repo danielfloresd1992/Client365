@@ -242,7 +242,6 @@ export default function ClientBox({ data }) {
                     {/* Meta info */}
                     <div className='text-xs text-slate-400 text-center space-y-[3px] mb-4'>
                         <p>Idioma: <span className='text-slate-600 font-medium'>{client?.lang || '—'}</span></p>
-                        {console.log(client)}
                         <p>Creado: <span className='text-slate-600 font-medium'>{DataFormart.formatDateApp(TimeCreated)}</span></p>
                     </div>
 

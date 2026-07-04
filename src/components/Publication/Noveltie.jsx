@@ -348,6 +348,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                     }}
                                     invalidText={validationValue}
                                     editedBy={noveltyState?.isValidate?.menuEditedBy}
+                                    lockFirstTwoLines={true}
                                 />
                             </div>
 

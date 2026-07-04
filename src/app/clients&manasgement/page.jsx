@@ -78,8 +78,6 @@ export default function Content() {
     };
 
 
-    console.log(groupClients)
-
 
 
     return (
