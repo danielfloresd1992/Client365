@@ -1,40 +1,37 @@
-<<<<<<< HEAD
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Jarvis365 / Amazonas365
 
-## Getting Started
+Plataforma de **supervisión y gerencia remota empresarial** (restaurantes,
+franquicias, retail): vigilancia de establecimientos, gestión de usuarios y
+managers, cortes de caja por hora, alertas en tiempo real y publicaciones.
 
-First, run the development server:
+Construida con **Next.js 14 (App Router)** + React 18 + TypeScript. Se despliega
+como web y se empaqueta en **Cordova** (WebView `net.jarvis365.app`).
+
+> 📄 El contexto completo del proyecto (stack, estructura, convenciones y
+> quirks) está en [CLAUDE.md](CLAUDE.md). El historial de cambios en
+> [CHANGELOG.md](CHANGELOG.md).
+
+## Desarrollo
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # servidor de desarrollo (next dev)
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Comando         | Descripción                                   |
+| --------------- | --------------------------------------------- |
+| `npm run dev`   | Servidor de desarrollo                        |
+| `npm run build` | Build de producción (`next build`)            |
+| `npm run start` | Producción vía servidor custom (`server_start`) |
+| `npm run lint`  | Linter (`next lint`)                          |
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Notas
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
-=======
-# Client365
->>>>>>> d0728e3976bfc1273308fec09b16171229045310
+- El backend corre en **otro dominio** (sesión con cookies cross-domain).
+- Variables de entorno en `.env` (todas `NEXT_PUBLIC_`): `NEXT_PUBLIC_API_URL`,
+  `NEXT_PUBLIC_SOCKET_AVA`, `NEXT_PUBLIC_SOCKET_AVA_CHAT`,
+  `NEXT_PUBLIC_SOCKET_JARVIS`.
+- **`next build` falla ante errores de ESLint** → correr `npm run lint` antes de
+  desplegar (Netlify construye desde `main`).
