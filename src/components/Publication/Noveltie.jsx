@@ -32,10 +32,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const whatsAppSendingSettings = useSelector(state => state.filterClientList?.groupIdWhatsapp);
     const [noveltyState, setNoveltyState] = useState(null);
-    const [deleteState, serDeleteState] = useState(false);
-    const [isVideoBooleanState, setIsVideoBooleanState] = useState(false);
+    const [deleteState, setDeleteState] = useState(false);
     const containBtnRef = useRef(null);
     const menuRef = useRef(null);
+
+    // Refs para leer el valor más reciente dentro de los listeners de socket / debounce sin re-suscribir
+    const noveltyStateRef = useRef(noveltyState);
+    const saveMenuTimeout = useRef(null);
 
 
     const dataDeleteForUserRef = useRef();
@@ -43,9 +46,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const user = dataSessionState?.dataSession;
 
     const { open: openImageViewer } = useImageViewer();
-    const permissionUser = !(user?.admin || user?.super);
+    const isReadOnly = !(user?.admin || user?.super);
+    const hasVideo = !!noveltyState?.videoUrl;
     const { requestAction } = useAxios();
     const dispatch = useDispatch();
+
+
+    useEffect(() => { noveltyStateRef.current = noveltyState; }, [noveltyState]);
 
     const { ref, inView } = useInView({
         triggerOnce: true
@@ -68,20 +75,17 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     useEffect(() => {
         let isSubscribed = true;
         function handlePutPublisher(data) {
-            if (isSubscribed) {
-                const { doc, user } = data;
-                if (data.userSessionId !== user.idUser && doc._id === noveltyState?._id) {
-                    console.error(doc)
-                    setNoveltyState(doc);
-                }
+            if (!isSubscribed) return;
+            const { doc, user: eventUser } = data;
+            if (data.userSessionId !== eventUser?.idUser && doc._id === noveltyStateRef.current?._id) {
+                setNoveltyState(doc);
             }
         }
         function handleDeletePublisher(data) {
-            if (isSubscribed) {
-                if (data.userSessionId !== user.userSessionId && data.idNoveltie === noveltyState?._id) {
-                    dataDeleteForUserRef.current = data;
-                    serDeleteState(true);
-                };
+            if (!isSubscribed) return;
+            if (data.userSessionId !== user?.userSessionId && data.idNoveltie === noveltyStateRef.current?._id) {
+                dataDeleteForUserRef.current = data;
+                setDeleteState(true);
             }
         }
 
@@ -95,7 +99,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             socket.off('reciveDeletePublisher', handleDeletePublisher);
         };
 
-    }, [noveltyState, dataSessionState]);
+    }, [user?.userSessionId]);
 
 
 
@@ -104,7 +108,6 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             .then(response => {
                 if (response.status === 200) {
                     setNoveltyState(response.data[0]);
-                    response.data[0].videoUrl ? setIsVideoBooleanState(true) : setIsVideoBooleanState(false);
                 }
             })
             .catch(err => {
@@ -115,7 +118,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const putValidateNoveltie = (id, dataParams) => {
-        if (user.admin || user.super) {
+        if (user?.admin || user?.super) {
             requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
@@ -129,21 +132,48 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     };
 
 
+    // Guarda el menú con debounce para no golpear el backend en cada tecla
+    const saveMenuDebounced = (text) => {
+        if (saveMenuTimeout.current) clearTimeout(saveMenuTimeout.current);
+        saveMenuTimeout.current = setTimeout(() => {
+            putValidateNoveltie(noveltyState._id, {
+                menu: text,
+                isValidate: {
+                    ...noveltyState.isValidate,
+                    menuEditedBy: `${user.name} ${user.surName}`
+                }
+            });
+        }, 600);
+    };
+
+
+    // Limpia el timer del menú pendiente al desmontar
+    useEffect(() => () => {
+        if (saveMenuTimeout.current) clearTimeout(saveMenuTimeout.current);
+    }, []);
+
+
 
 
     const deleteNoveltie = () => {
-        if (user.admin) {
+        if (user?.admin) {
             requestAction({ url: `/user/publisher/delete=${data._id}`, action: 'delete' })
                 .then(response => {
                     if (response.status === 201) {
                         dataDeleteForUserRef.current = { idNoveltie: noveltyState._id, userSessionId: user.userSessionId, username: `${user.name} ${user.surName}`, action: 'DELETE' };
                         setNoveltyState(null);
-                        serDeleteState(true);
+                        setDeleteState(true);
                         socket.emit('deletedPublisher', { idNoveltie: noveltyState._id, userSessionId: user.userSessionId, username: `${user.name} ${user.surName}`, action: 'DELETE' });
                     }
                 })
                 .catch(err => {
-                    console.log(err);
+                    dispatch(setConfigModal({
+                        modalOpen: true,
+                        title: 'Error al eliminar',
+                        description: 'No se pudo eliminar la publicación. Intenta de nuevo.',
+                        isCallback: null,
+                        type: 'error'
+                    }));
                 });
         }
         else {
@@ -217,6 +247,32 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
 
+    // Descarga un archivo (video o imagen) del backend como blob
+    const downloadBlob = (url, filename) => {
+        axiosInstance.get(changeHostNameForImg(url), { responseType: 'blob' })
+            .then(response => {
+                const blob = new Blob([response.data], { type: response.data.type });
+                const objectUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = objectUrl;
+                link.download = `${filename}.${response.data.type.split('/')[1]}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(objectUrl);
+            })
+            .catch(() => {
+                dispatch(setConfigModal({
+                    modalOpen: true,
+                    title: 'Error al descargar',
+                    description: 'No se pudo descargar el archivo.',
+                    isCallback: null,
+                    type: 'error'
+                }));
+            });
+    };
+
+
     const returnDeleteNovetie = data => {
         return (
             <div className='divContentNovelties-boxAwait'>
@@ -226,10 +282,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     }
 
 
-    const parseMenu = menu => {
-        const menuNoveltie = menu.replaceAll('*', '').replaceAll('_', '').split('\n');
-        return menuNoveltie.join('\n');
-    };
+    const parseMenu = menu => menu.replaceAll('*', '').replaceAll('_', '');
 
     const parseValidationValue = (value) => {
         if (value === true || value === false) return value;
@@ -244,7 +297,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const validationValue = parseValidationValue(noveltyState?.isValidate?.validation);
     const isValidated = validationValue === true;
     const isInvalid = validationValue === false;
-    const canManageState = !permissionUser;
+    const canManageState = !isReadOnly;
     const canShare = isValidated && canManageState && noveltyState?.shift !== null;
 
 
@@ -296,6 +349,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                 >
                                     <button
                                         className='btn-circle divContentNovelties-headerOption_btn'
+                                        type='button'
+                                        aria-label='Opciones de la publicación'
                                         onClick={() => {
                                             containBtnRef.current.classList.toggle('showListOption');
                                         }}
@@ -313,7 +368,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                     {
                                                         modalOpen: true,
                                                         title: 'Eliminar',
-                                                        description: 'La nodedad se eliminará permanentemente del muro',
+                                                        description: 'La novedad se eliminará permanentemente del muro',
                                                         isCallback: deleteNoveltie,
                                                         type: 'warning'
                                                     }
@@ -333,19 +388,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             <div className={isNotLobby ? 'none' : 'divContentNovelties-text divContentNovelties-menuContain'} ref={menuRef}>
                                 <TextAreaAutoResize
                                     value={noveltyState.menu ? parseMenu(noveltyState.menu) : ''}
-                                    changeEvent={text => {
-                                        putValidateNoveltie(noveltyState._id, {
-                                            menu: text,
-                                            isValidate: {
-                                                ...noveltyState.isValidate,
-                                                menuEditedBy: `${user.name} ${user.surName}`
-                                            },
-                                            isValidate: {
-                                                ...noveltyState.isValidate,
-                                                menuEditedBy: `${user.name} ${user.surName}`
-                                            }
-                                        });
-                                    }}
+                                    changeEvent={saveMenuDebounced}
                                     invalidText={validationValue}
                                     editedBy={noveltyState?.isValidate?.menuEditedBy}
                                     lockFirstTwoLines={true}
@@ -370,7 +413,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                 <div className='novelty-chip novelty-chip--operador'>
                                     {
                                         noveltyState?.sharedByUser?.user?.id?.img ?
-                                            <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.sharedByUser?.user?.id?.img} alt='ico-user' />
+                                            <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.sharedByUser?.user?.id?.img} alt='ico-user' loading='lazy' decoding='async' />
                                             :
                                             <div className='novelty-chip-icon flex justify-center items-center w-[40px] h-[40px] min-w-[40px] rounded-full bg-stone-500'>
                                                 <FiUser className='w-[22px] h-[22px]' stroke='white' />
@@ -391,7 +434,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             <div className='novelty-chip novelty-chip--coordinador'>
                                                 {
                                                     noveltyState?.validationResult?.validatedByUser?.user?.id?.img ?
-                                                        <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.validationResult?.validatedByUser?.user?.id?.img} alt='ico-user' />
+                                                        <img className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] object-cover rounded-full' src={noveltyState?.validationResult?.validatedByUser?.user?.id?.img} alt='ico-user' loading='lazy' decoding='async' />
                                                         :
                                                         <div className='novelty-chip-icon flex justify-center items-center w-[40px] h-[40px] min-w-[40px] rounded-full bg-purple-500'>
                                                             <FiShield className='w-[22px] h-[22px]' stroke='white' />
@@ -462,8 +505,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         }
                                                     });
                                                 }}
-                                                disabled={permissionUser}
-                                                title={permissionUser ? 'Sin permiso para validar' : 'Validar para poder enviar'}
+                                                disabled={isReadOnly}
+                                                title={isReadOnly ? 'Sin permiso para validar' : 'Validar para poder enviar'}
                                             >
                                                 <FiCheckCircle className='btnPublic-img' />
                                                 <p style={isValidated ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Aprobar</p>
@@ -483,8 +526,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         }
                                                     });
                                                 }}
-                                                disabled={permissionUser}
-                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                                disabled={isReadOnly}
+                                                title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiXCircle className='btnPublic-img' />
                                                 <p style={isInvalid ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Rechazar</p>
@@ -499,8 +542,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         shift: 'day'
                                                     });
                                                 }}
-                                                disabled={permissionUser && !isValidated}
-                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                                disabled={isReadOnly && !isValidated}
+                                                title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiSun className='btnPublic-img' />
                                                 <p className='__textGrayForList'
@@ -516,8 +559,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         shift: 'night'
                                                     });
                                                 }}
-                                                disabled={permissionUser}
-                                                title={permissionUser ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                                disabled={isReadOnly}
+                                                title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiMoon className='btnPublic-img' />
                                                 <p className='__textGrayForList'
@@ -530,35 +573,20 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                         </div>
                                         <div className='divContentNovelties-divBtn' style={{ gap: 0, borderRadius: '0 0 5px 5px', overflow: 'hidden' }}>
                                             {
-                                                isVideoBooleanState ?
+                                                hasVideo ?
                                                     <>
                                                         <button
                                                             className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                            type='button'
                                                             onClick={e => {
-                                                                e.preventDefault()
-
-                                                                axiosInstance.get(changeHostNameForImg(noveltyState.videoUrl), { responseType: 'blob' })
-                                                                    .then(response => {
-                                                                        const blob = new Blob([response.data], { type: response.data.type });
-                                                                        const url = window.URL.createObjectURL(blob);
-                                                                        const link = document.createElement('a');
-                                                                        link.href = url;
-                                                                        link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`; // Nombre del archivo al descargar
-                                                                        document.body.appendChild(link);
-                                                                        link.click();
-                                                                        document.body.removeChild(link);
-                                                                    });
-
-                                                            }
-                                                            }
+                                                                e.preventDefault();
+                                                                downloadBlob(noveltyState.videoUrl, noveltyState.title);
+                                                            }}
                                                             disabled={!canShare}
-                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
+                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
                                                         >
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar video</p>
-
-
-
                                                         </button>
                                                         {
                                                             <button //button whastapp
@@ -578,7 +606,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                 }
                                                                 }
                                                                 disabled={!canShare}
-                                                                title={permissionUser ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
+                                                                title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
                                                             >
                                                                 <FiSend className='btnPublic-img' />
                                                                 <p className='__textGrayForList'>Enviar video</p>
@@ -595,25 +623,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                     <>
                                                         <button
                                                             className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                            type='button'
                                                             onClick={e => {
-                                                                e.preventDefault()
-
-                                                                axiosInstance.get(changeHostNameForImg(noveltyState.imageToShare), { responseType: 'blob' })
-                                                                    .then(response => {
-                                                                        const blob = new Blob([response.data], { type: response.data.type });
-                                                                        const url = window.URL.createObjectURL(blob);
-                                                                        const link = document.createElement('a');
-                                                                        link.href = url;
-                                                                        link.download = `${noveltyState.title}.${response.data.type.split('/')[1]}`;
-                                                                        document.body.appendChild(link);
-                                                                        link.click();
-                                                                        document.body.removeChild(link);
-                                                                    });
-
-                                                            }
-                                                            }
+                                                                e.preventDefault();
+                                                                downloadBlob(noveltyState.imageToShare, noveltyState.title);
+                                                            }}
                                                             disabled={!canShare}
-                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
+                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Descargar imagen de la alerta'}
                                                         >
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar imagen</p>
@@ -636,7 +652,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             }
                                                             }
                                                             disabled={!canShare}
-                                                            title={permissionUser ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
+                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
                                                         >
                                                             <FiSend className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Enviar imagen</p>

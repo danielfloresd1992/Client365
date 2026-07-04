@@ -11,6 +11,18 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-04
+- **Noveltie (mejora significativa):** corrige la clave `isValidate` duplicada en el
+  guardado del menú (se perdía data), **debounce** de 600 ms al guardar (antes 1 PUT
+  por tecla), listeners de socket con refs (sin re-suscribir en cada render),
+  null-guards en `user`, helper `downloadBlob` (dedup + limpieza de object URL),
+  feedback de error por modal, `isVideoBooleanState` → derivado `hasVideo`, rename
+  `permissionUser` → `isReadOnly`, y limpieza de `console`/typos. _(Claude Code)_
+- **Reproductor + carrusel (`slider.jsx`):** arregla el `<video>` (atributos que
+  estaban en `<source>` y se ignoraban), agrega `playsInline` (clave en iOS/Cordova),
+  `poster`, `preload=metadata` y **pausa al salir de pantalla**; desactiva el autoplay
+  del carrusel cuando hay video; guarda contra `imageShare` nulo; memoiza las URLs;
+  `loading=lazy`/`decoding=async`; grid escalable; keys estables y `aria-label` en las
+  flechas. _(Claude Code)_
 - **TextAreaAutoResize:** nuevo prop `lockFirstTwoLines` que bloquea la edición de
   las **dos primeras líneas** (revierte el cambio en el textarea controlado y avisa
   con el modal global `warning` explicando por qué no deben alterarse los datos del

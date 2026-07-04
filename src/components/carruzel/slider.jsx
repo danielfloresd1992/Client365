@@ -1,5 +1,5 @@
 'use client';
-import { memo } from 'react';
+import { memo, useRef, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import changeHostNameForImg from '@/libs/script/changeHostName';
 import Image from 'next/image';
@@ -14,46 +14,46 @@ const DynamicSlider = dynamic(
 );
 
 
+// Altura uniforme de cada slide (evita repetir la clase en varios lugares)
+const SLIDE_HEIGHT = 'h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px]';
+
 
 const CustomArrow = ({ onClick, direction }) => {
 
-
+    const isPrev = direction === 'prev';
 
     const styles = {
-        left: direction === "prev" ? 0 : 'unset',
-        right: direction !== "prev" ? 0 : 'unset',
         position: 'absolute',
-        top: '0',
-        bottom: '0',
-        zIndex: '100',
+        top: 0,
+        bottom: 0,
+        left: isPrev ? 0 : 'unset',
+        right: isPrev ? 'unset' : 0,
+        zIndex: 100,
         margin: 'auto',
         width: '40px',
         height: '40px',
         backgroundColor: '#81818199',
-        top: 0,
-        bottom: 0,
         color: '#fff',
         borderRadius: '50%',
         cursor: 'pointer'
-    }
-
+    };
 
     return (
         <button
+            type='button'
             onClick={onClick}
+            aria-label={isPrev ? 'Imagen anterior' : 'Imagen siguiente'}
             className={`flex justify-center items-center custom-arrow ${direction}`}
             style={styles}
         >
             {
-                direction === "prev" ?
-                    <Image src='/prev.png' alt='prev-ico' width={15} height={15} />
-                    :
-                    <Image src='/next.png' alt='prev-ico' width={20} height={20} />
+                isPrev
+                    ? <Image src='/prev.png' alt='' width={15} height={15} />
+                    : <Image src='/next.png' alt='' width={20} height={20} />
             }
         </button>
-    )
-}
-
+    );
+};
 
 
 
@@ -62,87 +62,121 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
 
     const { ref, inView } = useInView();
     const { open: openImageViewer } = useImageViewer();
+    const videoRef = useRef(null);
 
+    const hasGroup = Array.isArray(imageGroup) && imageGroup.length > 1;
+    const hasArrows = !!video || hasGroup;
+
+    // URLs ya resueltas: no recalcular changeHostNameForImg en cada render / click
+    const shareUrl = useMemo(
+        () => (imageShare ? changeHostNameForImg(imageShare) : null),
+        [imageShare]
+    );
+    const groupUrls = useMemo(
+        () => (Array.isArray(imageGroup) ? imageGroup.map(img => changeHostNameForImg(img.url)) : []),
+        [imageGroup]
+    );
+    // Colección para el visor de imágenes (principal + grupo)
+    const viewerImages = useMemo(
+        () => [shareUrl, ...groupUrls].filter(Boolean),
+        [shareUrl, groupUrls]
+    );
+
+    // Pausa el video cuando el slide sale de la pantalla (ahorra CPU/batería)
+    useEffect(() => {
+        const el = videoRef.current;
+        if (el && !inView) el.pause();
+    }, [inView]);
 
 
     const setting = {
-        className: "center",
+        className: 'center',
         centerMode: false,
         infinite: true,
-        centerPadding: "0",
+        centerPadding: '0',
         slidesToShow: 1,
         speed: 800,
         adaptiveHeight: true,
-        prevArrow: video || imageGroup?.length > 1 ? <CustomArrow direction='prev' /> : null,
-        nextArrow: video || imageGroup?.length > 1 ? <CustomArrow direction='next' /> : null,
-        autoplay: inView,    // Activa el movimiento automático
-        autoplaySpeed: 4000, // Tiempo entre slides (3 segundos)
+        prevArrow: hasArrows ? <CustomArrow direction='prev' /> : null,
+        nextArrow: hasArrows ? <CustomArrow direction='next' /> : null,
+        // El autoplay atropellaría al video: solo se activa si NO hay video
+        autoplay: inView && !video,
+        autoplaySpeed: 4000,
         pauseOnHover: true
+    };
+
+
+    // Se arma el arreglo de slides y se filtran los nulos para no dejar slides vacíos en slick
+    const slides = [];
+
+    if (shareUrl) {
+        slides.push(
+            <img
+                key='share'
+                className={`${SLIDE_HEIGHT} object-contain cursor-pointer`}
+                src={shareUrl}
+                alt='Imagen principal de la novedad'
+                loading='lazy'
+                decoding='async'
+                onClick={() => openImageViewer({ images: viewerImages, index: 0 })}
+            />
+        );
+    }
+
+    if (video) {
+        slides.push(
+            <video
+                key='video'
+                ref={videoRef}
+                className={`${SLIDE_HEIGHT} w-full`}
+                src={changeHostNameForImg(video)}
+                poster={shareUrl || undefined}
+                controls
+                playsInline
+                preload='metadata'
+            />
+        );
+    }
+
+    if (hasGroup) {
+        slides.push(
+            <div key='group' className={`${SLIDE_HEIGHT} w-full overflow-hidden`}>
+                <div className='w-full h-full grid grid-cols-2 auto-rows-fr gap-[2px]'>
+                    {
+                        imageGroup.map((img, index) => (
+                            <div className='relative w-full h-full overflow-hidden' key={img.url || index}>
+                                <img
+                                    className='h-full w-full object-cover cursor-pointer'
+                                    src={groupUrls[index]}
+                                    alt={img.caption || 'Imagen de la novedad'}
+                                    loading='lazy'
+                                    decoding='async'
+                                    onClick={() => openImageViewer({ images: viewerImages, index: (shareUrl ? 1 : 0) + index })}
+                                />
+                                {
+                                    img.caption ?
+                                        <div
+                                            className='bottom-[0] left-[0] absolute p-[.1rem_1rem] flex justify-center items-center'
+                                            style={{ backgroundColor: '#43c700a6', border: '2px solid #fff' }}
+                                        >
+                                            <p style={{ color: '#fff', fontSize: '.9rem' }}>{img.caption}</p>
+                                        </div>
+                                        : null
+                                }
+                            </div>
+                        ))
+                    }
+                </div>
+            </div>
+        );
     }
 
 
-
     return (
-        <div
-            className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] relative bg-black'
-            ref={ref}
-        >
+        <div className={`${SLIDE_HEIGHT} relative bg-black`} ref={ref}>
             <DynamicSlider {...setting}>
-                <img
-                    className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] object-contain cursor-pointer'
-                    src={changeHostNameForImg(imageShare)}
-                    alt='share-image'
-                    onClick={() => {
-                        const allImgs = [changeHostNameForImg(imageShare)];
-                        if (Array.isArray(imageGroup)) imageGroup.forEach(img => allImgs.push(changeHostNameForImg(img.url)));
-                        openImageViewer({ images: allImgs, index: 0 });
-                    }}
-                />
-                {
-                    video ?
-                        <video className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] w-full' controls>
-                            <source src={changeHostNameForImg(video)} autoPlay={true} loop={true} type="video/mp4" />
-                        </video>
-                        : null
-                }
-                {
-                    Array.isArray(imageGroup) && imageGroup.length > 1 ?
-                        <div className='h-[55vw] md:h-[500px] min-h-[200px] max-h-[500px] w-full'>
-                            <div className='w-full h-full flex flex-wrap direction-row justify-center items-center'>
-                                {
-                                    imageGroup.map((img, index) => (
-                                        <div className='h-[50%] w-[50%] relative' key={`${img.caption}-${index}`}>
-
-                                            <img
-                                                className='h-full w-full object-cover cursor-pointer'
-                                                src={changeHostNameForImg(img.url)}
-                                                key={index}
-                                                alt='novelty-sequence'
-                                                onClick={() => {
-                                                    const allImgs = [changeHostNameForImg(imageShare)];
-                                                    imageGroup.forEach(g => allImgs.push(changeHostNameForImg(g.url)));
-                                                    openImageViewer({ images: allImgs, index: index + 1 });
-                                                }}
-                                            />
-                                            <div className='bottom-[0] left-[0] absolute p-[.1rem_1rem] flex justify-center items-center'
-                                                style={{
-                                                    backgroundColor: '#43c700a6',
-                                                    border: '2px solid #fff'
-                                                }}
-                                            >
-                                                <p className='color-white' style={{ color: '#fff', fontSize: '.9rem' }}>
-                                                    {img.caption}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    ))
-                                }
-                            </div>
-
-                        </div>
-                        : null
-                }
+                {slides}
             </DynamicSlider>
         </div>
     );
-})
+});
