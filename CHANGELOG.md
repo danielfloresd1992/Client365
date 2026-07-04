@@ -16,7 +16,7 @@ este archivo es el resumen humano del **qué** y el **porqué**.
   con el modal global `warning` explicando por qué no deben alterarse los datos del
   cliente). También cubre la inserción de emojis. Activado en el menú del cliente en
   `Noveltie`. Incluye limpieza de `console.log` de debug en `clientBox` y `page` de
-  clients&manasgement. _(Claude Code)_ `3c7a7a8`
+  clients&manasgement. _(Claude Code)_ `d67c42d`
 - **Corrección** en la variable de tiempo de creación del establecimiento. `caaf0fa`
 
 ## 2026-07-03
