@@ -34,6 +34,7 @@ import useAxios from '@/hook/useAxios';
 import useAuthOnServer from '@/hook/auth';
 import moment from 'moment-timezone';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
+import fetchWhatsappGroups from '@/libs/ajaxClient/groups.fecth';
 
 import clientDefault from '../objectDefault/objectDefaultClient';
 
@@ -60,6 +61,7 @@ export default function FormClient({ id = null, action, setUpdateChange = () => 
 
 
     const [franchiseSelect, setFranchiseSelect] = useState(null);
+    const [whatsappGroups, setWhatsappGroups] = useState([]);
 
     /* ── Helpers ───────────────────────────────────────────────────────────── */
     const dispatch = useDispatch();
@@ -104,6 +106,16 @@ export default function FormClient({ id = null, action, setUpdateChange = () => 
         }
         return () => resetDataFetch();
     }, [listFranchiseState]);
+
+
+    /* ── Efecto: cargar los grupos de WhatsApp del bot (para el select) ─────── */
+    useEffect(() => {
+        let isSubscribed = true;
+        fetchWhatsappGroups().then(groups => {
+            if (isSubscribed) setWhatsappGroups(groups);
+        });
+        return () => { isSubscribed = false; };
+    }, []);
 
 
 
@@ -522,6 +534,24 @@ export default function FormClient({ id = null, action, setUpdateChange = () => 
                                 { value: 'extended', text: 'Menú extendido' },
                             ]}
                             eventChengue={text => setChangeData({ ...upDateClient, alertLength: text })}
+                        />
+
+                        <InputBorderBlue
+                            textLabel='Grupo de WhatsApp'
+                            type='select'
+                            name='groupId'
+                            important={false}
+                            value={upDateClient.groupId ?? 'none'}
+                            childSelect={[
+                                // opción nula explícita: el select del componente es required,
+                                // así que la "no selección" se representa con este centinela
+                                { value: 'none', text: 'Sin grupo asignado' },
+                                ...whatsappGroups.map(g => ({ value: g.id, text: g.name })),
+                            ]}
+                            eventChengue={value => setChangeData({
+                                ...upDateClient,
+                                groupId: value === 'none' ? null : value,
+                            })}
                         />
 
 

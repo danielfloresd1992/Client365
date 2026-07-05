@@ -32,6 +32,8 @@ const clientDefault = {
         image: '',
     },
 
+    groupId: null,
+
     timeServices: {
         TableCleaning: '00:00:00',
         firstAtenttion: '00:00:00'

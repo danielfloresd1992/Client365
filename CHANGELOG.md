@@ -11,6 +11,12 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-05
+- **FormClient — grupo de WhatsApp por establecimiento:** nueva función
+  `libs/ajaxClient/groups.fecth.js` (GET `{NEXT_PUBLIC_SOCKET_AVA_CHAT}/bot/groups`,
+  devuelve `[]` si el bot no está conectado) y select nulleable "Grupo de WhatsApp"
+  en Configuración avanzada (`InputBorderBlue`, opción "Sin grupo asignado" → `null`).
+  La selección se guarda en `establishment.groupId`; el backend (api_jarvis365) ya
+  tiene el campo en schema yup y modelo Mongoose. _(Claude Code + backend por Daniel)_
 - **Envío a WhatsApp — fix 401 al descargar el video (`shareJarvis.js`):** la URL del
   media viene guardada con el host `amazona365.ddns.net` (sin puerto) mientras la
   cookie de sesión pertenece al host del API (`NEXT_PUBLIC_API_URL`); el navegador no
