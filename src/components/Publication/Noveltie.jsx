@@ -30,7 +30,9 @@ import MemoSlider from '@/components/carruzel/slider';
 
 function Noveltie({ data, idNoveltie, isNotLobby }) {
 
+
     const whatsAppSendingSettings = useSelector(state => state.filterClientList?.groupIdWhatsapp);
+
     const [noveltyState, setNoveltyState] = useState(null);
     const [deleteState, setDeleteState] = useState(false);
     const containBtnRef = useRef(null);
@@ -50,6 +52,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const hasVideo = !!noveltyState?.videoUrl;
     const { requestAction } = useAxios();
     const dispatch = useDispatch();
+
 
 
     useEffect(() => { noveltyStateRef.current = noveltyState; }, [noveltyState]);
@@ -212,7 +215,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
 
-                const responseSend = await typeShareJarvis([noveltieCopi], whatsAppSendingSettings.key);
+                const responseSend = await typeShareJarvis([noveltieCopi], noveltyState?.establishment?.groupId ? noveltyState?.establishment?.groupId : whatsAppSendingSettings.key);
 
 
                 putValidateNoveltie(noveltyState._id, {
@@ -301,7 +304,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const canShare = isValidated && canManageState && noveltyState?.shift !== null;
 
 
-
+    console.log(noveltyState?.establishment?.groupId);
 
     return (
         <div
