@@ -10,6 +10,15 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-05
+- **Envío a WhatsApp — fix 401 al descargar el video (`shareJarvis.js`):** la URL del
+  media viene guardada con el host `amazona365.ddns.net` (sin puerto) mientras la
+  cookie de sesión pertenece al host del API (`NEXT_PUBLIC_API_URL`); el navegador no
+  adjuntaba la cookie y la ruta protegida respondía 401. Ahora se reescribe el origen
+  de la URL al del API antes de descargar, para que la petición vaya autenticada.
+  Pendiente a futuro: mover esta lógica a `changeHostNameForImg` (hoy no-op) para
+  cubrir todas las descargas. _(Claude Code)_
+
 ## 2026-07-04
 - **Envío a WhatsApp (`shareJarvis.js`):** infiere el tipo MIME por extensión cuando
   el blob no trae uno válido (arreglando que el video no se procesara), protege el

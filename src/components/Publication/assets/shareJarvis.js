@@ -1,6 +1,7 @@
 import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 import axios from 'axios'
 import blobToFileAndUrl from '@/libs/script/blobToFile'
+import apiUrl from '@/libs/ajaxClient/dataFecth'
 
 
 
@@ -10,7 +11,12 @@ let connectionString = process.env.NEXT_PUBLIC_SOCKET_AVA_CHAT || 'https://72.68
 export default function typeShareJarvis(res, GROUP_KEY) {
     return new Promise((resolve, reject) => {
         let menu = res[0].menu;
-        const mediaUrl = res[0].videoUrl ? res[0].videoUrl : res[0].imageToShare;
+        // La URL del media viene guardada con otro host (amazona365.ddns.net sin puerto)
+        // y la cookie de sesión solo viaja al host del API (NEXT_PUBLIC_API_URL).
+        // Se reescribe el origen para que la descarga vaya autenticada (evita el 401).
+        const apiOrigin = (apiUrl.match(/^https?:\/\/[^/]+/) || [''])[0];
+        const rawMediaUrl = res[0].videoUrl ? res[0].videoUrl : res[0].imageToShare;
+        const mediaUrl = apiOrigin ? rawMediaUrl.replace(/^https?:\/\/[^/]+/, apiOrigin) : rawMediaUrl;
         const URL = `${connectionString}/bot/imgV2/number=${GROUP_KEY}`;
         const configRes = {
             withCredentials: true,
