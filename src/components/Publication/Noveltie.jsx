@@ -308,7 +308,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
    
-
+    console.log('noveltyState', noveltyState);
 
     return (
         <div
