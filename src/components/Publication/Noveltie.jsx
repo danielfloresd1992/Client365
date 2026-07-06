@@ -31,7 +31,9 @@ import MemoSlider from '@/components/carruzel/slider';
 function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
-    const whatsAppSendingSettings = useSelector(state => state.filterClientList?.groupIdWhatsapp);
+    const whatsAppSendingDefault = useSelector(state => state.filterClientList?.groupIdWhatsapp);
+    
+
 
     const [noveltyState, setNoveltyState] = useState(null);
     const [deleteState, setDeleteState] = useState(false);
@@ -54,6 +56,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const dispatch = useDispatch();
 
 
+    const groupId = noveltyState?.establishment?.groupId || whatsAppSendingDefault.key;
 
     useEffect(() => { noveltyStateRef.current = noveltyState; }, [noveltyState]);
 
@@ -196,7 +199,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const shareNoveltyForApiAva = async (imageOnly) => {
         try {
-            if (!whatsAppSendingSettings) {
+            if (!whatsAppSendingDefault) {
                 dispatch(setConfigModal({
                     modalOpen: true,
                     title: 'Error de envio',
@@ -215,7 +218,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
 
-                const responseSend = await typeShareJarvis([noveltieCopi], noveltyState?.establishment?.groupId ? noveltyState?.establishment?.groupId : whatsAppSendingSettings.key);
+                const responseSend = await typeShareJarvis([noveltieCopi], groupId);
 
 
                 putValidateNoveltie(noveltyState._id, {
@@ -227,7 +230,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                     {
                         modalOpen: true,
                         title: 'Enviado con éxito',
-                        description: `La novedad fue enviada al grupo de ${whatsAppSendingSettings.name}.`,
+                        description: `La novedad fue enviada al grupo de ${whatsAppSendingDefault.name}.`,
                         isCallback: null,
                         type: 'successfull'
                     }
@@ -304,7 +307,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const canShare = isValidated && canManageState && noveltyState?.shift !== null;
 
 
-    console.log(noveltyState?.establishment?.groupId);
+   
+
 
     return (
         <div
