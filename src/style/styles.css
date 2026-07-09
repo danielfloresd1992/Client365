@@ -6649,34 +6649,11 @@ body .lobby-aside-filterError {
 
 
 
-.block:before, .block:after {
-    content: '';
-    position: absolute;
-    left: -2px;
-    top: -2px;
-    background: linear-gradient(45deg, #00ff2d, #818181, #00ff08, #b9b9b9, #04ff00, #939393, #28d100, #3c3c3c, #56ff00, #ffffff);
-    background-size: 400%;
-    width: calc(100% + 4px);
-    height: calc(100% + 4px);
-    z-index: -1;
-    animation: steam 40s linear infinite;
-}
-
-@keyframes steam {
-	0% {
-		background-position: 0 0;
-	}
-	50% {
-		background-position: 400% 0;
-	}
-	100% {
-		background-position: 0 0;
-	}
-}
-
-.block:after {
-	filter: blur(50px);
-}
+/* NOTA: aquí existía una clase decorativa `.block` (borde degradado verde
+   animado con :before/:after + @keyframes steam) heredada del componente
+   muerto componentAnimation/backAnimate. Chocaba con la utilidad `block`
+   de Tailwind y pintaba un fondo verde animado en cualquier elemento con
+   esa clase por toda la app. Eliminada el 2026-07-09. */
 
 /* ============================================================
    FUENTE: src/app/clients&manasgement/assets/style.css

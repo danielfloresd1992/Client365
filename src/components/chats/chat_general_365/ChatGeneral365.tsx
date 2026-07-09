@@ -137,9 +137,12 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
             const msg = messages[i];
             const prevMsg = i > 0 ? messages[i - 1] : null;
 
-            // Calcular diferencia de tiempo con mensaje anterior
+            // Diferencia de tiempo con el mensaje anterior. La lista viene del más
+            // nuevo al más viejo, así que la resta da negativo: sin Math.abs la
+            // condición "< 5 min" se cumplía siempre y los grupos nunca se cortaban
+            // (el nombre aparecía una sola vez aunque pasaran horas entre mensajes).
             const timeDiff = prevMsg ?
-                (new Date(msg.date).getTime() - new Date(prevMsg.date).getTime()) / (1000 * 60) :
+                Math.abs(new Date(msg.date).getTime() - new Date(prevMsg.date).getTime()) / (1000 * 60) :
                 null;
             // Agrupar si mismo usuario y tiempo menor a 5 minutos
             if (msg.submittedByUser.userId === currentUser &&

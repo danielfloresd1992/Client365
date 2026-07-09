@@ -14,8 +14,10 @@ export default function BoxMsm({ item, indexMsm, user, deleteProp, onReply }: an
     const buttonOptionsRef = useRef<HTMLDivElement>(null);
     const MY_MESSAGES: boolean = item?.submittedByUser?.userId === user?._id;
     const FIRST = indexMsm === 0;
-    const message_from_others_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:left-[-10px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-white";
-    const my_message_cacho_styles = "relative z-[100] after:content-[''] after:block after:absolute after:right-[-5px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-[#98fb98]";
+    // "Cachito" de la burbuja (triángulo estilo WhatsApp) dibujado con el
+    // pseudo-elemento after: — solo se aplica al primer mensaje del grupo
+    const message_from_others_cacho_styles = "z-[100] after:content-[''] after:block after:absolute after:left-[-10px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-white";
+    const my_message_cacho_styles = "z-[100] after:content-[''] after:block after:absolute after:right-[-5px] after:rotate-[27deg] after:top-[-4px] after:ml-[0px] after:w-0 after:h-0 after:border-t-[8px] after:border-b-[8px] after:border-r-[15px] after:border-t-transparent after:border-b-transparent after:border-r-[#98fb98]";
     const refContextMenu = useRef<HTMLDivElement>(null);
 
 
@@ -106,9 +108,11 @@ export default function BoxMsm({ item, indexMsm, user, deleteProp, onReply }: an
                 <div className='w-full h-full flex gap-2 flex-col' >
                     <div className='w-full flex justify-between'>
                         {
-                            FIRST ?
+                            // El nombre se muestra SIEMPRE en mensajes de otras personas;
+                            // en los propios solo 'Tu' al inicio del grupo (la burbuja verde ya los identifica)
+                            (!MY_MESSAGES || FIRST) ?
 
-                                <b className='font-semibold font-[sans-serif_monospace] text-[0.8rem] text-[#089300]'>{MY_MESSAGES ? 'Tu' : item.submittedByUser.name}</b>
+                                <b className='font-semibold font-[sans-serif_monospace] text-[0.8rem] text-[#089300]'>{MY_MESSAGES ? 'Tu' : (item.submittedByUser?.name || 'Usuario')}</b>
                                 :
                                 <div></div>
                         }
