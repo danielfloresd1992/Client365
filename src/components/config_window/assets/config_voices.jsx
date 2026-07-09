@@ -2,9 +2,6 @@
 
 
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
-
-import BoxConfigForWindow from '@/layaut/BoxConfigForWindow';
-import { useState, useEffect } from 'react';
 import useSpeckAlert from '@/hook/useSpeckAlert';
 
 
@@ -37,10 +34,7 @@ export default function SectionConfigVoice() {
 
     return (
         <div className='w-full h-full p-[1rem]'>
-            <div className='w-full h-[50%] bg-[#ffffff]'>
-
-            </div>
-            <div className='w-full h-[50%]'>
+            <div className='w-full h-full'>
                 {isLoading && (
                     <div className='w-full flex items-center justify-center gap-2 py-2'>
                         <div className='animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent'></div>
@@ -95,7 +89,7 @@ export default function SectionConfigVoice() {
                                 changueVolume(Number(value));
                             }}
                         />
-                        <img style={{ width: '30px', paddingTop: '2rem' }} src={renderImg(volumeState)} alt="" />
+                        <img style={{ width: '30px', paddingTop: '2rem' }} src={renderImg(volumeState)} alt='Indicador de volumen' />
                     </div>
                 </div>
 

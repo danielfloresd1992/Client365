@@ -81,11 +81,14 @@ class SpeechService {
         this._volume = 1;
         this._ready = false;
         this._readyPromise = null;
-        this._onVoicesChange = null;
+        // Sets de suscriptores: varios componentes usan useSpeckAlert a la vez
+        // (Lobby, Config_window, loader…); un slot único hacía que cada montaje
+        // pisara al anterior y cada desmontaje silenciara a todos los demás.
+        this._voicesChangeListeners = new Set();
         this._currentAudio = null;
         this._preloadPromise = null;
         this._downloadProgress = 0;
-        this._onDownloadProgress = null;
+        this._downloadProgressListeners = new Set();
 
         // Import dinámico de Piper — null si no se pudo cargar
         this._piperTTS = null;
@@ -129,7 +132,7 @@ class SpeechService {
         // 5. Seleccionar voz por defecto
         this._selectDefaultVoice();
 
-        if (this._onVoicesChange) this._onVoicesChange(this._voices);
+        this._emitVoicesChanged();
 
         this._ready = true;
         console.log(`[SpeechService] Listo — motor: "${this._engine}", voces: ${this._voices.length}`);
@@ -365,9 +368,7 @@ class SpeechService {
             await this._piperTTS.download(voiceId, (progress) => {
                 if (progress.total > 0) {
                     this._downloadProgress = Math.round((progress.loaded / progress.total) * 100);
-                    if (this._onDownloadProgress) {
-                        this._onDownloadProgress(this._downloadProgress);
-                    }
+                    this._emitDownloadProgress();
                 }
             });
             this._downloadProgress = 100;
@@ -407,26 +408,38 @@ class SpeechService {
         return this._voices;
     }
 
+    // Suscribe un listener y devuelve la función para desuscribirse.
+    // Soporta varios suscriptores simultáneos (Lobby + Config_window + loader…).
     onVoicesChanged(cb) {
-        this._onVoicesChange = cb;
+        if (typeof cb !== 'function') return () => {};
+        this._voicesChangeListeners.add(cb);
 
-        // Si hay voces nativas pendientes de cargar, escuchar cambios
-        if (cb && hasSpeechSynthesis()) {
+        // Un único listener nativo compartido por todos los suscriptores
+        if (!this._nativeVoicesHandler && hasSpeechSynthesis()) {
             const handler = () => {
                 // Reconstruir la lista y notificar
                 this._buildVoiceList();
-                if (this._onVoicesChange) this._onVoicesChange(this._voices);
+                this._emitVoicesChanged();
             };
             speechSynthesis.addEventListener('voiceschanged', handler);
             this._nativeVoicesHandler = handler;
-        } else if (this._nativeVoicesHandler && hasSpeechSynthesis()) {
-            speechSynthesis.removeEventListener('voiceschanged', this._nativeVoicesHandler);
-            this._nativeVoicesHandler = null;
         }
+
+        return () => this._voicesChangeListeners.delete(cb);
     }
 
     onDownloadProgress(cb) {
-        this._onDownloadProgress = cb;
+        if (typeof cb !== 'function') return () => {};
+        this._downloadProgressListeners.add(cb);
+        return () => this._downloadProgressListeners.delete(cb);
+    }
+
+    _emitVoicesChanged() {
+        this._voicesChangeListeners.forEach(cb => cb(this._voices));
+    }
+
+    _emitDownloadProgress() {
+        this._downloadProgressListeners.forEach(cb => cb(this._downloadProgress));
     }
 
     selectVoiceByName(name) {

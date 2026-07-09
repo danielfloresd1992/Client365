@@ -11,6 +11,7 @@ export default function useSpeckAlert() {
 
     const dispatch = useDispatch();
     const voice_definitive = useSelector(store => store.voiceDefinitive);
+    const volumeDefinitive = useSelector(store => store.volumeVoiceDefinitive);
     const [listVoicesState, setListVoicesState] = useState([]);
     const [volumeState, setVolumeState] = useState(1);
     const [downloadProgress, setDownloadProgress] = useState(0);
@@ -32,19 +33,21 @@ export default function useSpeckAlert() {
             setIsLoading(false);
         });
 
-        // Escuchar cambios de voces
-        speechService.onVoicesChanged((voices) => {
+        // Escuchar cambios de voces y progreso de descarga. onVoicesChanged /
+        // onDownloadProgress devuelven la función de desuscripción: así cada
+        // componente quita SOLO su listener al desmontar (antes se pasaba null
+        // y silenciaba a todos los demás consumidores del hook).
+        const unsubscribeVoices = speechService.onVoicesChanged((voices) => {
             setListVoicesState(voices);
         });
 
-        // Escuchar progreso de descarga de modelos Piper
-        speechService.onDownloadProgress((progress) => {
+        const unsubscribeProgress = speechService.onDownloadProgress((progress) => {
             setDownloadProgress(progress);
         });
 
         return () => {
-            speechService.onVoicesChanged(null);
-            speechService.onDownloadProgress(null);
+            unsubscribeVoices();
+            unsubscribeProgress();
         };
     }, []);
 
@@ -76,6 +79,13 @@ export default function useSpeckAlert() {
             dispatch(setVoiceVolumeDefinitive(vol));
         }
     }, [listVoicesState]);
+
+
+    // Sincroniza el volumen entre todas las instancias del hook (el slider del
+    // Lobby y el de Config_window comparten el valor vía Redux)
+    useEffect(() => {
+        setVolumeState(volumeDefinitive);
+    }, [volumeDefinitive]);
 
 
     // Unlock de audio en el primer click/touch del usuario (requerido en mobile)

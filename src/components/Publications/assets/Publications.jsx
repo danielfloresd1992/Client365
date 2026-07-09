@@ -27,7 +27,6 @@ export default memo(function Publications({ dataPreRender, filterSignal }) {
     const { data, fetchData, setItem, resetData } = useFetch(`/user/publisher/paginate=${paginateRef.current}/items=10`);
 
 
-
     //Animación de entrada y salida de elementos
     useEffect(() => {
         boxRef.current && autoAnimate(boxRef.current, {
