@@ -58,7 +58,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const dispatch = useDispatch();
 
 
-    const groupId = noveltyState?.establishment?.groupId || whatsAppSendingDefault.key;
+    const groupId = noveltyState?.establishment?.groupId || whatsAppSendingDefault?.key;
 
     useEffect(() => { noveltyStateRef.current = noveltyState; }, [noveltyState]);
 

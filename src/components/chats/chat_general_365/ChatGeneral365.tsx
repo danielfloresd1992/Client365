@@ -58,8 +58,12 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
     const [message, setMessage] = useState<string>('');
     const [replyingTo, setReplyingTo] = useState<Tmsm | null>(null);
+    const [pendingFile, setPendingFile] = useState<File | null>(null);
+    const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+    const [isDragOver, setIsDragOver] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const buttonOpenEmojiRef = useRef<HTMLButtonElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const pageRef = useRef(0);
 
 
@@ -177,21 +181,53 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
 
+    // Acepta una imagen (venga del drag & drop o del botón de adjuntar) y genera su preview
+    const acceptFile = useCallback((file: File | null | undefined) => {
+        if (!file) return;
+        if (!file.type.startsWith('image/')) {
+            addAlert({ title: 'Chat365', description: 'Solo se pueden adjuntar imágenes' });
+            return;
+        }
+        setPendingPreview(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return URL.createObjectURL(file);
+        });
+        setPendingFile(file);
+    }, [addAlert]);
+
+
+    const clearPendingFile = useCallback(() => {
+        setPendingPreview(prev => {
+            if (prev) URL.revokeObjectURL(prev);
+            return null;
+        });
+        setPendingFile(null);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    }, []);
+
+
+
+
     const sendMsm = useCallback(() => {
         if (keySubmit.current === false) return;
+        if (message.trim() === '' && !pendingFile) return;
         keySubmit.current = false;
-        if (message.trim() !== '') {
+
+        // Publica el mensaje en el chat (con la URL de la imagen ya subida, si aplica)
+        const postChat = (imageUrl?: string) => {
             fetchData({
                 url: '/chat',
                 method: 'post',
-                callback: () => {
+                callback: (response: any) => {
+                    keySubmit.current = true;
+                    if (!response) return; // el envío falló: se conserva lo escrito
                     setMessage('');
                     setReplyingTo(null);
-                    keySubmit.current = true;
-                    //    setShowEmojiPicker(false);
+                    clearPendingFile();
                 },
                 body: {
                     message: message,
+                    ...(imageUrl ? { sharedAlert: { image: imageUrl, title: 'Imagen' } } : {}),
                     ...(replyingTo ? {
                         replyTo: {
                             messageId: replyingTo._id,
@@ -202,8 +238,31 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 },
                 autoGetData: false
             });
+        };
+
+        if (pendingFile) {
+            // 1) sube la imagen al backend, 2) envía el mensaje con su URL
+            const formData = new FormData();
+            formData.append('img', pendingFile);
+            fetchData({
+                url: '/multimedia',
+                method: 'post',
+                autoGetData: false,
+                body: formData,
+                callback: (response: any) => {
+                    if (!response) {
+                        keySubmit.current = true;
+                        addAlert({ title: 'Chat365', description: 'No se pudo subir la imagen' });
+                        return;
+                    }
+                    postChat(response.data.url);
+                }
+            });
         }
-    }, [data, message, replyingTo]);
+        else {
+            postChat();
+        }
+    }, [data, message, replyingTo, pendingFile]);
 
 
 
@@ -227,7 +286,32 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
     return (
-        <div className='w-full h-full'>
+        <div
+            className='relative w-full h-full'
+            onDragOver={e => {
+                e.preventDefault();
+                setIsDragOver(true);
+            }}
+            onDragLeave={e => {
+                e.preventDefault();
+                // Solo cerrar el overlay al salir del contenedor (no al pasar entre hijos)
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false);
+            }}
+            onDrop={e => {
+                e.preventDefault();
+                setIsDragOver(false);
+                acceptFile(e.dataTransfer.files?.[0]);
+            }}
+        >
+            {
+                isDragOver && (
+                    <div className='absolute inset-0 z-[60] bg-[#089300]/15 border-4 border-dashed border-[#089300] flex items-center justify-center pointer-events-none'>
+                        <p className='bg-white/95 text-[#089300] font-semibold text-sm px-4 py-2 rounded-full shadow-lg'>
+                            📎 Suelta la imagen para adjuntarla
+                        </p>
+                    </div>
+                )
+            }
             <header className='h-[80px] w-full bg-[rgb(237_237_237)] p-[.5rem]'>
                 <div className='w-full h-full flex flex-row justify-start items-center gap-4'>
                     <div>
@@ -289,18 +373,41 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
             <div className=' relative w-full h-[100px] bg-[#cdcdcd] flex items-center justify-center gap-2 p-2'>
 
                 {
-                    replyingTo && (
-                        <div className='absolute bottom-full left-0 w-full px-3 py-2 bg-[#d8d8d8] border-t border-[#bbb] flex items-center justify-between gap-2'>
-                            <div className='min-w-0 border-l-[3px] border-[#089300] pl-2'>
-                                <b className='block text-[0.72rem] text-[#089300] truncate'>Respondiendo a {replyingTo.submittedByUser?.name || ''}</b>
-                                <span className='block text-[0.72rem] text-[#555] truncate'>{replyingTo.message || replyingTo.sharedAlert?.title || 'Alerta'}</span>
-                            </div>
-                            <button
-                                type='button'
-                                className='shrink-0 text-[#666] hover:text-black text-xl leading-none px-1'
-                                onClick={() => setReplyingTo(null)}
-                                aria-label='Cancelar respuesta'
-                            >×</button>
+                    (replyingTo || pendingPreview) && (
+                        <div className='absolute bottom-full left-0 w-full flex flex-col'>
+                            {
+                                replyingTo && (
+                                    <div className='w-full px-3 py-2 bg-[#d8d8d8] border-t border-[#bbb] flex items-center justify-between gap-2'>
+                                        <div className='min-w-0 border-l-[3px] border-[#089300] pl-2'>
+                                            <b className='block text-[0.72rem] text-[#089300] truncate'>Respondiendo a {replyingTo.submittedByUser?.name || ''}</b>
+                                            <span className='block text-[0.72rem] text-[#555] truncate'>{replyingTo.message || replyingTo.sharedAlert?.title || 'Alerta'}</span>
+                                        </div>
+                                        <button
+                                            type='button'
+                                            className='shrink-0 text-[#666] hover:text-black text-xl leading-none px-1'
+                                            onClick={() => setReplyingTo(null)}
+                                            aria-label='Cancelar respuesta'
+                                        >×</button>
+                                    </div>
+                                )
+                            }
+                            {
+                                pendingPreview && (
+                                    <div className='w-full px-3 py-2 bg-[#e6e6e6] border-t border-[#bbb] flex items-center gap-3'>
+                                        <img src={pendingPreview} alt='Imagen adjunta' className='w-12 h-12 rounded-lg object-cover border border-[#bbb] shrink-0' />
+                                        <div className='min-w-0 flex-1'>
+                                            <b className='block text-[0.72rem] text-[#089300] truncate'>Imagen adjunta</b>
+                                            <span className='block text-[0.72rem] text-[#555] truncate'>{pendingFile?.name}</span>
+                                        </div>
+                                        <button
+                                            type='button'
+                                            className='shrink-0 text-[#666] hover:text-black text-xl leading-none px-1'
+                                            onClick={clearPendingFile}
+                                            aria-label='Quitar imagen'
+                                        >×</button>
+                                    </div>
+                                )
+                            }
                         </div>
                     )
                 }
@@ -320,8 +427,8 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
                     <textarea
                         value={message}
-                        className='w-full h-full resize-none bg-white rounded-[10px] p-[.5rem] text-black focus:outline-none active:outline-none'
-                        placeholder='Escribe un mensaje...'
+                        className='w-full h-full resize-none bg-white rounded-xl border border-[#b9b9b9] p-[.6rem] text-sm text-black placeholder:text-[#9a9a9a] shadow-sm transition-colors focus:outline-none focus:border-[#089300] focus:ring-2 focus:ring-[#089300]/25'
+                        placeholder={pendingFile ? 'Añade un comentario (opcional)…' : 'Escribe un mensaje...'}
                         ref={textareaRef}
 
                         onChange={(e) => {
@@ -338,16 +445,20 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                                     });
                                 }
                                 else {
-                                    if (message !== '') sendMsm();
+                                    if (message !== '' || pendingFile) sendMsm();
                                 }
                             }
                         }}
                     />
                 </form>
 
-                <div className='w-[20%] h-full flex flex-col flex-wrap justify-start gap-[.2rem]'>
+                <div className='w-[20%] h-full grid grid-cols-2 grid-rows-2 gap-[.3rem]'>
 
-                    <button className='w-[48%] h-[48%] bg-[rgb(78_217_40)] flex items-center justify-center rounded-[10px]'
+                    <button
+                        type='button'
+                        title='Enviar mensaje'
+                        aria-label='Enviar mensaje'
+                        className='col-span-2 bg-[#089300] hover:bg-[#0aab00] active:scale-95 transition-all flex items-center justify-center rounded-xl shadow-sm'
                         onClick={sendMsm}
                     >
                         <div style={{
@@ -358,27 +469,36 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                     </button>
 
 
-
-
-
                     <button
-                        className='w-[48%] h-[48%]  bg-[rgb(147_147_147)] flex items-center justify-center rounded-[10px]'
+                        type='button'
+                        title='Insertar emoji'
+                        aria-label='Insertar emoji'
+                        className='bg-white border border-[#b9b9b9] hover:bg-[#f0f0f0] active:scale-95 transition-all flex items-center justify-center rounded-xl shadow-sm'
                         ref={buttonOpenEmojiRef}
                     >
                         <div>
-                            <Image src='/ico/icons8-winking-face-48.png' width={30} height={30} alt='ico-emoji' />
+                            <Image src='/ico/icons8-winking-face-48.png' width={26} height={26} alt='ico-emoji' />
                         </div>
                     </button>
 
 
-
-                    <button className='w-[48%] h-[48%] bg-[rgb(147_147_147)] flex items-center justify-center rounded-[10px]'>
-                        <div style={{
-                            filter: 'invert(1)'
-                        }}>
-                            <Image src='/ico/icons8-adjuntar-50.png' width={20} height={20} alt='ico-add_document' />
-                        </div>
+                    <button
+                        type='button'
+                        title='Adjuntar imagen'
+                        aria-label='Adjuntar imagen'
+                        className='bg-white border border-[#b9b9b9] hover:bg-[#f0f0f0] active:scale-95 transition-all flex items-center justify-center rounded-xl shadow-sm'
+                        onClick={() => fileInputRef.current?.click()}
+                    >
+                        <Image src='/ico/icons8-adjuntar-50.png' width={20} height={20} alt='ico-add_document' />
                     </button>
+
+                    <input
+                        ref={fileInputRef}
+                        type='file'
+                        accept='image/*'
+                        className='hidden'
+                        onChange={e => acceptFile(e.target.files?.[0])}
+                    />
                 </div>
             </div>
             <style jsx global>{`

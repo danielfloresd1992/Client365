@@ -81,7 +81,7 @@ export default function Lobby() {
                     <SectionConfigVoice />
                 </Aside_Eyelash>
 
-                <Aside_Eyelash position='r' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3}>
+                <Aside_Eyelash position='r' title='Chat365' urlIco={'/ico/icons8-chat-24.png'} eyelash={3} isDrag={true}>
                     {(methods) => (
                         <ChatGeneral365  {...methods} />
                     )}
