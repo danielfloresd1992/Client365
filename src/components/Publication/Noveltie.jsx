@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown, FiShare2 } from 'react-icons/fi';
 import { FaWhatsapp } from "react-icons/fa";
 import { isMobile } from 'react-device-detect';
 
@@ -37,6 +37,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const [noveltyState, setNoveltyState] = useState(null);
     const [deleteState, setDeleteState] = useState(false);
+    const [shareMenuOpen, setShareMenuOpen] = useState(false);
+    const [shareMessageText, setShareMessageText] = useState('');
     const containBtnRef = useRef(null);
     const menuRef = useRef(null);
 
@@ -290,6 +292,49 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
     const parseMenu = menu => menu.replaceAll('*', '').replaceAll('_', '');
 
+
+    // Comparte esta alerta/novedad en el chat general (POST /chat con sharedAlert)
+    const shareAlertToChat = () => {
+        const messageToSend = shareMessageText.trim();
+        setShareMenuOpen(false);
+        requestAction({
+            url: '/chat',
+            action: 'post',
+            body: {
+                message: messageToSend,
+                sharedAlert: {
+                    noveltyId: noveltyState._id,
+                    title: noveltyState.title,
+                    menu: noveltyState.menu ? parseMenu(noveltyState.menu) : '',
+                    validation: noveltyState?.isValidate?.validation ?? null,
+                    localName: noveltyState.local?.name ?? '',
+                    image: noveltyState.imageToShare
+                        || (Array.isArray(noveltyState.imageUrl) ? noveltyState.imageUrl[0]?.url : '')
+                        || ''
+                }
+            }
+        })
+            .then(() => {
+                setShareMessageText('');
+                dispatch(setConfigModal({
+                    modalOpen: true,
+                    title: 'Compartido',
+                    description: 'La alerta se compartió en el chat general.',
+                    isCallback: null,
+                    type: 'successfull'
+                }));
+            })
+            .catch(() => {
+                dispatch(setConfigModal({
+                    modalOpen: true,
+                    title: 'Error',
+                    description: 'No se pudo compartir la alerta en el chat.',
+                    isCallback: null,
+                    type: 'error'
+                }));
+            });
+    };
+
     const parseValidationValue = (value) => {
         if (value === true || value === false) return value;
         if (typeof value !== 'string') return null;
@@ -371,6 +416,16 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                         <button
                                             className='divContentNovelties-headerListOptionBtn'
                                             onClick={() => {
+                                                setShareMenuOpen(true);
+                                                containBtnRef.current.classList.remove('showListOption');
+                                            }}
+                                        >
+                                            Compartir en chat
+                                            <FiShare2 className='divContentNovelties-headerListOptionImg' />
+                                        </button>
+                                        <button
+                                            className='divContentNovelties-headerListOptionBtn'
+                                            onClick={() => {
                                                 dispatch(setConfigModal(
                                                     {
                                                         modalOpen: true,
@@ -387,6 +442,60 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             <FiTrash2 className='divContentNovelties-headerListOptionImg' />
                                         </button>
                                     </div>
+
+                                    {
+                                        shareMenuOpen && (
+                                            <>
+                                                <div className='fixed inset-0 z-[90]' onClick={() => setShareMenuOpen(false)} />
+                                                <div className='absolute top-[38px] right-[10px] z-[100] w-[260px]'>
+                                                    {/* caret */}
+                                                    <div className='absolute -top-[5px] right-[14px] w-2.5 h-2.5 bg-emerald-50 border-l border-t border-emerald-100 rotate-45' />
+
+                                                    <div className='relative bg-white rounded-xl border border-gray-100 shadow-[0_8px_28px_rgba(0,0,0,0.25)] overflow-hidden'>
+                                                        {/* encabezado */}
+                                                        <div className='flex items-center gap-2 px-3 py-2 bg-emerald-50 border-b border-emerald-100'>
+                                                            <span className='flex items-center justify-center w-6 h-6 rounded-full bg-emerald-500 text-white'>
+                                                                <FiShare2 className='w-[13px] h-[13px]' />
+                                                            </span>
+                                                            <div className='flex flex-col leading-tight'>
+                                                                <span className='text-[12.5px] font-semibold text-emerald-800'>Compartir en el chat</span>
+                                                                <span className='text-[10.5px] text-emerald-600'>Se enviará al Chat365</span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* cuerpo */}
+                                                        <div className='p-3 flex flex-col gap-2'>
+                                                            <textarea
+                                                                value={shareMessageText}
+                                                                onChange={e => setShareMessageText(e.target.value)}
+                                                                placeholder='Agrega un mensaje (opcional)…'
+                                                                rows={2}
+                                                                maxLength={300}
+                                                                autoFocus
+                                                                className='w-full text-[13px] text-gray-700 bg-gray-50 border border-gray-200 rounded-lg p-2 resize-none transition-colors placeholder:text-gray-400 focus:outline-none focus:border-emerald-400 focus:bg-white'
+                                                            />
+                                                            <div className='flex items-center justify-between gap-2'>
+                                                                <button
+                                                                    type='button'
+                                                                    className='text-[12px] text-gray-400 hover:text-gray-600 px-1'
+                                                                    onClick={() => setShareMenuOpen(false)}
+                                                                >
+                                                                    Cancelar
+                                                                </button>
+                                                                <button
+                                                                    type='button'
+                                                                    className='flex items-center gap-2 px-3.5 py-2 text-[12.5px] font-semibold text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] rounded-lg transition'
+                                                                    onClick={shareAlertToChat}
+                                                                >
+                                                                    <FiSend className='w-[13px] h-[13px]' /> Compartir
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </>
+                                        )
+                                    }
                                 </div>
 
                             </div>
@@ -595,7 +704,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar video</p>
                                                         </button>
-                                                        {
+                                                        {/*
                                                             <button //button whastapp
                                                                 className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
                                                                 type='button'
@@ -619,7 +728,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                 <p className='__textGrayForList'>Enviar video</p>
                                                             </button>
 
-                                                        }
+                                                        */}
 
                                                     </>
                                                     :

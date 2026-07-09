@@ -18,11 +18,27 @@ type T_User = {
 
 
 
+type T_SharedAlert = {
+    title?: string,
+    menu?: string,
+    validation?: string | null,
+    localName?: string,
+    image?: string
+}
+
+type T_ReplyTo = {
+    messageId?: string,
+    message?: string,
+    name?: string
+}
+
 type Tmsm = {
     _id: string,
     message: string,
     submittedByUser: T_User,
-    date: string
+    date: string,
+    sharedAlert?: T_SharedAlert,
+    replyTo?: T_ReplyTo
 }
 
 
@@ -41,6 +57,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
     const [message, setMessage] = useState<string>('');
+    const [replyingTo, setReplyingTo] = useState<Tmsm | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const buttonOpenEmojiRef = useRef<HTMLButtonElement>(null);
     const pageRef = useRef(0);
@@ -169,16 +186,24 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 method: 'post',
                 callback: () => {
                     setMessage('');
+                    setReplyingTo(null);
                     keySubmit.current = true;
                     //    setShowEmojiPicker(false);
                 },
                 body: {
-                    message: message
+                    message: message,
+                    ...(replyingTo ? {
+                        replyTo: {
+                            messageId: replyingTo._id,
+                            message: replyingTo.message || replyingTo.sharedAlert?.title || 'Alerta',
+                            name: replyingTo.submittedByUser?.name
+                        }
+                    } : {})
                 },
                 autoGetData: false
             });
         }
-    }, [data, message]);
+    }, [data, message, replyingTo]);
 
 
 
@@ -236,7 +261,7 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                                         <div className='w-full flex flex-col gap-[.2rem]' key={index}>
                                             {
                                                 Array.isArray(group) && group.toReversed().map((item: Tmsm, indexMsm: number) => (
-                                                    <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} deleteProp={deleteMsm} />
+                                                    <BoxMsm item={item} indexMsm={indexMsm} user={user} key={item._id} deleteProp={deleteMsm} onReply={setReplyingTo} />
                                                 ))
                                             }
                                         </div>
@@ -262,6 +287,23 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
 
 
             <div className=' relative w-full h-[100px] bg-[#cdcdcd] flex items-center justify-center gap-2 p-2'>
+
+                {
+                    replyingTo && (
+                        <div className='absolute bottom-full left-0 w-full px-3 py-2 bg-[#d8d8d8] border-t border-[#bbb] flex items-center justify-between gap-2'>
+                            <div className='min-w-0 border-l-[3px] border-[#089300] pl-2'>
+                                <b className='block text-[0.72rem] text-[#089300] truncate'>Respondiendo a {replyingTo.submittedByUser?.name || ''}</b>
+                                <span className='block text-[0.72rem] text-[#555] truncate'>{replyingTo.message || replyingTo.sharedAlert?.title || 'Alerta'}</span>
+                            </div>
+                            <button
+                                type='button'
+                                className='shrink-0 text-[#666] hover:text-black text-xl leading-none px-1'
+                                onClick={() => setReplyingTo(null)}
+                                aria-label='Cancelar respuesta'
+                            >×</button>
+                        </div>
+                    )
+                }
 
                 <form className='w-[80%] h-full ' action="" onSubmit={onHanddlerSubmit}>
 
@@ -350,6 +392,19 @@ export default function ChatGeneral365({ openAside, addAlert }: T_Props) {
                 .message-content {
                     line-height: 1.4;
                     word-break: break-word;
+                }
+                /* Resalta el mensaje original al que se responde (2s) */
+                @keyframes msgHighlightPulse {
+                    0%   { background-color: rgba(8, 147, 0, 0.30); }
+                    70%  { background-color: rgba(8, 147, 0, 0.30); }
+                    100% { background-color: transparent; }
+                }
+                .msg-highlight {
+                    animation: msgHighlightPulse 2s ease-out;
+                    border-radius: 8px;
+                }
+                @media (prefers-reduced-motion: reduce) {
+                    .msg-highlight { animation: none; }
                 }
             `}</style>
         </div>

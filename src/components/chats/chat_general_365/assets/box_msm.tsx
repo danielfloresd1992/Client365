@@ -6,7 +6,7 @@ import DataFormart from '@/libs/time/dateFormat';
 
 
 
-export default function BoxMsm({ item, indexMsm, user, deleteProp }: any) {
+export default function BoxMsm({ item, indexMsm, user, deleteProp, onReply }: any) {
 
 
 
@@ -69,8 +69,29 @@ export default function BoxMsm({ item, indexMsm, user, deleteProp }: any) {
     };
 
 
+    const handdlerClickReply = () => {
+        if (onReply) onReply(item);
+        if (refContextMenu.current) refContextMenu.current.style.display = 'none';
+    };
+
+
+    // Al clicar la cita, hace scroll hasta el mensaje original y lo resalta 2s
+    const scrollToRepliedMessage = () => {
+        const targetId = item?.replyTo?.messageId;
+        if (!targetId) return;
+        const el = document.querySelector(`[data-msg-id="${targetId}"]`) as HTMLElement | null;
+        if (!el) return; // el mensaje original aún no está cargado en pantalla
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.remove('msg-highlight');
+        void el.offsetWidth; // reflow para re-disparar la animación si ya estaba
+        el.classList.add('msg-highlight');
+        setTimeout(() => el.classList.remove('msg-highlight'), 2000);
+    };
+
+
     return (
         <div className='w-full flex p-[0rem_.4rem] relative'
+            data-msg-id={item?._id}
             style={{
                 justifyContent: MY_MESSAGES ? 'flex-end' : 'flex-start',
             }}
@@ -109,7 +130,7 @@ export default function BoxMsm({ item, indexMsm, user, deleteProp }: any) {
                                         <button className='w-full h-full text-left'>Editar</button>
                                     </li>
                                     <li className='p-[.5rem_1rem] hover:bg-gray-200'>
-                                        <button className='w-full h-full text-left'>Responder</button>
+                                        <button className='w-full h-full text-left' onClick={handdlerClickReply}>Responder</button>
                                     </li>
                                     <li className='p-[.5rem_1rem] hover:bg-gray-200'>
                                         <button className='w-full h-full text-left'>Reaccionar</button>
@@ -129,10 +150,57 @@ export default function BoxMsm({ item, indexMsm, user, deleteProp }: any) {
 
                     </div>
 
-                    <div className='w-full'
-
-                    >
-                        <p className='text-[0.9rem] text-black system-ui whitespace-pre-wrap' >{item.message}</p>
+                    <div className='w-full min-w-0'>
+                        {
+                            item.replyTo && (item.replyTo.message || item.replyTo.name) && (
+                                <div
+                                    className='mb-1 border-l-[3px] border-[#089300] bg-[#eef7ee] rounded-[4px] px-2 py-1 cursor-pointer hover:bg-[#e2f0e2] transition-colors'
+                                    onClick={scrollToRepliedMessage}
+                                    title='Ir al mensaje original'
+                                >
+                                    <b className='block text-[0.68rem] text-[#089300] truncate'>{item.replyTo.name || 'Mensaje'}</b>
+                                    <span className='block text-[0.7rem] text-[#555] truncate'>{item.replyTo.message}</span>
+                                </div>
+                            )
+                        }
+                        {
+                            item.sharedAlert && (
+                                <div className='mb-1 rounded-[6px] overflow-hidden border border-[#e0e0e0] bg-[#f6f6f6]'>
+                                    {
+                                        item.sharedAlert.image ?
+                                            <img src={item.sharedAlert.image} alt='alerta compartida' className='w-full max-h-[160px] object-cover' loading='lazy' decoding='async' />
+                                            : null
+                                    }
+                                    <div className='p-[.4rem_.5rem] flex flex-col gap-[2px]'>
+                                        <div className='flex items-center justify-between gap-2'>
+                                            <b className='text-[0.8rem] text-[#089300] truncate'>{item.sharedAlert.title || 'Alerta'}</b>
+                                            {
+                                                item.sharedAlert.validation === 'true' ?
+                                                    <span className='shrink-0 text-[0.6rem] px-[6px] py-[1px] rounded-full bg-[#dcfce7] text-[#166534]'>Aprobada</span>
+                                                    : item.sharedAlert.validation === 'false' ?
+                                                        <span className='shrink-0 text-[0.6rem] px-[6px] py-[1px] rounded-full bg-[#fee2e2] text-[#991b1b]'>Rechazada</span>
+                                                        : <span className='shrink-0 text-[0.6rem] px-[6px] py-[1px] rounded-full bg-[#f3f4f6] text-[#6b7280]'>Pendiente</span>
+                                            }
+                                        </div>
+                                        {
+                                            item.sharedAlert.localName ?
+                                                <span className='text-[0.65rem] text-[#6b7280]'>{item.sharedAlert.localName}</span>
+                                                : null
+                                        }
+                                        {
+                                            item.sharedAlert.menu ?
+                                                <p className='text-[0.72rem] text-[#374151] whitespace-pre-wrap break-words [overflow-wrap:anywhere] line-clamp-4'>{item.sharedAlert.menu}</p>
+                                                : null
+                                        }
+                                    </div>
+                                </div>
+                            )
+                        }
+                        {
+                            item.message ?
+                                <p className='text-[0.9rem] text-black system-ui whitespace-pre-wrap break-words [overflow-wrap:anywhere]'>{item.message}</p>
+                                : null
+                        }
                     </div>
                     <p className='text-right text-[0.6rem] text-[#5d5d5d]'>{DataFormart.formatDateApp(item.date)}</p>
                 </div>
