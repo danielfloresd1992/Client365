@@ -58,7 +58,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const dispatch = useDispatch();
 
 
-    const groupId = noveltyState?.establishment?.groupId || whatsAppSendingDefault?.key;
+    const groupId = noveltyState?.establishment?.groupId;
 
     useEffect(() => { noveltyStateRef.current = noveltyState; }, [noveltyState]);
 
@@ -220,8 +220,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
 
-                const responseSend = await typeShareJarvis([noveltieCopi], groupId);
-
+                const responseSendStablishment = await typeShareJarvis([noveltieCopi], groupId);
+                const responseSendAmazonas = await typeShareJarvis([noveltieCopi], whatsAppSendingDefault);
 
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
@@ -245,7 +245,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             dispatch(setConfigModal({
                 modalOpen: true,
                 title: 'Error',
-                description: 'Error',
+                description: 'Chequea que este en el respectivo grupo de whatsapp y que el servidor de jarvis este activo.',
                 isCallback: null,
                 type: 'error'
             }
