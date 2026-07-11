@@ -103,7 +103,8 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     const handleFileChange = async (event) => {
         const file = event.target.files[0]; // Obtenemos el primer archivo seleccionado
         if (file) {
-         
+            console.log("Archivo cargado:", file.name);
+            console.log("Tamaño:", file.size);
             // Aquí es donde disparas tu lógica
             const response = await fetchFileData(file);
             const newImageUrl = response.url;
@@ -241,7 +242,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
                         {/* Departamento */}
                         <div>
-                            <div className='mb-2'>
+                            <div className='mb-2 block'>
                                 <Label htmlFor='department' value='Departamento' />
                             </div>
                             <Select 
@@ -264,7 +265,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
                         {/* Puesto / Cargo */}
                     <div>
-                        <div className='mb-2'>
+                        <div className='mb-2 block'>
                             <Label htmlFor='position' value='Puesto' />
                         </div>
                         <Select 
@@ -317,7 +318,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
                     {/* Turno global por defecto */}
                     <div className='mb-4 max-w-xs'>
-                        <div className='mb-2'>
+                        <div className='mb-2 block'>
                             <Label htmlFor='shiftType' value='Turno Global (por defecto)' />
                         </div>
                         <Select
@@ -352,7 +353,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                             <td className='px-3 py-2 font-medium text-gray-700 whitespace-nowrap'>{dayName}</td>
                                             <td className='px-3 py-2'>
                                                 <select
-                                                    className='w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
                                                     value={day.workType || 'laboral'}
                                                     onChange={(e) => updateDayField(key, 'workType', e.target.value)}
                                                 >
@@ -363,7 +364,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                             </td>
                                             <td className='px-3 py-2'>
                                                 <select
-                                                    className='w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500'
                                                     value={day.shift || 'Diurno'}
                                                     onChange={(e) => updateDayField(key, 'shift', e.target.value)}
                                                     disabled={isDescanso}
@@ -375,7 +376,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                             <td className='px-3 py-2'>
                                                 <input
                                                     type='time'
-                                                    className='w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
                                                     value={day.startTime || ''}
                                                     onChange={(e) => updateDayField(key, 'startTime', e.target.value)}
                                                     disabled={isDescanso}
@@ -384,7 +385,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                             <td className='px-3 py-2'>
                                                 <input
                                                     type='time'
-                                                    className='w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
+                                                    className='block w-full rounded-md border-gray-300 text-sm focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100'
                                                     value={day.endTime || ''}
                                                     onChange={(e) => updateDayField(key, 'endTime', e.target.value)}
                                                     disabled={isDescanso}
@@ -433,7 +434,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
                 <div className='w-full'>
 
-                    <Label className="mb-2" htmlFor="file-upload-helper-text">
+                    <Label className="mb-2 block" htmlFor="file-upload-helper-text">
                        {"Subir foto '(Operacional)'"}
                     </Label>
                     <FileInput id="file-upload-helper-text" onChange={handleFileChange} />
