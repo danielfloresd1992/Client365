@@ -221,7 +221,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
                 const responseSendStablishment = await typeShareJarvis([noveltieCopi], groupId);
-                const responseSendAmazonas = await typeShareJarvis([noveltieCopi], whatsAppSendingDefault);
+                
 
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
@@ -238,7 +238,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                     }
                 ));
 
+               const responseSendAmazonas = await typeShareJarvis([noveltieCopi], whatsAppSendingDefault?.key);
             }
+
+            
         }
         catch (error) {
             console.log(error);
