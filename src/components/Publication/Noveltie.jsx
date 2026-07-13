@@ -32,7 +32,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const whatsAppSendingDefault = useSelector(state => state.filterClientList?.groupIdWhatsapp);
-    
+
 
 
     const [noveltyState, setNoveltyState] = useState(null);
@@ -220,8 +220,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
 
-                const responseSendStablishment = await typeShareJarvis([noveltieCopi], groupId);
-                
+            //    if(!hasVideo) await typeShareJarvis([noveltieCopi], groupId)
+
 
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
@@ -241,7 +241,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                const responseSendAmazonas = await typeShareJarvis([noveltieCopi], whatsAppSendingDefault?.key);
             }
 
-            
+
         }
         catch (error) {
             console.log(error);
@@ -355,7 +355,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const canShare = isValidated && canManageState && noveltyState?.shift !== null;
 
 
-   
+
     console.log('noveltyState', noveltyState);
 
     return (
@@ -707,32 +707,29 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar video</p>
                                                         </button>
-                                                        {/*
-                                                            <button //button whastapp
-                                                                className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
-                                                                type='button'
-                                                                onClick={() => {
-                                                                    dispatch(setConfigModal(
-                                                                        {
-                                                                            modalOpen: true,
-                                                                            title: 'Enviando',
-                                                                            description: 'Por favor verifique que el video este en el grupo. en caso de no estarlo, descárgalo',
-                                                                            isCallback: null,
-                                                                            type: 'warning'
-                                                                        }
-                                                                    ));
-                                                                    shareNoveltyForApiAva()
-                                                                }
-                                                                }
-                                                                disabled={!canShare}
-                                                                title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
-                                                            >
-                                                                <FiSend className='btnPublic-img' />
-                                                                <p className='__textGrayForList'>Enviar video</p>
-                                                            </button>
 
-                                                        */}
-
+                                                        <button //button whastapp
+                                                            className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
+                                                            type='button'
+                                                            onClick={() => {
+                                                                dispatch(setConfigModal(
+                                                                    {
+                                                                        modalOpen: true,
+                                                                        title: 'Enviando',
+                                                                        description: 'Por favor verifique que el video este en el grupo. en caso de no estarlo, descárgalo',
+                                                                        isCallback: null,
+                                                                        type: 'warning'
+                                                                    }
+                                                                ));
+                                                                shareNoveltyForApiAva()
+                                                            }
+                                                            }
+                                                            disabled={!canShare}
+                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
+                                                        >
+                                                            <FiSend className='btnPublic-img' />
+                                                            <p className='__textGrayForList'>Enviar video</p>
+                                                        </button>
                                                     </>
                                                     :
                                                     null
