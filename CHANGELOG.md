@@ -11,6 +11,16 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-16
+- **Sidebar de `/user` rediseñado (`Aide_nav.jsx`):** alineado al lenguaje visual
+  del panel (card blanca `rounded-xl border shadow-sm`, item activo
+  `bg-emerald-600` como los tabs de asistencia, labels uppercase pequeños).
+  Iconos PNG con hacks de `contrast` reemplazados por SVG inline
+  (`stroke: currentColor`); toggle negro reemplazado por control blanco con
+  chevron que rota (aria-expanded/aria-label, `motion-reduce`); resaltado de
+  ruta activa con `usePathname`; botón "Volver" (antes muerto) ahora navega a
+  `/Lobby`. En `layout.jsx` se corrigió `bg-gray` (clase inválida) →
+  `bg-gray-50`. Se creó `PRODUCT.md` (contexto de diseño del proyecto).
+  _(Claude Code)_
 - **Tailwind — `darkMode: "selector"` (`tailwind.config.ts`):** sin `darkMode`
   configurado regía el default `'media'`, y con el SO en tema oscuro se activaban
   solas las clases `dark:` de flowbite (labels con `dark:text-white` invisibles
