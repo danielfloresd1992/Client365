@@ -10,6 +10,23 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-16
+- **Formulario de edición de usuario (`user.update.form.jsx`) — fix estilos flowbite
+  y checkboxes:** dos causas independientes. (1) Se eliminó una regla legacy global
+  de `styles.css` (`input[type="checkbox"]+label:before`, del primer commit) que
+  dibujaba un cuadro absoluto de 25×25 px sobre cualquier checkbox seguido de label
+  y rompía los `<Checkbox>` de flowbite; ningún componente la usaba (verificado en
+  los 8 archivos con checkboxes). (2) El formulario usaba API vieja de
+  flowbite-react (el proyecto tiene v0.12): prop `value` de `Label` (los labels de
+  Departamento/Puesto/Turno Global se renderizaban vacíos) → texto como children;
+  prop `helperText` de `TextInput` (los errores nunca se mostraban) → componente
+  `<HelperText color='failure'>`; `color='gray'` inválido en `Label`; IDs duplicados
+  (`id='name'` en 3 inputs) → `surName`/`detail`; ruta de error incorrecta
+  (`errors.name?.detail` → `errors.jobInformation?.detail`). También typos
+  ("Coreo"→"Correo", "Jaun"→"Juan"). Se regeneró `.flowbite-react/class-list.json`
+  (`npx flowbite-react build`; en dev el watcher está desactivado a propósito).
+  Lint OK. _(Claude Code)_
+
 ## 2026-07-05
 - **FormClient — grupo de WhatsApp por establecimiento:** nueva función
   `libs/ajaxClient/groups.fecth.js` (GET `{NEXT_PUBLIC_SOCKET_AVA_CHAT}/bot/groups`,

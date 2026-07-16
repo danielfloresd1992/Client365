@@ -1569,21 +1569,9 @@ p {
     outline: none;
 }
 
-input[type="checkbox"]+label:before {
-    content: "";
-    display: inline-block;
-    width: 25px;
-    height: 25px;
-    border: 2px solid #888;
-    position: absolute;
-    left: 0;
-    transition: all 0.3s ease-in-out;
-}
-
-/* Estilizamos el checkbox cuando está marcado */
-input[type="checkbox"]:checked+label:before {
-    background-color: #0f0;
-}
+/* Regla legacy de checkbox custom (input+label:before) eliminada:
+   dibujaba un cuadro absoluto sobre cualquier checkbox seguido de label
+   y rompía los Checkbox de flowbite-react. Ningún componente la usaba. */
 
 /*
 input[type="number"]::-webkit-inner-spin-button,

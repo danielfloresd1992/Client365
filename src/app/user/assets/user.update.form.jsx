@@ -33,7 +33,7 @@ const buildDefaultScheduleByDay = (existingMap) => {
 export default function UserEditForm({ initialData, onSave=() => {}, onCancel, departmentList=[], positionList=[] }) {
     // Control de secciones basado en si los datos existen en initialData
 
-    const  [ dataUser , setDataUser] = useState(initialData);
+    const [ dataUser , setDataUser] = useState(initialData);
     const [hasJobInfo, setHasJobInfo] = useState(!!initialData?.jobInformation);
     const [hasSchedule, setHasSchedule] = useState(!!initialData?.workSchedule);
     const [scheduleByDay, setScheduleByDay] = useState(() =>
@@ -44,7 +44,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     
     const userContext = useContext(myUserContext);
 
-    console.log(userContext);
+  
     
     const {
         register,
@@ -54,6 +54,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
         formState: { errors }
     } = useForm();
  
+    
     // 💡 IMPORTANTE: Resetear el formulario cuando cambie initialData
 
     useEffect(() => {
@@ -120,6 +121,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
         return null
     }
 
+
     return (
        <div className='bg-white p-6 rounded-xl shadow-2xl border'>
             <div className='flex justify-between items-center mb-6'>
@@ -136,104 +138,77 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     {/* Sección de Cédula de Identidad */}
                     <div className='w-full'>
                         <div className='w-full'>
-                            <Label 
-                                htmlFor='dni' 
-                                value='Cédula de Identidad' 
-                                color='gray'
-                            >CI</Label>
-                            <TextInput 
+                            <Label htmlFor='dni'>Cédula de Identidad</Label>
+                            <TextInput
                                 id='dni'
-                                type='number' 
-                                color={errors.dni ? 'failure' : 'gray'} 
-                                sizing='sm' 
-                                placeholder='Ej: 12345678' 
+                                type='number'
+                                color={errors.dni ? 'failure' : 'gray'}
+                                sizing='sm'
+                                placeholder='Ej: 12345678'
                                 // Conexión con useForm y Yup
                                 {...register('dni')}
-                                // Muestra el error de validación si existe
-                                helperText={errors.dni?.message && (
-                                    <span className='font-medium text-red-500'>
-                                        {errors.dni.message}
-                                    </span>
-                                )}
                             />
+                            {/* Muestra el error de validación si existe */}
+                            {errors.dni?.message && (
+                                <HelperText color='failure'>{errors.dni.message}</HelperText>
+                            )}
                         </div>
                     </div>
                 </div>
 
                 <div className='w-full flex gap-[.5rem]'>
                     <div className='w-[50%]'>
-                        <Label 
-                            htmlFor='name' 
-                            value='Cédula de Identidad' 
-                            color='info'
-                        >Primer nombre</Label>
+                        <Label htmlFor='name'>Primer nombre</Label>
 
-                        <TextInput 
+                        <TextInput
                             id='name'
-                            type='text' 
-                            color={errors.name ? 'failure' : 'info'} 
-                            sizing='sm' 
-                            placeholder='Ej: Jaun' 
+                            type='text'
+                            color={errors.name ? 'failure' : 'gray'}
+                            sizing='sm'
+                            placeholder='Ej: Juan'
                             // Conexión con useForm y Yup
                             {...register('name')}
-                            // Muestra el error de validación si existe
-                            helperText={errors.name?.message && (
-                                <span className='font-medium text-red-500'>
-                                    {errors.name.message}
-                                </span>
-                            )}
                         />
+                        {errors.name?.message && (
+                            <HelperText color='failure'>{errors.name.message}</HelperText>
+                        )}
                     </div>
-                    
-                    <div className='w-[50%]'>
-                        <Label 
-                            htmlFor='surName' 
-                            value='Primer apellido' 
-                            color='info'
-                        >Primer apellido</Label>
 
-                        <TextInput 
-                            id='name'
-                            type='text' 
-                            color={errors.surName ? 'failure' : 'info'} 
-                            sizing='sm' 
-                            placeholder='Ej: Sanches' 
+                    <div className='w-[50%]'>
+                        <Label htmlFor='surName'>Primer apellido</Label>
+
+                        <TextInput
+                            id='surName'
+                            type='text'
+                            color={errors.surName ? 'failure' : 'gray'}
+                            sizing='sm'
+                            placeholder='Ej: Sanchez'
                             // Conexión con useForm y Yup
                             {...register('surName')}
-                            // Muestra el error de validación si existe
-                            helperText={errors.surName?.message && (
-                                <span className='font-medium text-red-500'>
-                                    {errors.surName.message}
-                                </span>
-                            )}
                         />
+                        {errors.surName?.message && (
+                            <HelperText color='failure'>{errors.surName.message}</HelperText>
+                        )}
                     </div>
                 </div>
 
 
                 <div className='w-[100%]'>
-                    <Label 
-                            htmlFor='email' 
-                            value='email' 
-                            color='info'
-                    >Coreo</Label>
+                    <Label htmlFor='email'>Correo</Label>
 
-                    <TextInput 
+                    <TextInput
                         id='email'
-                        type='email' 
+                        type='email'
                         icon={HiMail}
-                        color={errors.email ? 'failure' : 'info'} 
-                        sizing='sm' 
-                        placeholder='Ej: Jaun' 
-                            // Conexión con useForm y Yup
+                        color={errors.email ? 'failure' : 'gray'}
+                        sizing='sm'
+                        placeholder='Ej: juan@correo.com'
+                        // Conexión con useForm y Yup
                         {...register('email')}
-                            // Muestra el error de validación si existe
-                        helperText={errors.email?.message && (
-                            <span className='font-medium text-red-500'>
-                                {errors.email.message}
-                            </span>
-                        )}
-                     />
+                    />
+                    {errors.email?.message && (
+                        <HelperText color='failure'>{errors.email.message}</HelperText>
+                    )}
                 </div>
 
                 <div className='border-t border-gray-200 pt-6 mt-6'>
@@ -243,7 +218,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                         {/* Departamento */}
                         <div>
                             <div className='mb-2 block'>
-                                <Label htmlFor='department' value='Departamento' />
+                                <Label htmlFor='department'>Departamento</Label>
                             </div>
                             <Select 
                                 id='department' 
@@ -266,7 +241,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                         {/* Puesto / Cargo */}
                     <div>
                         <div className='mb-2 block'>
-                            <Label htmlFor='position' value='Puesto' />
+                            <Label htmlFor='position'>Puesto</Label>
                         </div>
                         <Select 
                             id='position' 
@@ -288,27 +263,20 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     </div>
 
                     <div className='w-[50%]'>
-                        <Label 
-                            htmlFor='detail' 
-                            value='Detalle' 
-                            color='info'
-                        >Atributo del empleado</Label>
+                        <Label htmlFor='detail'>Atributo del empleado</Label>
 
-                        <TextInput 
-                            id='name'
-                            type='text' 
-                            color={errors.detail ? 'failure' : 'info'} 
-                            sizing='sm' 
-                            placeholder='Ej: Equipo de supervición' 
+                        <TextInput
+                            id='detail'
+                            type='text'
+                            color={errors.jobInformation?.detail ? 'failure' : 'gray'}
+                            sizing='sm'
+                            placeholder='Ej: Equipo de supervisión'
                             // Conexión con useForm y Yup
                             {...register('jobInformation.detail')}
-                            // Muestra el error de validación si existe
-                            helperText={errors.name?.detail && (
-                                <span className='font-medium text-red-500'>
-                                    {errors.name.detail}
-                                </span>
-                            )}
                         />
+                        {errors.jobInformation?.detail?.message && (
+                            <HelperText color='failure'>{errors.jobInformation.detail.message}</HelperText>
+                        )}
                     </div>
                     
                 </div>
@@ -319,7 +287,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     {/* Turno global por defecto */}
                     <div className='mb-4 max-w-xs'>
                         <div className='mb-2 block'>
-                            <Label htmlFor='shiftType' value='Turno Global (por defecto)' />
+                            <Label htmlFor='shiftType'>Turno Global (por defecto)</Label>
                         </div>
                         <Select
                             id='shiftType'
@@ -404,19 +372,19 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     <div className='w-full flex-col items-center'>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='lateArrivalControl' {...register('workSchedule.lateArrivalControl')} />
-                            <Label htmlFor='lateArrivalControl' className='flex' color='gray'>
+                            <Label htmlFor='lateArrivalControl' className='flex'>
                                 ¿Se le aplica la regla de llegada tarde?
                             </Label>
                         </div>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='lateArrivalTracking' {...register('workSchedule.lateArrivalTracking')} />
-                            <Label htmlFor='lateArrivalTracking' className='flex' color='gray'>
+                            <Label htmlFor='lateArrivalTracking' className='flex'>
                                 ¿Se debe hacer seguimiento/notificación?
                             </Label>
                         </div>
                         <div className='flex items-center gap-2'>
                             <Checkbox id='outForkSchedule' {...register('workSchedule.outForkSchedule')} />
-                            <Label htmlFor='outForkSchedule' className='flex' color='gray'>
+                            <Label htmlFor='outForkSchedule' className='flex'>
                                 ¿Sacar usuario del horario?
                             </Label>
                         </div>
@@ -427,7 +395,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
                 <div className='flex items-center justify-center gap-2'>
                         <Checkbox id='agree' {...register('inabilited')} />
-                        <Label htmlFor='agree' className='flex' color='gray'>
+                        <Label htmlFor='agree' className='flex'>
                             Inhabilitar usuario
                         </Label> 
                 </div>
