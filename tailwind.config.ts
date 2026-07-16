@@ -6,6 +6,9 @@ import flowbiteReact from "flowbite-react/plugin/tailwindcss";
 
 
 const config: Config = {
+    // La app es solo tema claro: sin esto, el default 'media' activa las
+    // clases dark: de flowbite cuando el SO está en modo oscuro (labels blancos).
+    darkMode: "selector",
     content: [
         "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
         "./src/components/**/*.{js,ts,jsx,tsx,mdx}",

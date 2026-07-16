@@ -11,6 +11,12 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-16
+- **Tailwind — `darkMode: "selector"` (`tailwind.config.ts`):** sin `darkMode`
+  configurado regía el default `'media'`, y con el SO en tema oscuro se activaban
+  solas las clases `dark:` de flowbite (labels con `dark:text-white` invisibles
+  sobre fondo blanco). La app es solo tema claro y ningún componente propio usa
+  `dark:`; ahora esas clases solo aplicarían con `<html class="dark">`, que nunca
+  se pone. _(Claude Code)_
 - **Formulario de edición de usuario (`user.update.form.jsx`) — fix estilos flowbite
   y checkboxes:** dos causas independientes. (1) Se eliminó una regla legacy global
   de `styles.css` (`input[type="checkbox"]+label:before`, del primer commit) que
