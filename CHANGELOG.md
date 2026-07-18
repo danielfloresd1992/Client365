@@ -11,6 +11,16 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-18
+- **Acciones de jornada en el menú contextual (`user.list.jsx` +
+  `user.day.assign.form.jsx`):** con click derecho sobre una celda: "Marcar
+  descanso" (guarda el override de inmediato, sin formulario), "Asignar
+  guardia" (modal compacto con hora de entrada/salida y turno, defaults de la
+  regla semanal) y "Marcar extra" (visible solo cuando el día efectivo es
+  libre/descanso; abre el mismo modal porque un extra sin horario rompe el
+  marcaje). Todo guarda por el endpoint grupal existente con el admin de la
+  sesión, revisa los errores por item de la respuesta (el endpoint responde
+  200 aunque fallen), avisa por el modal global y la celda se refresca por
+  socket. _(Claude Code)_
 - **Composer de comentarios en el popover + rediseño de `DetailPopover`
   (`user.list.jsx`):** el popover se redistribuyó (header con foto e identidad
   en una línea, estado+duración en una fila, entrada/salida lado a lado,

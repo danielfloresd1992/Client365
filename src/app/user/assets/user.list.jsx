@@ -4,9 +4,10 @@ import useContextMenuPosition from '@/hook/useContextMenuPosition';
 import ContextMenu from '@/components/ContextMenu';
 import UserScheduleCalendar from './user.schedule.calendar';
 import UserCommentForm from './user.comment.form';
+import UserDayAssignForm from './user.day.assign.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
-import { getAttendanceByDate, addAttendanceComment } from '@/libs/ajaxClient/user.fecth';
+import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule } from '@/libs/ajaxClient/user.fecth';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
@@ -458,12 +459,73 @@ export default forwardRef(function UserList({
     // Fecha de la celda donde ocurrió el click derecho (null si fue sobre el nombre)
     const [contextMenuDate, setContextMenuDate] = useState(null);
 
+    // Modal para asignar guardia/extra sobre la fecha clickeada ('laboral' | 'extra' | null)
+    const [assignFormMode, setAssignFormMode] = useState(null);
+
     // Handler para click derecho
     const onUserContextMenu = (e) => {
         handleContextMenu(e);
         setContextMenuUser(user);
         const cell = e.target?.closest?.('[data-dateiso]');
         setContextMenuDate(cell ? new Date(cell.getAttribute('data-dateiso')) : null);
+    };
+
+    // Tipo de jornada efectivo del día clickeado (override en caché > regla semanal)
+    const getMenuDayType = () => {
+        if (!contextMenuDate) return null;
+        const normalized = new Date(contextMenuDate);
+        normalized.setHours(0, 0, 0, 0);
+        const cached = attendanceCache.get(`${userState?.dni}-${normalized.toISOString()}`);
+        const rule = userState?.workSchedule?.scheduleByDay?.[String(normalized.getDay())];
+        return cached?.scheduleOverride?.workType || rule?.workType || 'laboral';
+    };
+    const menuDayType = getMenuDayType();
+
+    // Guarda un override de jornada para la fecha clickeada (mismo endpoint que "Editar grupo")
+    const saveDayOverride = async ({ workType, shift = null, startTime = null, endTime = null }) => {
+        try {
+            const dateObj = new Date(contextMenuDate);
+            dateObj.setHours(0, 0, 0, 0);
+            const response = await saveGroupDynamicSchedule({
+                updates: [{
+                    userId: userState._id,
+                    dni: userState.dni,
+                    date: dateObj.toISOString(),
+                    workType,
+                    shift,
+                    startTime,
+                    endTime,
+                }],
+                adminUserId: dataSessionState?.dataSession?._id,
+            });
+
+            // El endpoint responde 200 aunque el item falle: revisar los errores
+            const itemErrors = response?.data?.errors || [];
+            if (itemErrors.length > 0) throw new Error(itemErrors[0]?.error || 'No se pudo guardar el horario');
+
+            const DESCRIPTIONS = {
+                descanso: 'Día marcado como descanso/libre.',
+                laboral: 'Guardia asignada para la fecha.',
+                extra: 'Día extra asignado para la fecha.',
+            };
+            dispatch(setConfigModal({
+                type: 'successfull',
+                title: 'Horario actualizado',
+                description: DESCRIPTIONS[workType] || 'Cambio de horario guardado.',
+                modalOpen: true,
+            }));
+            // La celda se refresca sola por el evento socket del backend
+            return true;
+        } catch (error) {
+            console.error('Error asignando jornada:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo guardar',
+                description: error?.response?.data?.message || error?.message || 'Hubo un problema al guardar el horario. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+            return false;
+        }
     };
 
 
@@ -572,6 +634,59 @@ export default forwardRef(function UserList({
                         Editar usuario
                     </button>
 
+                    {/* Acciones de jornada sobre la fecha clickeada */}
+                    {contextMenuDate && (
+                        <>
+                            <div className='h-px bg-gray-100 my-1' />
+
+                            <button
+                                role='menuitem'
+                                className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                onClick={() => {
+                                    closeContextMenu();
+                                    saveDayOverride({ workType: 'descanso' });
+                                }}
+                            >
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                    <path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'></path>
+                                </svg>
+                                Marcar descanso
+                            </button>
+
+                            <button
+                                role='menuitem'
+                                className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                onClick={() => {
+                                    closeContextMenu();
+                                    setAssignFormMode('laboral');
+                                }}
+                            >
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                    <circle cx='12' cy='12' r='10'></circle>
+                                    <polyline points='12 6 12 12 16 14'></polyline>
+                                </svg>
+                                Asignar guardia
+                            </button>
+
+                            {/* Extra: solo cuando el día efectivo es libre/descanso */}
+                            {menuDayType === 'descanso' && (
+                                <button
+                                    role='menuitem'
+                                    className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                    onClick={() => {
+                                        closeContextMenu();
+                                        setAssignFormMode('extra');
+                                    }}
+                                >
+                                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                        <polygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'></polygon>
+                                    </svg>
+                                    Marcar extra
+                                </button>
+                            )}
+                        </>
+                    )}
+
                     {/* Solo usuarios super y con click derecho sobre una celda de día */}
                     {dataSessionState?.dataSession?.super === true && contextMenuDate && (
                         <button
@@ -629,6 +744,21 @@ export default forwardRef(function UserList({
                                 modalOpen: true,
                             }));
                         }
+                    }}
+                />,
+                document.body
+            )}
+
+            {/* Formulario para asignar guardia o día extra sobre la fecha clickeada */}
+            {assignFormMode && typeof window !== 'undefined' && createPortal(
+                <UserDayAssignForm
+                    user={userState}
+                    dateObj={contextMenuDate}
+                    mode={assignFormMode}
+                    onCancel={() => setAssignFormMode(null)}
+                    onSave={async (payload) => {
+                        const saved = await saveDayOverride(payload);
+                        if (saved) setAssignFormMode(null);
                     }}
                 />,
                 document.body
