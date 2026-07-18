@@ -2,6 +2,7 @@ import { useState, useEffect, useImperativeHandle, forwardRef, useContext, useMe
 import { createPortal } from 'react-dom';
 import useContextMenuPosition from '@/hook/useContextMenuPosition';
 import ContextMenu from '@/components/ContextMenu';
+import UserScheduleCalendar from './user.schedule.calendar';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate } from '@/libs/ajaxClient/user.fecth';
@@ -64,6 +65,9 @@ export default forwardRef(function UserList({
 
 
     const [contextMenuUser, setContextMenuUser] = useState(null);
+
+    // Modal de calendario con el horario completo del operador
+    const [showScheduleCalendar, setShowScheduleCalendar] = useState(false);
 
     // Handler para click derecho
     const onUserContextMenu = (e) => {
@@ -139,26 +143,53 @@ export default forwardRef(function UserList({
                 onClose={closeContextMenu}
             >
                 <div className='flex flex-col'>
+                    {/* Cabecera: empleado sobre el que se abrió el menú */}
+                    <p className='px-3 pt-1.5 pb-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider truncate max-w-[210px] border-b border-gray-100 mb-1'>
+                        {contextMenuUser?.name} {contextMenuUser?.surName}
+                    </p>
+
                     <button
-                        className='text-left px-4 py-2 hover:bg-gray-100 rounded'
+                        role='menuitem'
+                        className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                        onClick={() => {
+                            closeContextMenu();
+                            setShowScheduleCalendar(true);
+                        }}
+                    >
+                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                            <rect x='3' y='4' width='18' height='18' rx='2' ry='2'></rect>
+                            <line x1='16' y1='2' x2='16' y2='6'></line>
+                            <line x1='8' y1='2' x2='8' y2='6'></line>
+                            <line x1='3' y1='10' x2='21' y2='10'></line>
+                        </svg>
+                        Ver horario
+                    </button>
+
+                    <button
+                        role='menuitem'
+                        className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
                         onClick={() => {
                             closeContextMenu();
                             onEditClick?.(contextMenuUser);
                         }}
                     >
+                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                            <path d='M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z'></path>
+                            <path d='m15 5 4 4'></path>
+                        </svg>
                         Editar usuario
-                    </button>
-                    <button
-                        className='text-left px-4 py-2 hover:bg-gray-100 rounded'
-                        onClick={() => {
-                            closeContextMenu();
-                            onOpenDynamicSchedule?.({ user: contextMenuUser, mode: 'view' });
-                        }}
-                    >
-                        Ver horario
                     </button>
                 </div>
             </ContextMenu>
+
+            {/* Calendario del horario del operador — portal para escapar del zoom de la grilla */}
+            {showScheduleCalendar && typeof window !== 'undefined' && createPortal(
+                <UserScheduleCalendar
+                    user={userState}
+                    onClose={() => setShowScheduleCalendar(false)}
+                />,
+                document.body
+            )}
         </>
     );
 });
@@ -202,6 +233,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         }, HOVER_DELAY_MS);
     };
 
+
     const handleCloseDetails = () => {
         if (openTimeoutRef.current) {
             clearTimeout(openTimeoutRef.current);
@@ -217,6 +249,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             manuallyClosedRef.current = false;
         }, 400);
     };
+
+
 
     const handleManualClose = () => {
         if (openTimeoutRef.current) {
@@ -238,6 +272,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
         };
     }, []);
+
+
 
     const today = startOfDay(new Date());
     const currentCellDate = startOfDay(dateObj);
@@ -361,6 +397,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             isMounted = false;
         };
     }, [attendanceCacheKey, dni, inView, isPast, isToday, requestDateISO]);
+
+
 
 
     // 1. ESTADO CARGANDO (Barra de espera)

@@ -153,6 +153,9 @@ type RevealBlockProps = {
     delay?: number;
 };
 
+
+
+
 function RevealBlock({ children, className = '', delay = 0 }: RevealBlockProps) {
     const { ref, inView } = useInView({ triggerOnce: true, threshold: 0.15 });
 
@@ -166,6 +169,8 @@ function RevealBlock({ children, className = '', delay = 0 }: RevealBlockProps) 
         </div>
     );
 }
+
+
 
 function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
     const [count, setCount] = useState(0);

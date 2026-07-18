@@ -13,6 +13,22 @@ const WORK_TYPE_OPTIONS = [
     { value: 'descanso', label: 'Descanso' },
 ];
 
+// Etiquetas en español para los campos registrados en updateByUser.change
+const FIELD_LABELS = {
+    dni: 'Cédula',
+    name: 'Nombre',
+    surName: 'Apellido',
+    email: 'Correo',
+    img: 'Foto',
+    inabilited: 'Habilitación',
+    jobInformation: 'Info. laboral',
+    workSchedule: 'Horario',
+    admin: 'Admin',
+    super: 'Súper',
+    phone: 'Teléfono',
+    user: 'Usuario',
+};
+
 const buildDefaultScheduleByDay = (existingMap) => {
     const result = {};
     for (let i = 0; i <= 6; i++) {
@@ -41,6 +57,9 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     );
     const textErrorRef = useRef(null);
 
+    // Últimas 5 modificaciones registradas por el backend, más reciente primero
+    const modificationHistory = [...(initialData?.updateByUser || [])].slice(-5).reverse();
+
     
     const userContext = useContext(myUserContext);
 
@@ -51,8 +70,8 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
         handleSubmit,
         reset,
         setValue,
-        formState: { errors }
-    } = useForm();
+        formState: { errors, dirtyFields }
+    } = useForm({ defaultValues: initialData });
  
     
     // 💡 IMPORTANTE: Resetear el formulario cuando cambie initialData
@@ -68,15 +87,42 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
 
     const onSubmit = (data) => {
-        const payload = { ...data };
-    
-        // Inyectar scheduleByDay en workSchedule (reemplaza startTime/endTime/restDays legados)
-        if (payload.workSchedule) {
-            payload.workSchedule.scheduleByDay = scheduleByDay;
+        // Enviar SOLO lo modificado: así el historial updateByUser del backend
+        // registra únicamente los campos que realmente cambiaron.
+        const payload = {};
+
+        // Campos simples: se incluyen solo si el usuario los tocó (dirtyFields)
+        ['dni', 'name', 'surName', 'email', 'inabilited', 'img'].forEach(field => {
+            if (dirtyFields[field]) payload[field] = data[field];
+        });
+
+        // Subobjetos: si cambió cualquier subcampo se envía el objeto COMPLETO
+        // fusionado con el original — el backend hace $set del subdocumento
+        // entero y un parcial borraría los campos no enviados.
+        if (dirtyFields.jobInformation) {
+            payload.jobInformation = { ...initialData?.jobInformation, ...data.jobInformation };
+            delete payload.jobInformation._id;
+        }
+
+        const hasScheduleChanged = JSON.stringify(scheduleByDay) !==
+            JSON.stringify(buildDefaultScheduleByDay(initialData?.workSchedule?.scheduleByDay));
+
+        if (dirtyFields.workSchedule || hasScheduleChanged) {
+            payload.workSchedule = {
+                ...initialData?.workSchedule,
+                ...data.workSchedule,
+                scheduleByDay,
+            };
+            delete payload.workSchedule._id;
             // Limpiar campos legacy que ya no se usan
             delete payload.workSchedule.startTime;
             delete payload.workSchedule.endTime;
             delete payload.workSchedule.restDays;
+        }
+
+        if (Object.keys(payload).length === 0) {
+            alert('No hay cambios para guardar');
+            return;
         }
 
         onSave(initialData._id, payload);
@@ -410,7 +456,43 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                 </div>
                 
 
-                {/* ... Resto de tus inputs irían aquí siguiendo el mismo patrón ... */}
+                {/* Historial de modificaciones (updateByUser del backend) */}
+                <div className='border-t border-gray-200 pt-6 mt-6'>
+                    <h3 className='text-lg font-semibold text-gray-700 mb-4'>Últimas modificaciones</h3>
+                    {modificationHistory.length === 0 ? (
+                        <p className='text-xs text-gray-400'>Sin modificaciones registradas.</p>
+                    ) : (
+                        <ul className='flex flex-col gap-1.5'>
+                            {modificationHistory.map((entry, index) => (
+                                <li
+                                    key={entry._id || index}
+                                    className='flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-gray-500 bg-gray-50 border border-gray-100 rounded-lg px-2.5 py-1.5'
+                                >
+                                    <span className='font-semibold text-gray-700 whitespace-nowrap'>
+                                        {entry.idRef?.name
+                                            ? `${entry.idRef.name} ${entry.idRef.surName || ''}`.trim()
+                                            : 'Admin'}
+                                    </span>
+                                    <span className='text-gray-400 whitespace-nowrap'>
+                                        {entry.createdAt
+                                            ? new Date(entry.createdAt).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })
+                                            : ''}
+                                    </span>
+                                    <span className='flex flex-wrap gap-1'>
+                                        {(entry.change || []).map((field, i) => (
+                                            <span
+                                                key={`${field}-${i}`}
+                                                className='bg-white border border-gray-200 rounded px-1.5 py-0.5 text-[10px] font-semibold text-gray-600'
+                                            >
+                                                {FIELD_LABELS[field] || field}
+                                            </span>
+                                        ))}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
 
                 {/* Footer del Formulario - Botones de acción */}
                 <div className='flex gap-3 pt-6 sticky bottom-0 bg-white border-t border-gray-100 mt-4'>

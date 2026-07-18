@@ -10,6 +10,49 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-18
+- **Calendario de horario del operador (`user.schedule.calendar.jsx`):** "Ver
+  horario" del menú contextual ahora abre un modal (overlay oscuro translúcido,
+  portal a body para escapar del zoom de la grilla) con el mes completo del
+  operador en calendario: regla por defecto (`scheduleByDay`), días modificados
+  (`scheduleOverride`, marcados con ✦), asistencia real (IN/OUT, retardo,
+  falta/ausente), resumen del mes y **quién modificó cada día** (última nota de
+  `scheduleOverride.note`, tooltip con mensaje y fecha). Toda la data del mes
+  llega en UNA petición (`getAttendanceReport`), no una por celda. Navegación
+  de meses, Escape/click-fuera para cerrar. En el backend: el reporte
+  individual ahora popula `scheduleOverride.note.user` (name/surName), y el
+  endpoint grupal de horarios **conserva el historial de notas y registra
+  siempre al admin** que modifica (antes `$set` con `note: []` borraba el
+  historial en cada edición y el `$push` condicional tenía un conflicto de
+  paths de MongoDB que lo hacía fallar). _(Claude Code)_
+
+## 2026-07-17
+- **ContextMenu rediseñado (`components/ContextMenu.jsx` + items en
+  `user.list.jsx`):** ahora se renderiza en un portal sobre `document.body`
+  (antes vivía dentro del árbol con `zoom` de la grilla y se desposicionaba con
+  zoom ≠ 100%). Cierra con click/tap fuera del menú (pointerdown con detección
+  de destino), con scroll en cualquier contenedor (`capture: true`), con Escape
+  y con resize. Se reajusta para no cortarse en los bordes del viewport y entra
+  con animación sutil (150 ms, respeta `prefers-reduced-motion`). Los items del
+  menú de la grilla de horarios ahora llevan cabecera con el nombre del
+  empleado, iconos SVG inline y el vocabulario visual del panel
+  (`rounded-md`, hover gris, `role='menuitem'`). _(Claude Code)_
+- **Formulario de edición de usuario — envío parcial + historial visible
+  (`user.update.form.jsx` + PUT `/user/:id` en api_jarvis365):** el formulario
+  ahora envía SOLO los campos modificados (`dirtyFields` de react-hook-form +
+  diff de `scheduleByDay`); los subobjetos `jobInformation`/`workSchedule` se
+  envían completos (fusionados) cuando cambia cualquier subcampo, porque el
+  `$set` reemplaza el subdocumento entero. Al final del formulario se muestra
+  "Últimas modificaciones" (últimas 5 entradas de `updateByUser`: quién, cuándo
+  y qué campos). En el backend: el PUT ahora persiste solo las claves realmente
+  enviadas (los `.default(null)` de yup inyectaban `dni:null`, `img:null`,
+  `workSchedule` con solo flags para claves ausentes — un parcial habría
+  borrado datos), `updateByUser.change` registra solo lo modificado, la
+  respuesta incluye `updateByUser` populado (name/surName) y se añadió `email`
+  al `userUpdateSchema` (antes el correo editado se descartaba en silencio por
+  `noUnknown`). También: `handleUpdateUser` en `page.jsx` ya no traga errores —
+  muestra modal de error con el mensaje del backend. _(Claude Code)_
+
 ## 2026-07-16
 - **Sidebar de `/user` rediseñado (`Aide_nav.jsx`):** alineado al lenguaje visual
   del panel (card blanca `rounded-xl border shadow-sm`, item activo

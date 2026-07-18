@@ -229,7 +229,15 @@ export default function UserScheduler() {
                 modalOpen: true,
             }));
         } catch (error) {
-            // ... your error handling logic ...
+            console.error('Error actualizando usuario:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo actualizar',
+                description: error?.response?.data?.message
+                    ? String(error.response.data.message)
+                    : 'Hubo un problema al guardar los cambios. Intenta nuevamente.',
+                modalOpen: true,
+            }));
         }
     };
 
