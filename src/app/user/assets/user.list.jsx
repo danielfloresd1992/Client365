@@ -26,6 +26,21 @@ const OVERRIDE_FIELD_LABELS = {
     endTime: 'Salida',
 };
 
+// ══════════════════════════════════════════════════════════════
+// SISTEMA DE COLORES DE LA CELDA (fondos claros + texto con contraste)
+// La jerarquía de aplicación vive en renderDaySchedule():
+//   falta > extra > descanso > cambio de guardia > empleado nuevo > guardia
+// ══════════════════════════════════════════════════════════════
+const CELL_COLOR_SYSTEM = {
+    falta:    { bg: 'bg-red-100',    text: 'text-red-800',    accent: 'text-red-600' },    // Rojo: falta
+    extra:    { bg: 'bg-green-100',  text: 'text-green-900',  accent: 'text-green-700' },  // Verde: día extra
+    cambio:   { bg: 'bg-yellow-100', text: 'text-yellow-900', accent: 'text-yellow-700' }, // Amarillo: cambio de guardia (override)
+    descanso: { bg: 'bg-gray-200',   text: 'text-gray-700',   accent: 'text-gray-500' },   // Gris: descanso
+    nuevo:    { bg: 'bg-purple-200', text: 'text-purple-950', accent: 'text-purple-700' }, // Morado: empleado con < 1 semana
+    guardia:  { bg: 'bg-white',      text: 'text-gray-800',   accent: 'text-teal-600' },   // Blanco: guardia por defecto (modelo user)
+    // turno: { bg: 'bg-blue-900',  text: 'text-white',      accent: 'text-blue-200' },   // Azul oscuro: quien lleva el turno (futura implementación)
+};
+
 // Foto de perfil en miniatura para la auditoría del popover
 function MiniAvatar({ user }) {
     return (
@@ -35,6 +50,351 @@ function MiniAvatar({ user }) {
                 : <span className='text-[8px] font-bold text-slate-600'>{user?.name?.[0] || 'A'}</span>}
         </div>
     );
+}
+
+/**
+ * Input en línea para agregar comentarios desde el popover (estilo red social).
+ * Componente a nivel de módulo con estado propio: así el tipeo no pierde el
+ * foco cuando la celda re-renderiza. onSubmit(texto) debe devolver true si
+ * guardó (para limpiar el input).
+ */
+function CommentComposer({ onSubmit, sending }) {
+    const [text, setText] = useState('');
+    const trimmed = text.trim();
+
+    const handleSend = async () => {
+        if (!trimmed || sending) return;
+        const saved = await onSubmit(trimmed);
+        if (saved) setText('');
+    };
+
+    return (
+        <div className='flex items-center gap-2 mt-2 pt-2 border-t border-amber-200/70'>
+            <input
+                type='text'
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
+                maxLength={500}
+                placeholder='Escribe un comentario...'
+                disabled={sending}
+                className='flex-1 h-8 bg-white border border-amber-200 rounded-full px-3 text-xs text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-400 placeholder:text-gray-400 disabled:opacity-60'
+            />
+            <button
+                type='button'
+                onClick={handleSend}
+                disabled={!trimmed || sending}
+                aria-label='Enviar comentario'
+                title='Enviar comentario'
+                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all flex-shrink-0 ${trimmed && !sending
+                    ? 'bg-[#f0a500] text-white hover:brightness-110 active:scale-95 shadow-sm'
+                    : 'bg-gray-100 text-gray-300 cursor-not-allowed'}`}
+            >
+                {sending
+                    ? <span className='w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin' />
+                    : (
+                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4'>
+                            <path d='m22 2-7 20-4-9-9-4Z'></path>
+                            <path d='M22 2 11 13'></path>
+                        </svg>
+                    )}
+            </button>
+        </div>
+    );
+}
+
+// Helpers puros del popover (solo dependen del registro de asistencia)
+function calculateWorkDuration(attendanceData) {
+    if (!attendanceData?.checkIn || !attendanceData?.checkOut) return null;
+    const checkIn = new Date(attendanceData.checkIn);
+    const checkOut = new Date(attendanceData.checkOut);
+    const diffMs = checkOut - checkIn;
+    const hours = Math.floor(diffMs / (1000 * 60 * 60));
+    const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    return `${hours}h ${minutes}m`;
+}
+
+function getStatusColor(attendanceData) {
+    if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return 'bg-red-50 border-red-200 text-red-700';
+    if (attendanceData?.status === 'presente') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
+    if (attendanceData?.isLate) return 'bg-red-50 border-red-200 text-red-700';
+    if (attendanceData?.status === 'falta') return 'bg-red-50 border-red-200 text-red-700';
+    if (attendanceData?.isJustified) return 'bg-blue-50 border-blue-200 text-blue-700';
+    return 'bg-gray-50 border-gray-200 text-gray-700';
+}
+
+function getStatusLabel(attendanceData) {
+    if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return '✗ Falta asignada';
+    if (attendanceData?.status === 'presente') return '✓ Presente';
+    if (attendanceData?.isLate) return '⚠️ Llegada Tarde';
+    if (attendanceData?.status === 'falta') return '✗ Falta';
+    if (attendanceData?.isJustified) return '✓ Justificado';
+    return 'Sin estado';
+}
+
+/**
+ * Popover de detalles del día. Componente a NIVEL DE MÓDULO con identidad
+ * estable: las actualizaciones por socket (p. ej. un comentario nuevo) solo
+ * re-renderizan la lista en su lugar — sin desmontar el popover, sin repetir
+ * la animación de entrada y sin perder el foco ni el borrador del composer.
+ */
+function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLeave, onAddComment, sendingComment }) {
+    const { dataSessionState } = useContext(myUserContext);
+    const [imageZoom, setImageZoom] = useState(null);
+
+    // Scroll de comentarios siempre anclado abajo (últimos visibles), tanto al
+    // abrir como cuando llega un comentario nuevo por socket
+    const commentsListRef = useRef(null);
+    const commentCount = attendanceData?.comments?.length || 0;
+    useEffect(() => {
+        const list = commentsListRef.current;
+        if (list) list.scrollTop = list.scrollHeight;
+    }, [commentCount]);
+
+    const isFaltaRecord = attendanceData?.scheduleOverride?.workType === 'falta';
+    const hasComments = attendanceData?.comments?.length > 0;
+    if (!attendanceData?.checkIn && !isFaltaRecord && !hasComments) return null;
+
+    const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
+        timeZone: 'America/Caracas',
+        timeStyle: 'short'
+    }) : 'N/A';
+
+    const checkOutTime = attendanceData?.checkOut ? new Date(attendanceData.checkOut).toLocaleString('es-VE', {
+        timeZone: 'America/Caracas',
+        timeStyle: 'short'
+    }) : 'N/A';
+
+    const images = attendanceData?.imageReference || [];
+    const workDuration = calculateWorkDuration(attendanceData);
+
+    const content = (
+        <div
+            className='fixed inset-0 z-[999] flex items-center justify-center p-4'
+            onClick={onClose}
+            onMouseEnter={onMouseEnter}
+            onMouseLeave={onMouseLeave}
+            // Los eventos del portal burbujean por el árbol de REACT hasta la
+            // celda de la grilla: sin esto, un click dentro del popover dispara
+            // la selección por arrastre (onMouseDown de la celda) y el padre
+            // re-renderiza.
+            onMouseDown={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.stopPropagation()}
+            style={{ pointerEvents: 'none' }}
+        >
+            <div
+                onClick={(e) => e.stopPropagation()}
+                onMouseEnter={onMouseEnter}
+                onMouseLeave={onMouseLeave}
+                className='bg-white rounded-xl shadow-2xl border border-gray-300 p-6 max-w-md w-full'
+                style={{ animation: 'slideUp 0.3s ease-out', pointerEvents: 'auto' }}
+            >
+                {/* Header: foto + identidad + cierre */}
+                <div className='flex items-center gap-3 mb-4'>
+                    <div className='w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center'>
+                        {user?.img
+                            ? <img src={user.img} className='w-full h-full object-cover' alt='' />
+                            : <span className='text-xs font-bold text-slate-600'>{user?.name?.[0]}{user?.surName?.[0]}</span>}
+                    </div>
+                    <div className='flex-1 min-w-0'>
+                        <h3 className='text-base font-bold text-gray-900 leading-tight truncate'>{user?.name} {user?.surName}</h3>
+                        <p className='text-[11px] text-gray-500 truncate'>
+                            {user?.dni || 'Sin cédula'} · {user?.jobInformation?.department || 'Sin depto'} · {user?.jobInformation?.position || 'Sin cargo'}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className='text-gray-400 hover:text-gray-600 text-2xl leading-none flex-shrink-0'
+                    >
+                        ×
+                    </button>
+                </div>
+
+                <div className='space-y-3'>
+                    {/* Estado + duración en una sola fila */}
+                    <div className='flex items-center gap-2'>
+                        <div className={`flex-1 px-2.5 py-1.5 rounded border text-xs font-semibold ${getStatusColor(attendanceData)}`}>
+                            {getStatusLabel(attendanceData)}
+                        </div>
+                        {workDuration && (
+                            <div className='px-2.5 py-1.5 rounded border border-purple-200 bg-purple-50 text-xs font-semibold text-purple-700 whitespace-nowrap'>
+                                {workDuration}
+                            </div>
+                        )}
+                    </div>
+
+                    {/* ── Comentarios (destacados, a juego con la muesca dorada) ── */}
+                    {attendanceData?.comments?.length > 0 && (
+                        <div className='rounded-lg border-2 border-amber-300 bg-amber-50 p-3'>
+                            <div className='flex items-center gap-2 mb-2'>
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#b45309' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0'>
+                                    <path d='M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'></path>
+                                </svg>
+                                <p className='text-xs font-black uppercase tracking-wider text-amber-800'>Comentarios</p>
+                                <span className='ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-[#f0a500] text-white text-[10px] font-black flex items-center justify-center'>
+                                    {attendanceData.comments.length}
+                                </span>
+                            </div>
+                            <div ref={commentsListRef} className='space-y-2 max-h-44 overflow-y-auto pr-1'>
+                                {attendanceData.comments.map((comment, i) => (
+                                    <div key={i} className='flex items-start gap-2 bg-white/70 border border-amber-100 rounded-md px-2 py-1.5'>
+                                        <MiniAvatar user={comment.user} />
+                                        <div className='flex-1 min-w-0'>
+                                            <p className='text-[11px] font-semibold text-gray-800'>
+                                                {comment.user?.name
+                                                    ? `${comment.user.name} ${comment.user.surName || ''}`.trim()
+                                                    : 'Admin'}
+                                                {comment.date && (
+                                                    <span className='text-gray-400 font-normal'>
+                                                        {' · '}
+                                                        {new Date(comment.date).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })}
+                                                    </span>
+                                                )}
+                                            </p>
+                                            <p className='text-xs text-gray-700 whitespace-pre-wrap break-words'>{comment.message}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Agregar comentario en línea (solo usuarios super) */}
+                            {dataSessionState?.dataSession?.super === true && (
+                                <CommentComposer onSubmit={onAddComment} sending={sendingComment} />
+                            )}
+                        </div>
+                    )}
+
+                    {/* Entrada / Salida lado a lado — solo con marcaje registrado */}
+                    {attendanceData?.checkIn && (
+                        <div className='grid grid-cols-2 gap-2'>
+                            <div className='bg-emerald-50 p-2.5 rounded border border-emerald-200'>
+                                <p className='text-[10px] text-emerald-700 font-bold uppercase tracking-wider mb-0.5'>Entrada</p>
+                                <p className='text-sm text-emerald-900 font-bold'>{checkInTime}</p>
+                                {images?.[0] && (
+                                    <img
+                                        src={images[0]}
+                                        alt='entrada'
+                                        className='w-full h-24 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
+                                        onClick={() => setImageZoom(images[0])}
+                                        onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                                    />
+                                )}
+                            </div>
+
+                            <div className='bg-orange-50 p-2.5 rounded border border-orange-200'>
+                                <p className='text-[10px] text-orange-700 font-bold uppercase tracking-wider mb-0.5'>Salida</p>
+                                <p className='text-sm text-orange-900 font-bold'>{checkOutTime}</p>
+                                {images?.[1] && (
+                                    <img
+                                        src={images[1]}
+                                        alt='salida'
+                                        className='w-full h-24 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
+                                        onClick={() => setImageZoom(images[1])}
+                                        onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Auditoría: quién creó el documento y quién lo editó */}
+                    {(attendanceData?.createdBy?.name || attendanceData?.editedBy?.length > 0) && (
+                        <div className='bg-gray-50 p-3 rounded border border-gray-200 space-y-2'>
+                            {attendanceData?.createdBy?.name && (
+                                <div className='flex items-center gap-2'>
+                                    <MiniAvatar user={attendanceData.createdBy} />
+                                    <p className='text-xs text-gray-600 truncate'>
+                                        <span className='font-semibold'>Creado por:</span>{' '}
+                                        {attendanceData.createdBy.name} {attendanceData.createdBy.surName || ''}
+                                    </p>
+                                </div>
+                            )}
+                            {[...(attendanceData?.editedBy || [])].slice(-3).reverse().map((edit, i) => (
+                                <div key={i} className='flex items-center gap-2 flex-wrap'>
+                                    <MiniAvatar user={edit.user} />
+                                    <p className='text-xs text-gray-600'>
+                                        <span className='font-semibold'>Editado por:</span>{' '}
+                                        {edit.user?.name ? `${edit.user.name} ${edit.user.surName || ''}`.trim() : 'Admin'}
+                                        {edit.date && (
+                                            <span className='text-gray-400'>
+                                                {' · '}
+                                                {new Date(edit.date).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })}
+                                            </span>
+                                        )}
+                                    </p>
+                                    <span className='flex flex-wrap gap-1'>
+                                        {(edit.change || []).map((change, idx) => {
+                                            // Entradas nuevas: {field, from, to}. Antiguas: string con el campo.
+                                            const isDetailed = change && typeof change === 'object';
+                                            const field = isDetailed ? change.field : change;
+                                            return (
+                                                <span key={idx} className='bg-white border border-gray-200 rounded px-1 py-0.5 text-[9px] font-semibold text-gray-500'>
+                                                    {OVERRIDE_FIELD_LABELS[field] || field}
+                                                    {isDetailed && (
+                                                        <>
+                                                            {': '}
+                                                            <span className='text-gray-400 line-through'>{change.from ?? '—'}</span>
+                                                            {' → '}
+                                                            <span className='text-gray-700'>{change.to ?? '—'}</span>
+                                                        </>
+                                                    )}
+                                                </span>
+                                            );
+                                        })}
+                                    </span>
+                                </div>
+                            ))}
+                            {attendanceData?.editedBy?.length > 3 && (
+                                <p className='text-[10px] text-gray-400'>+{attendanceData.editedBy.length - 3} ediciones anteriores</p>
+                            )}
+                        </div>
+                    )}
+
+                </div>
+            </div>
+
+            {/* Image Zoom */}
+            {imageZoom && (
+                <div
+                    className='fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4'
+                    onClick={() => setImageZoom(null)}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className='relative max-w-2xl w-full'
+                    >
+                        <img
+                            src={imageZoom}
+                            alt='zoom'
+                            className='w-full h-auto rounded-lg'
+                            onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
+                        />
+                        <button
+                            onClick={() => setImageZoom(null)}
+                            className='absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2'
+                        >
+                            ×
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            <style jsx>{`
+                @keyframes slideUp {
+                    from {
+                        opacity: 0;
+                        transform: translateY(10px);
+                    }
+                    to {
+                        opacity: 1;
+                        transform: translateY(0);
+                    }
+                }
+            `}</style>
+        </div>
+    );
+
+    return typeof window !== 'undefined' ? createPortal(content, document.body) : null;
 }
 
 
@@ -291,7 +651,6 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const [attendanceData, setAttendanceData] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
-    const [imageZoom, setImageZoom] = useState(null);
     const closeTimeoutRef = useRef(null);
     const openTimeoutRef = useRef(null);
     const manuallyClosedRef = useRef(false);
@@ -366,6 +725,10 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const isPast = isBefore(currentCellDate, today);
     const isToday = isSameDay(currentCellDate, today);
 
+    // Días anteriores a la creación del empleado: no mostrar información
+    const createdOnDay = user?.createdOn ? startOfDay(new Date(user.createdOn)) : null;
+    const isBeforeCreation = Boolean(createdOnDay) && isBefore(currentCellDate, createdOnDay);
+
     const currentDayNumber = getDay(dateObj);
     const dayConfig = scheduleByDay?.[String(currentDayNumber)] || null;
 
@@ -391,6 +754,32 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
     const attendanceCacheKey = `${dni}-${requestDateISO}`;
     const eventNameForSocket = `${requestDateISO}-${user.email}`;
+
+    // ── Composer de comentarios en línea (popover) ──
+    const { dataSessionState } = useContext(myUserContext);
+    const dispatch = useDispatch();
+    const [isSendingComment, setIsSendingComment] = useState(false);
+
+    const handleAddComment = async (message) => {
+        setIsSendingComment(true);
+        try {
+            await addAttendanceComment({ userId: user._id, dni, date: requestDateISO, message });
+            // El backend emite el evento socket: el comentario llega en tiempo
+            // real a todos los clientes con la grilla abierta (incluido este).
+            return true;
+        } catch (error) {
+            console.error('Error guardando comentario:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo guardar',
+                description: error?.response?.data?.message || 'Hubo un problema al guardar el comentario. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+            return false;
+        } finally {
+            setIsSendingComment(false);
+        }
+    };
 
 
     // Socket: escucha eventos para TODAS las fechas (no solo hoy).
@@ -425,7 +814,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     // Fetch: se activa para TODAS las fechas visibles (pasadas, hoy y futuras)
     // porque cualquier celda puede tener un scheduleOverride guardado.
     useEffect(() => {
-        if (!inView) return;
+        if (!inView || isBeforeCreation) return;
 
         let isMounted = true;
 
@@ -482,7 +871,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         return () => {
             isMounted = false;
         };
-    }, [attendanceCacheKey, dni, inView, isPast, isToday, requestDateISO]);
+    }, [attendanceCacheKey, dni, inView, isBeforeCreation, isPast, isToday, requestDateISO]);
 
 
 
@@ -506,18 +895,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         );
     }
 
-    const override = attendanceData?.scheduleOverride;
-    const isLate = attendanceData?.isLate //llegada tarde
-
-    const shiftOverride = override?.shift
-
-    const shiftDefault = dayConfig?.shift;
-    const isRestDayDefault = dayConfig?.workType === 'descanso';
-
-    const isRestDayOverride = override?.workType === 'descanso';
-    const typeDay = override?.workType;
-    const isRestDay = dayConfig?.workType === 'descanso';
-    const isNocturno = false;
+    // Empleado nuevo: menos de una semana desde su creación (color morado)
+    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+    const isNewEmployee = Boolean(user?.createdOn) && (Date.now() - new Date(user.createdOn).getTime()) < ONE_WEEK_MS;
 
 
 
@@ -536,404 +916,111 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
 
-    const latesText = <div className='text-[9px] text-red-600 text-center font-black uppercase mt-1 tracking-widest leading-none'>Tarde</div>
+    /**
+     * Render unificado de la celda (reemplaza a markedHour + preMarkedHour).
+     *
+     * La MISMA lógica cubre pasado, hoy y futuro: isToday/isPast solo deciden
+     * si se muestran horas reales (marcaje) u horario programado.
+     *
+     * Jerarquía de color (CELL_COLOR_SYSTEM):
+     *   falta > extra > descanso > cambio de guardia > empleado nuevo > guardia
+     * Llegada tarde y falta llevan además borde rojo resaltado.
+     */
+    const renderDaySchedule = () => {
+        // El empleado no existía en esta fecha: celda vacía, sin información
+        if (isBeforeCreation) {
+            return <div className='w-full h-full bg-gray-50' />;
+        }
 
+        const dayOverride = attendanceData?.scheduleOverride;
+        const hasOverride = Boolean(dayOverride?.workType);
+        const effectiveType = dayOverride?.workType || dayConfig?.workType || 'laboral';
+        const startTime = dayOverride?.startTime || dayConfig?.startTime || null;
+        const endTime = dayOverride?.endTime || dayConfig?.endTime || null;
+        const hasCheckIn = Boolean(attendanceData?.checkIn);
+        const isExtra = effectiveType === 'extra' || Boolean(attendanceData?.isExtraDay);
+        const isFalta = effectiveType === 'falta';
+        const isDescanso = effectiveType === 'descanso';
+        const isLateArrival = Boolean(attendanceData?.isLate);
 
-    const extraHtml = <div className='bg-black'>
-        <div className='text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-[#ffe600]'>✦ EXTRA</div>
-    </div>
+        // Jerarquía de color
+        let colorKey = 'guardia';
+        if (isFalta) colorKey = 'falta';
+        else if (isExtra) colorKey = 'extra';
+        else if (isDescanso) colorKey = 'descanso';
+        else if (hasOverride) colorKey = 'cambio';
+        else if (isNewEmployee) colorKey = 'nuevo';
 
+        const color = CELL_COLOR_SYSTEM[colorKey];
 
-    const returFreeDay = (override = false) => {
-        return (
-            <div className='w-full h-full flex justify-center items-center flex-col bg-[#a4efd3]'>
-                <span className="text-[12px] font-black uppercase tracking-wider text-[#313131]">LIBRE</span>
-                {override && <span className="text-[10px] text-black font-bold mt-0.5">✦ Agisnado</span>}
-            </div>
-        );
-    }
+        // Borde rojo resaltado: llegada tarde y falta. Si no, marca sutil de "hoy"
+        // (el fondo del sistema de colores cubre el tinte azul que tenía el wrapper).
+        const alertRing = (isLateArrival || isFalta)
+            ? 'ring-2 ring-inset ring-red-500'
+            : (isToday ? 'ring-2 ring-inset ring-blue-200' : '');
 
+        let content = null;
 
-    const InOut = (checkIn, checkOut, isExtra = false) => {
-        return (
-            <div className="flex flex-col gap-0.5 max-w-[85px] mx-auto w-full text-[11px]">
-                <div className={`flex justify-between items-center rounded`}>
-                    <span className="text-gray-700 font-extrabold text-[12px]">{checkIn || '--:--'}</span>
-                    -
-                    <span className="text-gray-700 font-extrabold text-[12px]">{checkOut || '--:--'}</span>
-                </div>
-            </div>
-        )
-    }
-
-
-
-    const returnEmpyt = () => {
-        return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-gray-100 cursor-help">
-                <span className="text-gray text-[10px] tracking-wider text-center">Sin registros</span>
-            </div>
-        );
-    };
-
-
-    const returnLack = () => {
-        return(
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[#f00] cursor-help">
-                <span className="text-white font-bold text-[13px] tracking-wider text-center">Falta</span>
-            </div>
-        );
-    }
-
-
-    //19 478 095
-
-
-    const markedHour = (config, toDay) => {
-
-        const configOverride = config?.scheduleOverride
-        const extra = config?.scheduleOverride?.workType === 'extra';
-        const dayFree = config?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-        const lackOfWork = config?.scheduleOverride?.workType === 'falta'
-        const laboral = config?.scheduleOverride?.workType === 'laboral'
-        const startTime = config?.scheduleOverride?.startTime || dayConfig?.startTime;
-        const endTime = config?.scheduleOverride?.endTime || dayConfig?.endTime;
-
-        if (lackOfWork) return returnLack();
-
-        if (dayFree && !extra && !laboral) return returFreeDay();
-        if (!config?.checkIn && !config?.checkOut && !config && !toDay) return returnEmpyt();
-
-        return !config?.checkIn ?
-            (
-                <>
-                    <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 text-teal-600`}>
-                        Guardia
-                    </div>
-                    <div className='flex justify-center items-center pt-0.5 text-[11px] font-semibold'>
-                        <span className='text-gray-700 font-bold'>{startTime || '--:--'}</span>
-                        -
-                        <span className='text-gray-700 font-bold'>{endTime || '--:--'}</span>
-                    </div>
-                </>
-            )
-            :
-            (
-                <div className="flex flex-col gap-1 w-full max-w-[85px] mx-auto" style={{ backgroundColor: extra ? '#dddddd' : 'transparent' }}>
-                    {
-                        config?.checkIn && extra && extraHtml
-                    }
-                    <div className="flex justify-between items-center bg-gray-50/80 rounded px-1.5 shadow-sm border border-gray-100">
-                        <span className="text-[10px] font-black text-emerald-600 tracking-tighter">IN</span>
-                        <span className="text-[13px] md:text-[14px] text-gray-800 font-extrabold tracking-tight">{formatTimeVE(config?.checkIn)}</span>
-                    </div>
-                    <div className="flex justify-between items-center bg-gray-50/80 rounded px-1.5 shadow-sm border border-gray-100">
-                        <span className="text-[10px] font-black text-orange-500 tracking-tighter">OUT</span>
-                        <span className="text-[13px] md:text-[14px] text-gray-800 font-extrabold tracking-tight">{config?.checkOut ? formatTimeVE(config?.checkOut) : '--'}</span>
-                    </div>
-                    {isNocturno && (
-                        <span className='text-[8px] text-slate-500 font-medium mt-0.5 text-center'>🌙 Nocturno</span>
-                    )}
-                    {isLate && latesText}
+        if (isFalta) {
+            content = (
+                <span className={`text-[13px] font-black uppercase tracking-wider text-center ${color.text}`}>Falta</span>
+            );
+        }
+        else if (isDescanso && !hasCheckIn) {
+            content = (
+                <div className='text-center'>
+                    <span className={`text-[12px] font-black uppercase tracking-wider ${color.text}`}>Libre</span>
+                    {hasOverride && <div className={`text-[9px] font-bold mt-0.5 ${color.accent}`}>✦ Asignado</div>}
                 </div>
             );
-    };
-
-
-
-
-
-
-
-    const preMarkedHour = (attendanceData, dayConfig) => {
-
-        const extra = attendanceData?.scheduleOverride?.workType === 'extra';
-        const laboral = attendanceData?.scheduleOverride?.workType === 'laboral';
-        const dayFree = attendanceData?.scheduleOverride?.workType === 'descanso' || dayConfig?.workType === 'descanso';
-        const startTime = attendanceData?.scheduleOverride?.startTime || dayConfig?.startTime;
-        const checkEnd = attendanceData?.scheduleOverride?.endTime || dayConfig?.endTime;
-
-
-
-        if (dayFree &&  !extra && !laboral) return returFreeDay();
-
+        }
+        else if (hasCheckIn) {
+            // Marcaje real (hoy o pasado)
+            content = (
+                <div className='flex flex-col gap-1 w-full max-w-[85px] mx-auto'>
+                    {isExtra && (
+                        <div className={`text-[10px] font-black uppercase tracking-widest text-center ${color.accent}`}>✦ EXTRA</div>
+                    )}
+                    <div className='flex justify-between items-center px-1.5'>
+                        <span className='text-[10px] font-black text-emerald-600 tracking-tighter'>IN</span>
+                        <span className={`text-[13px] md:text-[14px] font-extrabold tracking-tight ${color.text}`}>{formatTimeVE(attendanceData.checkIn)}</span>
+                    </div>
+                    <div className='flex justify-between items-center px-1.5'>
+                        <span className='text-[10px] font-black text-orange-500 tracking-tighter'>OUT</span>
+                        <span className={`text-[13px] md:text-[14px] font-extrabold tracking-tight ${color.text}`}>{attendanceData?.checkOut ? formatTimeVE(attendanceData.checkOut) : '--'}</span>
+                    </div>
+                    {isLateArrival && (
+                        <div className='text-[9px] text-red-600 text-center font-black uppercase tracking-widest leading-none'>Tarde</div>
+                    )}
+                </div>
+            );
+        }
+        else if (isPast && !attendanceData) {
+            content = <span className='text-[10px] text-gray-400 text-center'>Sin registros</span>;
+        }
+        else {
+            // Hoy sin marcar todavía, o fecha futura → horario programado
+            content = (
+                <>
+                    <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${color.accent}`}>
+                        {isExtra ? '✦ EXTRA' : '✦ Guardia'}
+                    </div>
+                    <div className={`flex justify-center items-center gap-1 pt-0.5 text-[11px] font-extrabold ${color.text}`}>
+                        <span>{startTime || '--:--'}</span>
+                        <span>-</span>
+                        <span>{endTime || '--:--'}</span>
+                    </div>
+                </>
+            );
+        }
 
         return (
-            <>
-                <div
-                    onClick={() => {
-                        console.error(attendanceData)
-                        console.error(dayConfig)
-                   } }
-                    className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${extra ? 'text-[#ffe600] bg-[#000]' : 'text-teal-600'}`}>
-                    {extra ? '✦ EXTRA' : '✦ Guardia'}
-                </div>
-                {InOut(startTime, checkEnd, extra)}
-            </>
-        )
-    };
-
-    const calculateWorkDuration = () => {
-        if (!attendanceData?.checkIn || !attendanceData?.checkOut) return null;
-        const checkIn = new Date(attendanceData.checkIn);
-        const checkOut = new Date(attendanceData.checkOut);
-        const diffMs = checkOut - checkIn;
-        const hours = Math.floor(diffMs / (1000 * 60 * 60));
-        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
-        return `${hours}h ${minutes}m`;
-    };
-
-    const getStatusColor = () => {
-        if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return 'bg-red-50 border-red-200 text-red-700';
-        if (attendanceData?.status === 'presente') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
-        if (attendanceData?.isLate) return 'bg-red-50 border-red-200 text-red-700';
-        if (attendanceData?.status === 'falta') return 'bg-red-50 border-red-200 text-red-700';
-        if (attendanceData?.isJustified) return 'bg-blue-50 border-blue-200 text-blue-700';
-        return 'bg-gray-50 border-gray-200 text-gray-700';
-    };
-
-    const getStatusLabel = () => {
-        if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return '✗ Falta asignada';
-        if (attendanceData?.status === 'presente') return '✓ Presente';
-        if (attendanceData?.isLate) return '⚠️ Llegada Tarde';
-        if (attendanceData?.status === 'falta') return '✗ Falta';
-        if (attendanceData?.isJustified) return '✓ Justificado';
-        return 'Sin estado';
-    };
-
-    const DetailPopover = ({ onMouseEnter, onMouseLeave }) => {
-        const isFaltaRecord = attendanceData?.scheduleOverride?.workType === 'falta';
-        const hasComments = attendanceData?.comments?.length > 0;
-        if (!showDetails || (!attendanceData?.checkIn && !isFaltaRecord && !hasComments)) return null;
-
-        const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
-            timeZone: 'America/Caracas',
-            timeStyle: 'short'
-        }) : 'N/A';
-
-        const checkOutTime = attendanceData?.checkOut ? new Date(attendanceData.checkOut).toLocaleString('es-VE', {
-            timeZone: 'America/Caracas',
-            timeStyle: 'short'
-        }) : 'N/A';
-
-        const images = attendanceData?.imageReference || [];
-        const workDuration = calculateWorkDuration();
-
-        const content = (
-            <div
-                className='fixed inset-0 z-[999] flex items-center justify-center p-4'
-                onClick={handleManualClose}
-                onMouseEnter={onMouseEnter}
-                onMouseLeave={onMouseLeave}
-                style={{ pointerEvents: 'none' }}
-            >
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    onMouseEnter={onMouseEnter}
-                    onMouseLeave={onMouseLeave}
-                    className='bg-white rounded-xl shadow-2xl border border-gray-300 p-6 max-w-md w-full'
-                    style={{ animation: 'slideUp 0.3s ease-out', pointerEvents: 'auto' }}
-                >
-                    {/* Header */}
-                    <div className='flex justify-between items-start mb-4'>
-                        <div>
-                            <h3 className='text-base font-bold text-gray-900'>{user?.name} {user?.surName}</h3>
-                            <p className='text-xs text-gray-500 mt-1'>DNI: {user?.dni}</p>
-                        </div>
-                        <button
-                            onClick={handleManualClose}
-                            className='text-gray-400 hover:text-gray-600 text-2xl leading-none'
-                        >
-                            ×
-                        </button>
-                    </div>
-
-                    <div className='space-y-3'>
-                        {/* Info Quick */}
-                        <div className='grid grid-cols-2 gap-2 text-xs'>
-                            <div className='bg-gray-50 p-2 rounded'>
-                                <p className='text-gray-600 font-semibold'>Depto</p>
-                                <p className='font-bold text-gray-900'>{user?.jobInformation?.department || 'N/A'}</p>
-                            </div>
-                            <div className='bg-gray-50 p-2 rounded'>
-                                <p className='text-gray-600 font-semibold'>Puesto</p>
-                                <p className='font-bold text-gray-900'>{user?.jobInformation?.position || 'N/A'}</p>
-                            </div>
-                        </div>
-
-                        {/* Estado Badge */}
-                        <div className={`p-2 rounded text-xs font-semibold ${getStatusColor()}`}>
-                            {getStatusLabel()}
-                        </div>
-
-                        {/* Check In / Check Out — solo cuando hay marcaje registrado */}
-                        {attendanceData?.checkIn && (
-                            <>
-                                <div className='bg-emerald-50 p-3 rounded border border-emerald-200'>
-                                    <p className='text-xs text-emerald-700 font-semibold mb-1'>ENTRADA</p>
-                                    <p className='text-sm text-emerald-900 font-bold'>{checkInTime}</p>
-                                    {images?.[0] && (
-                                        <img
-                                            src={images[0]}
-                                            alt='entrada'
-                                            className='w-full h-32 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
-                                            onClick={() => setImageZoom(images[0])}
-                                            onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
-                                        />
-                                    )}
-                                </div>
-
-                                <div className='bg-orange-50 p-3 rounded border border-orange-200'>
-                                    <p className='text-xs text-orange-700 font-semibold mb-1'>SALIDA</p>
-                                    <p className='text-sm text-orange-900 font-bold'>{checkOutTime}</p>
-                                    {images?.[1] && (
-                                        <img
-                                            src={images[1]}
-                                            alt='salida'
-                                            className='w-full h-32 object-cover rounded mt-2 cursor-pointer hover:opacity-80'
-                                            onClick={() => setImageZoom(images[1])}
-                                            onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
-                                        />
-                                    )}
-                                </div>
-                            </>
-                        )}
-
-                        {/* Duración */}
-                        {workDuration && (
-                            <div className='bg-purple-50 p-2 rounded border border-purple-200 text-xs'>
-                                <p className='text-purple-600 font-semibold'>Duración: <span className='text-purple-900'>{workDuration}</span></p>
-                            </div>
-                        )}
-
-                        {/* Auditoría: quién creó el documento y quién lo editó */}
-                        {(attendanceData?.createdBy?.name || attendanceData?.editedBy?.length > 0) && (
-                            <div className='bg-gray-50 p-3 rounded border border-gray-200 space-y-2'>
-                                {attendanceData?.createdBy?.name && (
-                                    <div className='flex items-center gap-2'>
-                                        <MiniAvatar user={attendanceData.createdBy} />
-                                        <p className='text-xs text-gray-600 truncate'>
-                                            <span className='font-semibold'>Creado por:</span>{' '}
-                                            {attendanceData.createdBy.name} {attendanceData.createdBy.surName || ''}
-                                        </p>
-                                    </div>
-                                )}
-                                {[...(attendanceData?.editedBy || [])].slice(-3).reverse().map((edit, i) => (
-                                    <div key={i} className='flex items-center gap-2 flex-wrap'>
-                                        <MiniAvatar user={edit.user} />
-                                        <p className='text-xs text-gray-600'>
-                                            <span className='font-semibold'>Editado por:</span>{' '}
-                                            {edit.user?.name ? `${edit.user.name} ${edit.user.surName || ''}`.trim() : 'Admin'}
-                                            {edit.date && (
-                                                <span className='text-gray-400'>
-                                                    {' · '}
-                                                    {new Date(edit.date).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })}
-                                                </span>
-                                            )}
-                                        </p>
-                                        <span className='flex flex-wrap gap-1'>
-                                            {(edit.change || []).map((change, idx) => {
-                                                // Entradas nuevas: {field, from, to}. Antiguas: string con el campo.
-                                                const isDetailed = change && typeof change === 'object';
-                                                const field = isDetailed ? change.field : change;
-                                                return (
-                                                    <span key={idx} className='bg-white border border-gray-200 rounded px-1 py-0.5 text-[9px] font-semibold text-gray-500'>
-                                                        {OVERRIDE_FIELD_LABELS[field] || field}
-                                                        {isDetailed && (
-                                                            <>
-                                                                {': '}
-                                                                <span className='text-gray-400 line-through'>{change.from ?? '—'}</span>
-                                                                {' → '}
-                                                                <span className='text-gray-700'>{change.to ?? '—'}</span>
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                );
-                                            })}
-                                        </span>
-                                    </div>
-                                ))}
-                                {attendanceData?.editedBy?.length > 3 && (
-                                    <p className='text-[10px] text-gray-400'>+{attendanceData.editedBy.length - 3} ediciones anteriores</p>
-                                )}
-                            </div>
-                        )}
-
-                        {/* Caja de comentarios del día (usuarios super) */}
-                        {attendanceData?.comments?.length > 0 && (
-                            <div className='bg-sky-50/60 p-3 rounded border border-sky-100'>
-                                <p className='text-xs text-sky-700 font-semibold mb-2'>
-                                    Comentarios ({attendanceData.comments.length})
-                                </p>
-                                <div className='space-y-2 max-h-40 overflow-y-auto pr-1'>
-                                    {attendanceData.comments.map((comment, i) => (
-                                        <div key={i} className='flex items-start gap-2'>
-                                            <MiniAvatar user={comment.user} />
-                                            <div className='flex-1 min-w-0'>
-                                                <p className='text-[11px] font-semibold text-gray-700'>
-                                                    {comment.user?.name
-                                                        ? `${comment.user.name} ${comment.user.surName || ''}`.trim()
-                                                        : 'Admin'}
-                                                    {comment.date && (
-                                                        <span className='text-gray-400 font-normal'>
-                                                            {' · '}
-                                                            {new Date(comment.date).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })}
-                                                        </span>
-                                                    )}
-                                                </p>
-                                                <p className='text-xs text-gray-600 whitespace-pre-wrap break-words'>{comment.message}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Image Zoom */}
-                {imageZoom && (
-                    <div
-                        className='fixed inset-0 z-[1000] flex items-center justify-center bg-black/80 p-4'
-                        onClick={() => setImageZoom(null)}
-                    >
-                        <div
-                            onClick={(e) => e.stopPropagation()}
-                            className='relative max-w-2xl w-full'
-                        >
-                            <img
-                                src={imageZoom}
-                                alt='zoom'
-                                className='w-full h-auto rounded-lg'
-                                onError={(e) => e.target.src = '/ico/icons8-usuario-masculino-en-círculo-96.png'}
-                            />
-                            <button
-                                onClick={() => setImageZoom(null)}
-                                className='absolute top-4 right-4 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2'
-                            >
-                                ×
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                <style jsx>{`
-                    @keyframes slideUp {
-                        from {
-                            opacity: 0;
-                            transform: translateY(10px);
-                        }
-                        to {
-                            opacity: 1;
-                            transform: translateY(0);
-                        }
-                    }
-                `}</style>
+            <div className={`w-full h-full flex flex-col justify-center ${color.bg} ${alertRing}`}>
+                {content}
             </div>
         );
-
-        return typeof window !== 'undefined' ? createPortal(content, document.body) : null;
     };
+
 
 
 
@@ -947,8 +1034,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                 onMouseEnter={handleOpenDetails}
                 onMouseLeave={handleCloseDetails}
                 title={overrideTooltip}
-                className={`relative w-full h-full flex flex-col justify-center ${isToday ? 'bg-blue-50/30' : ''} ${overrideTooltip ? 'cursor-help' : ''} ${attendanceData?.checkIn ? 'cursor-pointer' : ''}`}
-                style={attendanceData?.isLate ? { backgroundColor: '#ffdbdb' } : null}
+                className={`relative w-full h-full flex flex-col justify-center ${overrideTooltip ? 'cursor-help' : ''} ${attendanceData?.checkIn ? 'cursor-pointer' : ''}`}
             >
                 {/* Muesca dorada: el día tiene uno o más comentarios */}
                 {attendanceData?.comments?.length > 0 && (
@@ -958,12 +1044,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     />
                 )}
                 <div style={{ pointerEvents: 'none' }} className='w-full h-full flex flex-col justify-center'>
-                    {
-                        isToday || isPast ?
-                        markedHour(attendanceData, isToday)
-                            :
-                        preMarkedHour(attendanceData, dayConfig)
-                    }
+                    {renderDaySchedule()}
                 </div>
 
                 {isLoadingDetails && (
@@ -976,7 +1057,17 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     </div>
                 )}
             </div>
-            {showDetails && <DetailPopover onMouseEnter={handleOpenDetails} onMouseLeave={handleCloseDetails} />}
+            {showDetails && (
+                <DetailPopover
+                    attendanceData={attendanceData}
+                    user={user}
+                    onClose={handleManualClose}
+                    onMouseEnter={handleOpenDetails}
+                    onMouseLeave={handleCloseDetails}
+                    onAddComment={handleAddComment}
+                    sendingComment={isSendingComment}
+                />
+            )}
         </>
     );
 

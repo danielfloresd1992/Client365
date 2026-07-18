@@ -11,6 +11,35 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-18
+- **Composer de comentarios en el popover + rediseño de `DetailPopover`
+  (`user.list.jsx`):** el popover se redistribuyó (header con foto e identidad
+  en una línea, estado+duración en una fila, entrada/salida lado a lado,
+  auditoría al pie) y los comentarios subieron con identidad dorada a juego
+  con la muesca (marco ámbar, contador en píldora `#f0a500`). Debajo de la
+  lista, input estilo red social (`CommentComposer`, componente a nivel de
+  módulo para no perder foco al tipear) con botón de enviar redondo, Enter
+  para enviar, spinner mientras guarda y errores por el modal global — solo
+  usuarios super. El tiempo real ya estaba: el endpoint de comentarios emite
+  el socket y todas las celdas montadas (de todos los clientes conectados)
+  actualizan la lista al instante. Luego se extrajo `DetailPopover` a
+  componente de módulo (identidad estable): antes estaba definido dentro de
+  `AttendanceCell` y cada update (socket, envío, click) lo desmontaba y
+  re-montaba — animación repetida, foco perdido, borrador borrado. Ahora los
+  comentarios entrantes solo re-pintan la lista en su lugar. También se cortó
+  la propagación de eventos del portal hacia la celda (un click dentro del
+  popover disparaba la selección por arrastre de la grilla). _(Claude Code)_
+- **Sistema de colores unificado en `AttendanceCell` (`user.list.jsx`):**
+  `markedHour` y `preMarkedHour` se fusionaron en `renderDaySchedule` — una
+  sola lógica que cubre pasado/hoy/futuro (isToday/isPast solo deciden si se
+  muestran horas reales u horario programado). Paleta `CELL_COLOR_SYSTEM`
+  (fondos claros, texto con contraste por color): rojo=falta, verde=extra,
+  amarillo=cambio de guardia (override), gris=descanso, morado=empleado con
+  menos de 1 semana creado, blanco=guardia por defecto; azul oscuro reservado
+  para "quien lleva el turno" (futuro). Jerarquía: falta > extra > descanso >
+  cambio > nuevo > guardia. Llegada tarde y falta llevan borde rojo resaltado
+  (reemplaza el fondo rosado del wrapper). De paso: las faltas futuras ya se
+  pintan en rojo (antes `preMarkedHour` no las manejaba) y se eliminó un
+  onClick de debug con `console.error`. _(Claude Code)_
 - **Comentarios por día en asistencia (modelo + endpoint + UI):** el modelo
   `Attendance` ganó `comments[]` (`{user: ref, message, date}`). Nuevo POST
   `/user/attendance/comment` protegido con `validateSessionAndUserSuper`
