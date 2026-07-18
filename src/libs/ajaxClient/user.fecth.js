@@ -109,4 +109,20 @@ export const saveGroupDynamicSchedule = async (payload) => {
 }
 
 
+/**
+ * Agrega un comentario al documento de asistencia de un día (solo usuarios super).
+ * @param {{ userId?: string, dni?: string, date: string, message: string }} payload
+ * @returns {{ status, result }} result = documento Attendance con comments populados
+ */
+export const addAttendanceComment = async (payload) => {
+    try {
+        const response = await axiosInstance.post('/user/attendance/comment', payload);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
 

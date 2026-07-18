@@ -11,6 +11,36 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-18
+- **Comentarios por día en asistencia (modelo + endpoint + UI):** el modelo
+  `Attendance` ganó `comments[]` (`{user: ref, message, date}`). Nuevo POST
+  `/user/attendance/comment` protegido con `validateSessionAndUserSuper`
+  (solo usuarios super): upsertea el documento del día (`createdBy` = autor si
+  lo crea), toma el autor de la sesión (nunca del body) y emite el socket para
+  refrescar la celda en vivo. En la grilla: "Agregar comentario" (icono de
+  burbuja) aparece solo para supers y con click derecho **sobre una celda**
+  (la fecha se captura vía `data-dateiso`); abre el modal
+  `user.comment.form.jsx` (cabecera con operador + fecha, textarea con
+  contador, Escape/click-fuera) y guarda vía `addAttendanceComment`. El
+  `DetailPopover` muestra la caja de comentarios con mini-foto, autor, fecha y
+  mensaje, y ahora también se abre en días que solo tienen comentarios.
+  _(Claude Code)_
+- **Auditoría de documentos de asistencia (attendance.model.js + endpoints +
+  DetailPopover):** el modelo `Attendance` ahora guarda `createdBy` (ref al
+  usuario que originó el documento: el empleado al marcar, o el admin que
+  asignó un override sobre un día sin registro) y `editedBy[]` (historial de
+  ediciones administrativas: quién, cuándo y qué campos del override
+  cambiaron, cada cambio como `{field, from, to}` con el valor anterior y el
+  nuevo). Compatible hacia atrás (defaults null/[]). Los marcajes de
+  entrada/salida NO se registran como ediciones a propósito. El endpoint
+  grupal hace `$setOnInsert` de createdBy y push a editedBy con el diff real
+  de campos; el GET de asistencia por día y los eventos socket populan
+  `createdBy`/`editedBy.user` (name/surName/img). En el `DetailPopover` de la
+  grilla se muestra "Creado por" y las últimas 3 ediciones con foto de perfil
+  en miniatura, fecha y chips de los campos cambiados con valor anterior →
+  nuevo. El popover ahora también se abre en celdas de **falta asignada** (sin
+  checkIn) mostrando el badge "✗ Falta asignada" y la auditoría de quién la
+  asignó; los bloques ENTRADA/SALIDA solo se renderizan si hay marcaje.
+  _(Claude Code)_
 - **Calendario de horario del operador (`user.schedule.calendar.jsx`):** "Ver
   horario" del menú contextual ahora abre un modal (overlay oscuro translúcido,
   portal a body para escapar del zoom de la grilla) con el mes completo del
