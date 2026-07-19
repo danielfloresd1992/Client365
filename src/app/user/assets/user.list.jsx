@@ -1,4 +1,4 @@
-import { useState, useEffect, useImperativeHandle, forwardRef, useContext, useMemo, useRef } from 'react';
+import { useState, useEffect, useReducer, useImperativeHandle, forwardRef, useContext, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useContextMenuPosition from '@/hook/useContextMenuPosition';
 import ContextMenu from '@/components/ContextMenu';
@@ -18,6 +18,108 @@ import { continuousColorLegendClasses } from '@mui/x-charts';
 
 const attendanceCache = new Map();
 const attendanceRequestCache = new Map();
+
+// ── Notificador de cambios de la caché de asistencia ──────────────────
+// Las filas de resumen leen la caché para contar por día; este mini pub/sub
+// las re-renderiza (con debounce) cuando las celdas escriben datos.
+const attendanceCacheListeners = new Set();
+let attendanceCacheNotifyPending = false;
+const notifyAttendanceCacheChange = () => {
+    if (attendanceCacheNotifyPending) return;
+    attendanceCacheNotifyPending = true;
+    setTimeout(() => {
+        attendanceCacheNotifyPending = false;
+        attendanceCacheListeners.forEach((listener) => listener());
+    }, 300);
+};
+
+/**
+ * Fila de resumen alineada a la grilla: la primera celda mide EXACTAMENTE lo
+ * mismo que el recuadro foto+nombre (w-48) para no romper la sincronía, y
+ * cada celda de día cuenta para esa fecha: disponibles (les toca laborar),
+ * faltas y llegadas tarde. Considera el override del día si ya está en caché
+ * (celdas cargadas / sockets) y si no, la regla semanal del usuario.
+ */
+const SUMMARY_NO_WORK_TYPES = ['descanso', 'permiso', 'vacaciones', 'falta'];
+const SUMMARY_TONES = {
+    sub: 'bg-white',
+    shift: 'bg-gray-50',
+    dept: 'bg-gray-100',
+};
+export function AttendanceSummaryRow({ label, users, daysRange, tone = 'sub' }) {
+    // Re-render cuando la caché de asistencia cambia
+    const [, forceUpdate] = useReducer((x) => x + 1, 0);
+    useEffect(() => {
+        attendanceCacheListeners.add(forceUpdate);
+        return () => attendanceCacheListeners.delete(forceUpdate);
+    }, []);
+
+    const toneClass = SUMMARY_TONES[tone] || SUMMARY_TONES.sub;
+
+    const dayStats = (dateObj) => {
+        const normalized = startOfDay(dateObj);
+        const key = normalized.toISOString();
+        const dow = String(normalized.getDay());
+        let available = 0;
+        let faltas = 0;
+        let tardes = 0;
+        users.forEach((u) => {
+            const cached = attendanceCache.get(`${u.dni}-${key}`);
+            const rule = u?.workSchedule?.scheduleByDay?.[dow];
+            const type = cached?.scheduleOverride?.workType || rule?.workType || 'laboral';
+            if (!SUMMARY_NO_WORK_TYPES.includes(type)) available++;
+            if (type === 'falta' || cached?.status === 'ausente') faltas++;
+            if (cached?.isLate) tardes++;
+        });
+        return { available, faltas, tardes };
+    };
+
+    const todayStats = dayStats(new Date());
+
+    return (
+        <div className={`flex border-b-2 border-gray-300 select-none ${toneClass}`}>
+            {/* Celda sticky: mismo ancho que el recuadro foto+nombre de UserList */}
+            <div className={`sticky left-0 z-10 w-48 min-w-[12rem] border-r border-gray-300 px-3 py-1.5 flex flex-col justify-center ${toneClass}`}>
+                <p className='font-black text-[11px] text-gray-700 uppercase tracking-wider leading-tight truncate'>{label}</p>
+                <div className='flex items-center gap-3 mt-1'>
+                    <div className='flex items-baseline gap-1.5'>
+                        <span className='text-[9px] font-black text-gray-400 uppercase tracking-tighter'>Total</span>
+                        <span className='text-xl font-black text-gray-900 leading-none'>{users.length}</span>
+                    </div>
+                    <div className='h-5 w-px bg-gray-300' />
+                    <div className='flex items-baseline gap-1.5'>
+                        <span className='text-[9px] font-black text-emerald-600 uppercase tracking-tighter'>Laboran hoy</span>
+                        <span className='text-xl font-black text-emerald-600 leading-none'>{todayStats.available}</span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Celdas por día: disponibles / faltas / tardes (layout tipo IN/OUT) */}
+            {daysRange.map((day) => {
+                const stats = dayStats(day.dateObj);
+                return (
+                    <div
+                        key={day.fullDateISO}
+                        className={`flex-shrink-0 w-24 border-r border-gray-300 px-1.5 py-1 flex flex-col justify-center gap-0.5 ${day.isToday ? 'bg-blue-50/40' : ''}`}
+                    >
+                        <div className='flex justify-between items-center px-1.5 py-0.5 bg-emerald-100/80 border border-emerald-200 rounded'>
+                            <span className='text-[9px] font-black text-emerald-700 uppercase tracking-tighter'>Disp</span>
+                            <span className='text-[15px] font-black text-emerald-700 leading-none'>{stats.available}</span>
+                        </div>
+                        <div className='flex justify-between items-center px-1'>
+                            <span className='text-[9px] font-black text-gray-400 uppercase tracking-tighter'>Falta</span>
+                            <span className={`text-[12px] font-extrabold ${stats.faltas > 0 ? 'text-red-600' : 'text-gray-300'}`}>{stats.faltas}</span>
+                        </div>
+                        <div className='flex justify-between items-center px-1'>
+                            <span className='text-[9px] font-black text-gray-400 uppercase tracking-tighter'>Tarde</span>
+                            <span className={`text-[12px] font-extrabold ${stats.tardes > 0 ? 'text-amber-600' : 'text-gray-300'}`}>{stats.tardes}</span>
+                        </div>
+                    </div>
+                );
+            })}
+        </div>
+    );
+}
 
 // Etiquetas en español para los campos de scheduleOverride en editedBy.change
 const OVERRIDE_FIELD_LABELS = {
@@ -470,16 +572,21 @@ export default forwardRef(function UserList({
         setContextMenuDate(cell ? new Date(cell.getAttribute('data-dateiso')) : null);
     };
 
-    // Tipo de jornada efectivo del día clickeado (override en caché > regla semanal)
-    const getMenuDayType = () => {
-        if (!contextMenuDate) return null;
+    // Info del día clickeado: tipo efectivo (override en caché > regla semanal)
+    // y si la jornada ya está cerrada (con hora de salida marcada) — en ese
+    // caso no tiene sentido asignar guardia/descanso/extra sobre el día.
+    const getMenuDayInfo = () => {
+        if (!contextMenuDate) return { type: null, closed: false };
         const normalized = new Date(contextMenuDate);
         normalized.setHours(0, 0, 0, 0);
         const cached = attendanceCache.get(`${userState?.dni}-${normalized.toISOString()}`);
         const rule = userState?.workSchedule?.scheduleByDay?.[String(normalized.getDay())];
-        return cached?.scheduleOverride?.workType || rule?.workType || 'laboral';
+        return {
+            type: cached?.scheduleOverride?.workType || rule?.workType || 'laboral',
+            closed: Boolean(cached?.checkOut),
+        };
     };
-    const menuDayType = getMenuDayType();
+    const { type: menuDayType, closed: menuDayClosed } = getMenuDayInfo();
 
     // Guarda un override de jornada para la fecha clickeada (mismo endpoint que "Editar grupo")
     const saveDayOverride = async ({ workType, shift = null, startTime = null, endTime = null }) => {
@@ -554,14 +661,17 @@ export default forwardRef(function UserList({
                             <p className='font-bold text-[12px] md:text-[13px] text-gray-600 leading-tight truncate'>{userState?.surName}</p>
                             <p className='text-[10px] md:text-[11px] font-bold text-gray-400 mt-1 truncate uppercase tracking-widest'>{userState?.jobInformation?.position || 'Sin definir'}</p>
                         </div>
-                        <button
-                            onClick={() => {
-                                onClearSelectedDates?.();
-                                onEditClick(userState);
-                            }}
-                            className='absolute top-[5px] right-[5px] pointer'>
-                            <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
-                        </button>
+                        {/* Tuerca de edición — visible solo para administradores */}
+                        {dataSessionState?.dataSession?.admin === true && (
+                            <button
+                                onClick={() => {
+                                    onClearSelectedDates?.();
+                                    onEditClick(userState);
+                                }}
+                                className='absolute top-[5px] right-[5px] pointer'>
+                                <img className='w-[30px] opacity-30 hover:opacity-100' src='/ico/icons8-configuración-48.png' alt='config-ico-09' />
+                            </button>
+                        )}
                     </div>
 
                 </div>
@@ -634,8 +744,8 @@ export default forwardRef(function UserList({
                         Editar usuario
                     </button>
 
-                    {/* Acciones de jornada sobre la fecha clickeada */}
-                    {contextMenuDate && (
+                    {/* Acciones de jornada — no aplican si la jornada ya cerró (checkOut) */}
+                    {contextMenuDate && !menuDayClosed && (
                         <>
                             <div className='h-px bg-gray-100 my-1' />
 
@@ -919,6 +1029,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         const handdlerEventSocket = data => {
             const record = data?.finalRecord || null;
             attendanceCache.set(attendanceCacheKey, record);
+            notifyAttendanceCacheChange();
 
             // Mostrar datos si hay checkIn, scheduleOverride asignado o comentarios
             if (record?.checkIn || record?.scheduleOverride?.workType || record?.comments?.length > 0) {
@@ -980,6 +1091,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
                 const data = await requestPromise;
                 attendanceCache.set(attendanceCacheKey, data);
+            notifyAttendanceCacheChange();
 
                 if (!isMounted) return;
 
@@ -1166,12 +1278,15 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                 title={overrideTooltip}
                 className={`relative w-full h-full flex flex-col justify-center ${overrideTooltip ? 'cursor-help' : ''} ${attendanceData?.checkIn ? 'cursor-pointer' : ''}`}
             >
-                {/* Muesca dorada: el día tiene uno o más comentarios */}
+                {/* Marco dorado: el día tiene uno o más comentarios (borde en los 4 lados + esquina doblada) */}
                 {attendanceData?.comments?.length > 0 && (
-                    <div
-                        className='absolute top-0 right-0 z-10 pointer-events-none'
-                        style={{ borderTop: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
-                    />
+                    <>
+                        <div className='absolute inset-0 z-10 pointer-events-none border-2 border-[#f0a500]' />
+                        <div
+                            className='absolute top-0 right-0 z-10 pointer-events-none'
+                            style={{ borderTop: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
+                        />
+                    </>
                 )}
                 <div style={{ pointerEvents: 'none' }} className='w-full h-full flex flex-col justify-center'>
                     {renderDaySchedule()}

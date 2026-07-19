@@ -8,7 +8,7 @@ import { es } from 'date-fns/locale';
 
 // Assets & Components
 import UserEditForm from './assets/user.update.form';
-import UserList from './assets/user.list';
+import UserList, { AttendanceSummaryRow } from './assets/user.list';
 import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
 import UserGroupDynamicScheduleForm from './assets/user.group.dynamic.schedule.form';
 
@@ -33,6 +33,14 @@ const COLORS_DEPARTMENTS = [
 const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
 const GREEN_THEME_GRADIENT = 'linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%)';
 
+// Usuarios visibles en la grilla (los outForkSchedule no se renderizan)
+const visibleUsers = (list) => (Array.isArray(list) ? list.filter(u => !u?.workSchedule?.outForkSchedule) : []);
+
+// Total de usuarios visibles en un grupo de turno ({default, total, [detalle]: []})
+const countVisibleInShift = (sub) => Object.entries(sub || {})
+    .filter(([key]) => key !== 'total')
+    .reduce((acc, [, list]) => acc + visibleUsers(list).length, 0);
+
 // Iconos SVG de Lupa para el Zoom
 const ZoomOutIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
@@ -41,6 +49,7 @@ const ZoomOutIcon = () => (
 const ZoomInIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
 );
+
 
 
 export default function UserScheduler() {
@@ -61,6 +70,32 @@ export default function UserScheduler() {
         visited: {}
     });
     const [isLoading, setIsLoading] = useState(false);
+
+    // Grupos (departamento-turno) colapsados: solo muestran sus resúmenes.
+    // Se persiste en localStorage para recordar la preferencia del usuario.
+    const [collapsedGroups, setCollapsedGroups] = useState({});
+
+    useEffect(() => {
+        try {
+            const saved = localStorage.getItem('userSchedulerCollapsedGroups');
+            if (saved) setCollapsedGroups(JSON.parse(saved));
+        } catch (error) {
+            console.error('No se pudo leer el estado de grupos colapsados:', error);
+        }
+    }, []);
+
+    const toggleGroupCollapse = (groupKey) => {
+        setCollapsedGroups(prev => {
+            const next = { ...prev, [groupKey]: !prev[groupKey] };
+            try {
+                localStorage.setItem('userSchedulerCollapsedGroups', JSON.stringify(next));
+            } catch (error) {
+                console.error('No se pudo guardar el estado de grupos colapsados:', error);
+            }
+            return next;
+        });
+    };
+
     const tableRef = useRef(null);
 
     const todayRef = useRef(null);
@@ -189,9 +224,10 @@ export default function UserScheduler() {
         };
     }, [selectedCellsByUser]);
 
+
+
     const selectedUsersForGroupEdition = useMemo(() => {
         if (!selectedGroupStats.hasSelection) return [];
-
         const usersById = userData.reduce((acc, user) => {
             acc[user._id] = user;
             return acc;
@@ -228,7 +264,8 @@ export default function UserScheduler() {
                 description: 'Usuario actualizado correctamente',
                 modalOpen: true,
             }));
-        } catch (error) {
+        } 
+        catch(error){
             console.error('Error actualizando usuario:', error);
             dispatch(setConfigModal({
                 type: 'error',
@@ -240,6 +277,8 @@ export default function UserScheduler() {
             }));
         }
     };
+
+
 
     const handleSaveDynamicSchedule = async (data) => {
         console.log('Dynamic schedule payload:', data);
@@ -253,6 +292,8 @@ export default function UserScheduler() {
         }));
     };
 
+
+    
     const handleSaveGroupDynamicSchedule = async (payload) => {
         try {
             // Inyectar el ID del admin logueado para auditoría (modifiedBy)
@@ -364,6 +405,8 @@ export default function UserScheduler() {
     };
 
     const handleEditSelectedGroup = () => {
+        // Guard en JS: solo administradores pueden editar horarios en grupo
+        if (dataSessionState?.dataSession?.admin !== true) return;
         if (!selectedGroupStats.hasSelection) {
             return;
         }
@@ -478,28 +521,32 @@ export default function UserScheduler() {
                                 Hoy
                             </button>
 
-                            <div className='hidden sm:block h-6 w-[1px] bg-gray-300 ml-1'></div>
+                            {/* Botón Editar Grupo — visible solo para administradores */}
+                            {dataSessionState?.dataSession?.admin === true && (
+                                <>
+                                    <div className='hidden sm:block h-6 w-[1px] bg-gray-300 ml-1'></div>
 
-                            {/* Botón Editar Grupo */}
-                            <button
-                                onClick={handleEditSelectedGroup}
-                                disabled={!selectedGroupStats.hasSelection}
-                                className={`h-8 px-3 sm:px-4 text-xs rounded-lg transition-all font-semibold sm:ml-1 flex items-center gap-1.5 ${selectedGroupStats.hasSelection
-                                    ? 'text-white hover:brightness-105 hover:shadow-md active:scale-95 border-none'
-                                    : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                                    }`}
-                                style={{
-                                        backgroundColor: '#29c50c',
-                                        color: 'white'
-                                }}
-                            >
-                                <span className='text-white'>Editar grupo</span>
-                                {selectedGroupStats.hasSelection && (
-                                    <span className='bg-white/30 text-white rounded-full px-1.5 py-0.5 text-[10px]'>
-                                        {selectedGroupStats.totalCells}
-                                    </span>
-                                )}
-                            </button>
+                                    <button
+                                        onClick={handleEditSelectedGroup}
+                                        disabled={!selectedGroupStats.hasSelection}
+                                        className={`h-8 px-3 sm:px-4 text-xs rounded-lg transition-all font-semibold sm:ml-1 flex items-center gap-1.5 ${selectedGroupStats.hasSelection
+                                            ? 'text-white hover:brightness-105 hover:shadow-md active:scale-95 border-none'
+                                            : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
+                                            }`}
+                                        style={{
+                                                backgroundColor: '#29c50c',
+                                                color: 'white'
+                                        }}
+                                    >
+                                        <span className='text-white'>Editar grupo</span>
+                                        {selectedGroupStats.hasSelection && (
+                                            <span className='bg-white/30 text-white rounded-full px-1.5 py-0.5 text-[10px]'>
+                                                {selectedGroupStats.totalCells}
+                                            </span>
+                                        )}
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -548,8 +595,12 @@ export default function UserScheduler() {
 
                                             const [shift, subcategorys] = category;
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
-                                            return subcategorys.total > 0 && (
-                                                <div key={`${dept}-${shift}`}
+                                            const groupKey = `${dept}-${shift}`;
+                                            const isCollapsed = !!collapsedGroups[groupKey];
+                                            // No renderizar grupos sin empleados visibles (p. ej. vacíos o solo outForkSchedule)
+                                            return countVisibleInShift(subcategorys) > 0 && (
+                                                <div key={groupKey}
+                                                    className='rounded-xl border-2 border-gray-300 overflow-clip mb-3'
                                                     style={{
                                                         backgroundColor: color
                                                     }}
@@ -557,12 +608,24 @@ export default function UserScheduler() {
 
                                                     {/* Sticky Section Header */}
                                                     <div
-                                                        className='sticky left-0 top-[60px] w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                        className='sticky left-0 top-[60px] w-[46%] z-20 bg-gray-100 px-4 py-1 border-y text-[13px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-2'
                                                         style={{
                                                             backgroundColor: color
                                                         }}
                                                     >
-                                                        {dept} — <span className="text-emerald-700">{shift}</span>
+                                                        {/* Toggle al inicio: colapsa los operadores dejando solo los resúmenes */}
+                                                        <button
+                                                            type='button'
+                                                            onClick={() => toggleGroupCollapse(groupKey)}
+                                                            aria-expanded={!isCollapsed}
+                                                            title={isCollapsed ? 'Mostrar operadores' : 'Ocultar operadores'}
+                                                            className='w-6 h-6 flex items-center justify-center rounded-md bg-white/60 border border-black/10 text-gray-700 hover:bg-white transition-colors flex-shrink-0'
+                                                        >
+                                                            <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className={`w-3.5 h-3.5 transition-transform duration-200 motion-reduce:transition-none ${isCollapsed ? '-rotate-90' : ''}`}>
+                                                                <polyline points='6 9 12 15 18 9'></polyline>
+                                                            </svg>
+                                                        </button>
+                                                        <span>{dept} — <span className="text-emerald-700">{shift}</span></span>
                                                     </div>
                                                     {
                                                         Object.entries(subcategorys).map(([subcategory, listUser]) => {
@@ -573,13 +636,13 @@ export default function UserScheduler() {
                                                                         style={{
                                                                             backgroundColor: '#ddd',
                                                                             color: 'black',
-                                                                            display: subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none' : 'block'
+                                                                            display: isCollapsed || subcategory.toLowerCase() === 'default' || subcategory.toLowerCase() === 'total' ? 'none' : 'block'
                                                                         }}
                                                                     >
                                                                         {subcategory}
                                                                     </div>
                                                                     {
-                                                                        listUser.length > 0 && listUser.map(user => {
+                                                                        !isCollapsed && listUser.length > 0 && listUser.map(user => {
 
                                                                             return (
                                                                                 <UserList
@@ -599,15 +662,45 @@ export default function UserScheduler() {
                                                                             )
                                                                         })
                                                                     }
+
+                                                                    {/* Resumen de la subcategoría (la lista sin detalle es la "principal") */}
+                                                                    {visibleUsers(listUser).length > 0 && (
+                                                                        <AttendanceSummaryRow
+                                                                            label={subcategory === 'default' ? 'Lista principal' : subcategory}
+                                                                            users={visibleUsers(listUser)}
+                                                                            daysRange={daysRange}
+                                                                            tone='sub'
+                                                                        />
+                                                                    )}
                                                                 </div>
                                                             )
 
                                                         })
                                                     }
+
+                                                    {/* Resumen del turno — solo si hay más de una lista (evita duplicar la "Lista principal") */}
+                                                    {Object.entries(subcategorys).filter(([k, l]) => k !== 'total' && visibleUsers(l).length > 0).length > 1 && (
+                                                        <AttendanceSummaryRow
+                                                            label={`Total ${shift}`}
+                                                            users={visibleUsers(Object.entries(subcategorys).filter(([k]) => k !== 'total').flatMap(([, l]) => (Array.isArray(l) ? l : [])))}
+                                                            daysRange={daysRange}
+                                                            tone='shift'
+                                                        />
+                                                    )}
                                                 </div>
                                             )
 
                                         })}
+
+                                        {/* Resumen del departamento — solo si hay más de un turno con gente visible */}
+                                        {Object.values(shifts).filter(sub => countVisibleInShift(sub) > 0).length > 1 && (
+                                            <AttendanceSummaryRow
+                                                label={`Total ${dept}`}
+                                                users={visibleUsers(Object.values(shifts).flatMap(sub => Object.entries(sub).filter(([k]) => k !== 'total').flatMap(([, l]) => (Array.isArray(l) ? l : []))))}
+                                                daysRange={daysRange}
+                                                tone='dept'
+                                            />
+                                        )}
                                     </div>
                                 )
                             })}

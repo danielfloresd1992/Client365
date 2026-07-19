@@ -10,6 +10,32 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-19
+- **Grupos colapsables en la grilla (`page.jsx`):** el header de cada bloque
+  departamento—turno ganó un botón de flecha (chevron que rota) que oculta
+  las filas de operadores dejando solo las filas de resumen (disponibles por
+  día por lista/turno/departamento). El estado se persiste en localStorage
+  (`userSchedulerCollapsedGroups`). Además: cada bloque va enmarcado con
+  borde redondeado (`overflow-clip` para no romper los sticky), el header
+  subió a z-20 (ya no queda detrás de los perfiles al scrollear), los
+  resúmenes de turno/departamento solo aparecen cuando agregan información
+  (más de una lista / más de un turno) y el "Disp" por día va resaltado en
+  chip esmeralda. _(Claude Code)_
+- **Filas de resumen por segmento alineadas a la grilla
+  (`AttendanceSummaryRow` en `user.list.jsx`, usada por `page.jsx`):** al
+  cierre de cada subcategoría (incluida la "Lista principal" sin detalle), de
+  cada turno y de cada departamento hay una fila-grilla real: la celda sticky
+  mide lo mismo que el recuadro foto+nombre (w-48, sin romper la sincronía
+  horizontal) con "Total · Hoy laboran" en la tipografía de UserList, y cada
+  celda de día (w-24) cuenta para ESA fecha: Disp (les toca laborar), Faltas
+  y Tarde, con layout tipo IN/OUT y colores esmeralda/rojo/ámbar. Considera
+  el override del día si ya está en la caché de asistencia (y si no, la regla
+  semanal); un mini pub/sub con debounce re-renderiza las filas cuando las
+  celdas cargan datos o llegan sockets. Excluye `outForkSchedule`. El menú
+  contextual además oculta las acciones de jornada (descanso/guardia/extra)
+  cuando la jornada del día clickeado ya cerró con hora de salida.
+  _(Claude Code)_
+
 ## 2026-07-18
 - **Acciones de jornada en el menú contextual (`user.list.jsx` +
   `user.day.assign.form.jsx`):** con click derecho sobre una celda: "Marcar
