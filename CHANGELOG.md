@@ -11,6 +11,58 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-19
+- **Miniaturas de fotos vía backend (`sharp`):** el endpoint
+  `/user/multimedia/:namefile` acepta `?w=` (1–512) y redimensiona al vuelo
+  con sharp (cuadrado, cover) + `Cache-Control` de 24h; de paso se blindó con
+  `basename` (path traversal) y responde 404 real en error. En el cliente,
+  helper `thumbUrl(url, w)`: burbujas de celda a w=64, MiniAvatar a w=48 y
+  avatar del popover a w=96 (2x para retina) — las fotos de alta resolución
+  ya no viajan completas para pintarse en 24px. _(Claude Code)_
+- **Burbujas de responsables en la celda (`user.list.jsx`):** las celdas cuyo
+  documento fue creado/editado/comentado muestran arriba a la derecha las
+  fotos de esas personas como burbujas redondas solapadas (máx. 3 + contador
+  "+N"), dedupe por persona con prioridad Creado > Editado > Comentó, y
+  tooltip al hover con rol y nombre ("Creado por Daniel Flores"). Solo usa
+  refs populadas; iniciales cuando no hay foto. _(Claude Code)_
+- **Guardia del día (onDuty) por departamento:** el documento `Attendance`
+  ganó el booleano `onDuty`. Nuevo POST `/user/attendance/on-duty` (solo
+  super): valida que el departamento esté habilitado (Operaciones, Reportes,
+  Sistemas y desarrollo) y que **nadie más del mismo departamento** tenga la
+  guardia esa fecha (409 con el nombre del titular); audita el cambio en
+  `editedBy` ({field:'onDuty', from, to}) y emite el socket. En la grilla:
+  botón "Designar guardia del día" / "Quitar guardia" en el menú contextual
+  (campana, solo depts habilitados) y **badge azul con campana "GUARDIA"**
+  en la esquina superior izquierda de la celda. Ajustes posteriores: la
+  exclusividad es por departamento + fecha + **turno** (diurno y nocturno
+  pueden tener cada uno su guardia; el turno efectivo se resuelve
+  override > regla semanal > global, sin populate — de paso se corrigió
+  `ref: 'User'`→`'user'` en `userId` que convertía el 409 en 500); "Designar"
+  ahora abre el formulario con **hora de entrada/salida y turno** (guarda el
+  override laboral y luego designa); y las celdas reconocen documentos
+  solo-guardia (condición `onDuty` en socket/caché/fetch) para que el badge
+  pinte también en días futuros. _(Claude Code)_
+- **Formulario "Editar grupo" — pre-carga y restricciones
+  (`user.group.dynamic.schedule.form.jsx`):** las celdas ahora se pre-cargan
+  con los datos ya guardados del día (override desde la caché de asistencia,
+  expuesta vía `getCachedAttendance` en `user.list.jsx`) en vez de solo la
+  regla semanal. Si la jornada del día ya cerró (entrada Y salida marcadas):
+  badge "✓ Jornada marcada", no se puede cambiar a permiso ni descanso
+  (opciones deshabilitadas + guard en `updateField`) ni editar las horas
+  (inputs bloqueados) — pero sí marcar como extra. Al elegir permiso aparece
+  un textarea de comentario obligatorio (borde rojo hasta llenarlo, validado
+  al enviar y también por el backend). _(Claude Code)_
+- **Permiso y Vacaciones como jornadas asignables (menú contextual + backend):**
+  el menú contextual ganó "Asignar permiso" (modal con comentario
+  **obligatorio**; el controlador grupal lo valida por item y rechaza permisos
+  sin nota) y "Asignar vacaciones" (modal con rango desde→hasta que genera
+  automáticamente un documento por día — máx. 62 — con quién las asignó vía
+  createdBy/note). En el backend: `status` del Attendance ganó
+  'permiso'/'vacaciones' y el endpoint grupal setea el estatus según el tipo;
+  los tipos sin horario (descanso/permiso/vacaciones/falta) anulan
+  entrada/salida. En la celda: permiso en amarillo, vacaciones en cian, con
+  sus etiquetas; cargos nuevos Verificador, Auditor de datos y Supervisor
+  sincronizados en modelo, schema yup y frontend (validado en vivo contra el
+  API). _(Claude Code)_
 - **Grupos colapsables en la grilla (`page.jsx`):** el header de cada bloque
   departamento—turno ganó un botón de flecha (chevron que rota) que oculta
   las filas de operadores dejando solo las filas de resumen (disponibles por

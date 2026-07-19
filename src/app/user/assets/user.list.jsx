@@ -7,7 +7,7 @@ import UserCommentForm from './user.comment.form';
 import UserDayAssignForm from './user.day.assign.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
-import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule } from '@/libs/ajaxClient/user.fecth';
+import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard } from '@/libs/ajaxClient/user.fecth';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
@@ -22,6 +22,15 @@ const attendanceRequestCache = new Map();
 // ── Notificador de cambios de la caché de asistencia ──────────────────
 // Las filas de resumen leen la caché para contar por día; este mini pub/sub
 // las re-renderiza (con debounce) cuando las celdas escriben datos.
+// Acceso de solo lectura a la caché (p. ej. para pre-cargar el formulario grupal)
+export const getCachedAttendance = (dni, dateISO) => attendanceCache.get(`${dni}-${dateISO}`);
+
+// Miniatura optimizada: el backend redimensiona con ?w= (x2 para retina)
+const thumbUrl = (url, width) => {
+    if (!url) return url;
+    return `${url}${url.includes('?') ? '&' : '?'}w=${width}`;
+};
+
 const attendanceCacheListeners = new Set();
 let attendanceCacheNotifyPending = false;
 const notifyAttendanceCacheChange = () => {
@@ -139,6 +148,8 @@ const CELL_COLOR_SYSTEM = {
     extra:    { bg: 'bg-green-100',  text: 'text-green-900',  accent: 'text-green-700' },  // Verde: día extra
     cambio:   { bg: 'bg-yellow-100', text: 'text-yellow-900', accent: 'text-yellow-700' }, // Amarillo: cambio de guardia (override)
     descanso: { bg: 'bg-gray-200',   text: 'text-gray-700',   accent: 'text-gray-500' },   // Gris: descanso
+    permiso:  { bg: 'bg-yellow-100', text: 'text-yellow-900', accent: 'text-yellow-700' }, // Amarillo: permiso (con comentario obligatorio)
+    vacaciones: { bg: 'bg-cyan-100', text: 'text-cyan-900',   accent: 'text-cyan-700' },   // Cian: vacaciones
     nuevo:    { bg: 'bg-purple-200', text: 'text-purple-950', accent: 'text-purple-700' }, // Morado: empleado con < 1 semana
     guardia:  { bg: 'bg-white',      text: 'text-gray-800',   accent: 'text-teal-600' },   // Blanco: guardia por defecto (modelo user)
     // turno: { bg: 'bg-blue-900',  text: 'text-white',      accent: 'text-blue-200' },   // Azul oscuro: quien lleva el turno (futura implementación)
@@ -149,7 +160,7 @@ function MiniAvatar({ user }) {
     return (
         <div className='w-5 h-5 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center'>
             {user?.img
-                ? <img src={user.img} className='w-full h-full object-cover' alt='' />
+                ? <img src={thumbUrl(user.img, 48)} className='w-full h-full object-cover' alt='' />
                 : <span className='text-[8px] font-bold text-slate-600'>{user?.name?.[0] || 'A'}</span>}
         </div>
     );
@@ -219,6 +230,17 @@ function calculateWorkDuration(attendanceData) {
 
 function getStatusColor(attendanceData) {
     if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return 'bg-red-50 border-red-200 text-red-700';
+    // Override asignado sin marcaje: color según el tipo (mismo sistema de la celda)
+    if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType) {
+        const colors = {
+            laboral: 'bg-yellow-50 border-yellow-200 text-yellow-800',
+            extra: 'bg-green-50 border-green-200 text-green-800',
+            descanso: 'bg-gray-100 border-gray-300 text-gray-700',
+            permiso: 'bg-purple-50 border-purple-200 text-purple-700',
+            vacaciones: 'bg-cyan-50 border-cyan-200 text-cyan-700',
+        };
+        return colors[attendanceData.scheduleOverride.workType] || 'bg-gray-50 border-gray-200 text-gray-700';
+    }
     if (attendanceData?.status === 'presente') return 'bg-emerald-50 border-emerald-200 text-emerald-700';
     if (attendanceData?.isLate) return 'bg-red-50 border-red-200 text-red-700';
     if (attendanceData?.status === 'falta') return 'bg-red-50 border-red-200 text-red-700';
@@ -228,6 +250,17 @@ function getStatusColor(attendanceData) {
 
 function getStatusLabel(attendanceData) {
     if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType === 'falta') return '✗ Falta asignada';
+    // Override asignado sin marcaje: etiqueta según el tipo
+    if (!attendanceData?.checkIn && attendanceData?.scheduleOverride?.workType) {
+        const labels = {
+            laboral: '✦ Guardia asignada',
+            extra: '✦ Día extra asignado',
+            descanso: '✦ Descanso asignado',
+            permiso: '✦ Permiso asignado',
+            vacaciones: '✦ Vacaciones asignadas',
+        };
+        return labels[attendanceData.scheduleOverride.workType] || '✦ Horario modificado';
+    }
     if (attendanceData?.status === 'presente') return '✓ Presente';
     if (attendanceData?.isLate) return '⚠️ Llegada Tarde';
     if (attendanceData?.status === 'falta') return '✗ Falta';
@@ -254,9 +287,9 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
         if (list) list.scrollTop = list.scrollHeight;
     }, [commentCount]);
 
-    const isFaltaRecord = attendanceData?.scheduleOverride?.workType === 'falta';
+    const hasOverrideInfo = Boolean(attendanceData?.scheduleOverride?.workType);
     const hasComments = attendanceData?.comments?.length > 0;
-    if (!attendanceData?.checkIn && !isFaltaRecord && !hasComments) return null;
+    if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return null;
 
     const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
         timeZone: 'America/Caracas',
@@ -270,6 +303,29 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
 
     const images = attendanceData?.imageReference || [];
     const workDuration = calculateWorkDuration(attendanceData);
+
+    // El documento creado por el propio marcaje del empleado (bioJarvis) no
+    // cuenta como creación administrativa: solo se muestra lo hecho desde
+    // este frontend (creador distinto al empleado, ediciones, comentarios)
+    const isSelfCreated = String(attendanceData?.createdBy?._id || '') === String(user?._id || '');
+    const showCreator = Boolean(attendanceData?.createdBy?.name) && !isSelfCreated;
+
+    // Cadena de responsables del documento: el creador y las últimas personas
+    // (distintas, máx. 3) que lo modificaron, en orden cronológico
+    const auditChain = (() => {
+        const chain = [];
+        if (showCreator) chain.push({ user: attendanceData.createdBy, role: 'Creó' });
+        const seen = new Set();
+        const editors = [];
+        [...(attendanceData?.editedBy || [])].reverse().forEach((edit) => {
+            const id = edit?.user?._id || edit?.user;
+            if (!id || seen.has(String(id))) return;
+            seen.add(String(id));
+            editors.push({ user: edit.user, role: 'Modificó' });
+        });
+        chain.push(...editors.slice(0, 3).reverse());
+        return chain;
+    })();
 
     const content = (
         <div
@@ -296,7 +352,7 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                 <div className='flex items-center gap-3 mb-4'>
                     <div className='w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center'>
                         {user?.img
-                            ? <img src={user.img} className='w-full h-full object-cover' alt='' />
+                            ? <img src={thumbUrl(user.img, 96)} className='w-full h-full object-cover' alt='' />
                             : <span className='text-xs font-bold text-slate-600'>{user?.name?.[0]}{user?.surName?.[0]}</span>}
                     </div>
                     <div className='flex-1 min-w-0'>
@@ -326,8 +382,10 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                         )}
                     </div>
 
-                    {/* ── Comentarios (destacados, a juego con la muesca dorada) ── */}
-                    {attendanceData?.comments?.length > 0 && (
+                    {/* ── Comentarios (destacados, a juego con la muesca dorada) ──
+                        Visible con comentarios, o vacía para que un usuario super
+                        pueda dejar el primero */}
+                    {(attendanceData?.comments?.length > 0 || dataSessionState?.dataSession?.super === true) && (
                         <div className='rounded-lg border-2 border-amber-300 bg-amber-50 p-3'>
                             <div className='flex items-center gap-2 mb-2'>
                                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='#b45309' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0'>
@@ -335,9 +393,10 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                                 </svg>
                                 <p className='text-xs font-black uppercase tracking-wider text-amber-800'>Comentarios</p>
                                 <span className='ml-auto min-w-[20px] h-5 px-1.5 rounded-full bg-[#f0a500] text-white text-[10px] font-black flex items-center justify-center'>
-                                    {attendanceData.comments.length}
+                                    {attendanceData?.comments?.length || 0}
                                 </span>
                             </div>
+                            {(attendanceData?.comments?.length > 0) ? (
                             <div ref={commentsListRef} className='space-y-2 max-h-44 overflow-y-auto pr-1'>
                                 {attendanceData.comments.map((comment, i) => (
                                     <div key={i} className='flex items-start gap-2 bg-white/70 border border-amber-100 rounded-md px-2 py-1.5'>
@@ -359,6 +418,9 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                                     </div>
                                 ))}
                             </div>
+                            ) : (
+                                <p className='text-[11px] italic text-amber-700/80'>Sin comentarios aún — deja el primero.</p>
+                            )}
 
                             {/* Agregar comentario en línea (solo usuarios super) */}
                             {dataSessionState?.dataSession?.super === true && (
@@ -400,10 +462,31 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                         </div>
                     )}
 
-                    {/* Auditoría: quién creó el documento y quién lo editó */}
-                    {(attendanceData?.createdBy?.name || attendanceData?.editedBy?.length > 0) && (
+                    {/* Auditoría: quién creó el documento y quién lo editó (solo acciones del frontend) */}
+                    {(showCreator || attendanceData?.editedBy?.length > 0) && (
                         <div className='bg-gray-50 p-3 rounded border border-gray-200 space-y-2'>
-                            {attendanceData?.createdBy?.name && (
+                            {/* Cadena de responsables (con más de un cambio): creador → últimos en modificar */}
+                            {attendanceData?.editedBy?.length > 1 && auditChain.length > 1 && (
+                                <div className='flex items-center gap-1 flex-wrap pb-2 border-b border-gray-200'>
+                                    {auditChain.map((person, i) => (
+                                        <div key={i} className='flex items-center gap-1'>
+                                            {i > 0 && <span className='text-gray-300 text-[11px] font-bold'>→</span>}
+                                            <div
+                                                className='flex items-center gap-1.5 bg-white border border-gray-200 rounded-full pl-0.5 pr-2 py-0.5'
+                                                title={person.role}
+                                            >
+                                                <MiniAvatar user={person.user} />
+                                                <span className='text-[10px] font-semibold text-gray-700 max-w-[80px] truncate'>
+                                                    {person.user?.name
+                                                        ? `${person.user.name} ${person.user.surName || ''}`.trim()
+                                                        : 'Admin'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            {showCreator && (
                                 <div className='flex items-center gap-2'>
                                     <MiniAvatar user={attendanceData.createdBy} />
                                     <p className='text-xs text-gray-600 truncate'>
@@ -572,11 +655,11 @@ export default forwardRef(function UserList({
         setContextMenuDate(cell ? new Date(cell.getAttribute('data-dateiso')) : null);
     };
 
-    // Info del día clickeado: tipo efectivo (override en caché > regla semanal)
-    // y si la jornada ya está cerrada (con hora de salida marcada) — en ese
-    // caso no tiene sentido asignar guardia/descanso/extra sobre el día.
+    // Info del día clickeado: tipo efectivo (override en caché > regla semanal),
+    // si la jornada ya está cerrada (con hora de salida marcada) y si el
+    // usuario tiene la guardia del día (onDuty) en esa fecha.
     const getMenuDayInfo = () => {
-        if (!contextMenuDate) return { type: null, closed: false };
+        if (!contextMenuDate) return { type: null, closed: false, onDuty: false };
         const normalized = new Date(contextMenuDate);
         normalized.setHours(0, 0, 0, 0);
         const cached = attendanceCache.get(`${userState?.dni}-${normalized.toISOString()}`);
@@ -584,25 +667,79 @@ export default forwardRef(function UserList({
         return {
             type: cached?.scheduleOverride?.workType || rule?.workType || 'laboral',
             closed: Boolean(cached?.checkOut),
+            onDuty: Boolean(cached?.onDuty),
         };
     };
-    const { type: menuDayType, closed: menuDayClosed } = getMenuDayInfo();
+    const { type: menuDayType, closed: menuDayClosed, onDuty: menuDayOnDuty } = getMenuDayInfo();
 
-    // Guarda un override de jornada para la fecha clickeada (mismo endpoint que "Editar grupo")
-    const saveDayOverride = async ({ workType, shift = null, startTime = null, endTime = null }) => {
+    // Departamentos habilitados para la guardia del día (igual que el backend)
+    const ONDUTY_DEPARTMENTS = ['Operaciones', 'Reportes', 'Sistemas y desarrollo'];
+    const canHaveOnDuty = ONDUTY_DEPARTMENTS.includes(userState?.jobInformation?.department);
+
+    // Designa o quita la guardia del día para la fecha clickeada
+    const toggleOnDutyGuard = async (onDuty) => {
         try {
             const dateObj = new Date(contextMenuDate);
             dateObj.setHours(0, 0, 0, 0);
+            await setOnDutyGuard({
+                userId: userState._id,
+                dni: userState.dni,
+                date: dateObj.toISOString(),
+                onDuty,
+            });
+            // La celda se refresca sola por el evento socket del backend
+            dispatch(setConfigModal({
+                type: 'successfull',
+                title: onDuty ? 'Guardia designada' : 'Guardia retirada',
+                description: onDuty
+                    ? `${userState?.name} queda como guardia del día.`
+                    : `${userState?.name} ya no es la guardia del día.`,
+                modalOpen: true,
+            }));
+            return true;
+        } catch (error) {
+            console.error('Error asignando guardia del día:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo asignar',
+                description: error?.response?.data?.message || 'Hubo un problema al asignar la guardia. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+            return false;
+        }
+    };
+
+    // Guarda un override de jornada para la fecha clickeada (mismo endpoint que "Editar grupo")
+    const saveDayOverride = async ({ workType, shift = null, startTime = null, endTime = null, note = null, from = null, to = null }) => {
+        try {
+            // Fechas objetivo: rango completo para vacaciones (un documento por
+            // día), o solo el día donde se hizo click derecho
+            let dates = [];
+            if (workType === 'vacaciones' && from && to) {
+                const start = new Date(`${from}T00:00:00.000Z`);
+                const end = new Date(`${to}T00:00:00.000Z`);
+                const MAX_DAYS = 62;
+                for (let d = new Date(start); d <= end && dates.length < MAX_DAYS; d.setUTCDate(d.getUTCDate() + 1)) {
+                    dates.push(new Date(d).toISOString());
+                }
+                if (dates.length === 0) throw new Error('El rango de fechas de las vacaciones no es válido.');
+            } else {
+                const dateObj = new Date(contextMenuDate);
+                dateObj.setHours(0, 0, 0, 0);
+                dates = [dateObj.toISOString()];
+            }
+
             const response = await saveGroupDynamicSchedule({
-                updates: [{
+                updates: dates.map((dateISO) => ({
                     userId: userState._id,
                     dni: userState.dni,
-                    date: dateObj.toISOString(),
+                    date: dateISO,
                     workType,
                     shift,
                     startTime,
                     endTime,
-                }],
+                    note,
+                })),
                 adminUserId: dataSessionState?.dataSession?._id,
             });
 
@@ -614,6 +751,8 @@ export default forwardRef(function UserList({
                 descanso: 'Día marcado como descanso/libre.',
                 laboral: 'Guardia asignada para la fecha.',
                 extra: 'Día extra asignado para la fecha.',
+                permiso: 'Permiso asignado con su comentario.',
+                vacaciones: `Vacaciones asignadas (${dates.length} día${dates.length !== 1 ? 's' : ''}).`,
             };
             dispatch(setConfigModal({
                 type: 'successfull',
@@ -778,6 +917,75 @@ export default forwardRef(function UserList({
                                 Asignar guardia
                             </button>
 
+                            <button
+                                role='menuitem'
+                                className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                onClick={() => {
+                                    closeContextMenu();
+                                    setAssignFormMode('permiso');
+                                }}
+                            >
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                    <path d='M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z'></path>
+                                    <path d='M14 2v4a2 2 0 0 0 2 2h4'></path>
+                                    <path d='M10 9H8'></path>
+                                    <path d='M16 13H8'></path>
+                                    <path d='M16 17H8'></path>
+                                </svg>
+                                Asignar permiso
+                            </button>
+
+                            <button
+                                role='menuitem'
+                                className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                onClick={() => {
+                                    closeContextMenu();
+                                    setAssignFormMode('vacaciones');
+                                }}
+                            >
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                    <circle cx='12' cy='12' r='4'></circle>
+                                    <path d='M12 2v2'></path>
+                                    <path d='M12 20v2'></path>
+                                    <path d='m4.93 4.93 1.41 1.41'></path>
+                                    <path d='m17.66 17.66 1.41 1.41'></path>
+                                    <path d='M2 12h2'></path>
+                                    <path d='M20 12h2'></path>
+                                    <path d='m6.34 17.66-1.41 1.41'></path>
+                                    <path d='m19.07 4.93-1.41 1.41'></path>
+                                </svg>
+                                Asignar vacaciones
+                            </button>
+
+                            {/* Guardia del día — solo departamentos habilitados */}
+                            {canHaveOnDuty && (
+                                <button
+                                    role='menuitem'
+                                    className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                    onClick={() => {
+                                        closeContextMenu();
+                                        // Designar abre el formulario (horario + turno); quitar es directo
+                                        if (menuDayOnDuty) toggleOnDutyGuard(false);
+                                        else setAssignFormMode('guardia');
+                                    }}
+                                >
+                                    {menuDayOnDuty ? (
+                                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-blue-500'>
+                                            <path d='M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5'></path>
+                                            <path d='M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7'></path>
+                                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                            <line x1='2' y1='2' x2='22' y2='22'></line>
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-blue-500'>
+                                            <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                        </svg>
+                                    )}
+                                    {menuDayOnDuty ? 'Quitar guardia' : 'Designar guardia del día'}
+                                </button>
+                            )}
+
                             {/* Extra: solo cuando el día efectivo es libre/descanso */}
                             {menuDayType === 'descanso' && (
                                 <button
@@ -867,6 +1075,20 @@ export default forwardRef(function UserList({
                     mode={assignFormMode}
                     onCancel={() => setAssignFormMode(null)}
                     onSave={async (payload) => {
+                        // Guardia del día: primero fija el horario laboral del día
+                        // y luego designa el onDuty (el backend valida turno único)
+                        if (payload.workType === 'guardia') {
+                            const savedSchedule = await saveDayOverride({
+                                workType: 'laboral',
+                                shift: payload.shift,
+                                startTime: payload.startTime,
+                                endTime: payload.endTime,
+                            });
+                            if (!savedSchedule) return;
+                            const designated = await toggleOnDutyGuard(true);
+                            if (designated) setAssignFormMode(null);
+                            return;
+                        }
                         const saved = await saveDayOverride(payload);
                         if (saved) setAssignFormMode(null);
                     }}
@@ -903,10 +1125,11 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             closeTimeoutRef.current = null;
         }
         if (manuallyClosedRef.current) return;
-        // Abre con marcaje registrado, falta asignada o comentarios del día
-        const isFaltaRecord = attendanceData?.scheduleOverride?.workType === 'falta';
+        // Abre con marcaje registrado, cualquier override asignado (guardia,
+        // cambio, descanso, falta...) o comentarios del día
+        const hasOverrideInfo = Boolean(attendanceData?.scheduleOverride?.workType);
         const hasComments = attendanceData?.comments?.length > 0;
-        if (!attendanceData?.checkIn && !isFaltaRecord && !hasComments) return;
+        if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return;
         if (showDetails) return;
         if (openTimeoutRef.current) return;
 
@@ -1032,7 +1255,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             notifyAttendanceCacheChange();
 
             // Mostrar datos si hay checkIn, scheduleOverride asignado o comentarios
-            if (record?.checkIn || record?.scheduleOverride?.workType || record?.comments?.length > 0) {
+            if (record?.checkIn || record?.scheduleOverride?.workType || record?.comments?.length > 0 || record?.onDuty) {
                 setStatus('data');
                 setAttendanceData(record);
                 return;
@@ -1067,7 +1290,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     const cachedData = attendanceCache.get(attendanceCacheKey);
                     if (!isMounted) return;
 
-                    if (cachedData?.checkIn || cachedData?.scheduleOverride?.workType || cachedData?.comments?.length > 0) {
+                    if (cachedData?.checkIn || cachedData?.scheduleOverride?.workType || cachedData?.comments?.length > 0 || cachedData?.onDuty) {
                         setAttendanceData(cachedData);
                         setStatus('data');
                     } else {
@@ -1095,7 +1318,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
                 if (!isMounted) return;
 
-                if (data?.checkIn || data?.scheduleOverride?.workType || data?.comments?.length > 0) {
+                if (data?.checkIn || data?.scheduleOverride?.workType || data?.comments?.length > 0 || data?.onDuty) {
                     setAttendanceData(data);
                     setStatus('data');
                 } else {
@@ -1143,18 +1366,35 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
 
-    const overrideTooltip = attendanceData?.scheduleOverride?.workType
-        ? (() => {
-            const last = attendanceData.scheduleOverride.modifiedBy?.slice(-1)?.[0];
-            const adminName = last?.user?.name
-                ? `${last.user.name} ${last.user.surName || ''}`.trim()
-                : 'Admin';
-            const modDate = last?.date
-                ? new Date(last.date).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })
-                : '';
-            return `Regla: ${attendanceData.scheduleOverride.workType.toUpperCase()}\nModificado por: ${adminName}\n${modDate}`;
-        })()
-        : '';
+    // La celda abre el popover si tiene marcaje, override asignado o comentarios
+    const hasPopoverInfo = Boolean(
+        attendanceData?.checkIn ||
+        attendanceData?.scheduleOverride?.workType ||
+        attendanceData?.comments?.length > 0
+    );
+
+    // Personas que tocaron el documento (creador, editores, comentaristas)
+    // para las burbujas de la celda. Dedupe por persona; el primer rol gana.
+    const cellPeople = (() => {
+        if (!attendanceData) return [];
+        const people = [];
+        const seen = new Set();
+        const pushPerson = (person, role) => {
+            if (!person?.name) return; // solo refs populadas
+            const id = String(person._id || `${person.name}-${person.surName}`);
+            if (seen.has(id)) return;
+            seen.add(id);
+            people.push({ person, role });
+        };
+        // El marcaje propio (bioJarvis) crea el documento con createdBy = el
+        // mismo empleado: eso NO cuenta como creación administrativa — solo
+        // se muestran documentos creados/editados desde este frontend
+        const isSelfCreated = String(attendanceData.createdBy?._id || '') === String(user?._id || '');
+        if (!isSelfCreated) pushPerson(attendanceData.createdBy, 'Creado por');
+        (attendanceData.editedBy || []).forEach((edit) => pushPerson(edit.user, 'Editado por'));
+        (attendanceData.comments || []).forEach((comment) => pushPerson(comment.user, 'Comentó'));
+        return people;
+    })();
 
 
 
@@ -1190,6 +1430,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         if (isFalta) colorKey = 'falta';
         else if (isExtra) colorKey = 'extra';
         else if (isDescanso) colorKey = 'descanso';
+        else if (effectiveType === 'permiso') colorKey = 'permiso';
+        else if (effectiveType === 'vacaciones') colorKey = 'vacaciones';
         else if (hasOverride) colorKey = 'cambio';
         else if (isNewEmployee) colorKey = 'nuevo';
 
@@ -1212,6 +1454,16 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             content = (
                 <div className='text-center'>
                     <span className={`text-[12px] font-black uppercase tracking-wider ${color.text}`}>Libre</span>
+                    {hasOverride && <div className={`text-[9px] font-bold mt-0.5 ${color.accent}`}>✦ Asignado</div>}
+                </div>
+            );
+        }
+        else if ((effectiveType === 'permiso' || effectiveType === 'vacaciones') && !hasCheckIn) {
+            content = (
+                <div className='text-center'>
+                    <span className={`text-[12px] font-black uppercase tracking-wider ${color.text}`}>
+                        {effectiveType === 'permiso' ? 'Permiso' : 'Vacaciones'}
+                    </span>
                     {hasOverride && <div className={`text-[9px] font-bold mt-0.5 ${color.accent}`}>✦ Asignado</div>}
                 </div>
             );
@@ -1245,7 +1497,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             content = (
                 <>
                     <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${color.accent}`}>
-                        {isExtra ? '✦ EXTRA' : '✦ Guardia'}
+                        {isExtra ? '✦ EXTRA' : '✦ Laboral'}
                     </div>
                     <div className={`flex justify-center items-center gap-1 pt-0.5 text-[11px] font-extrabold ${color.text}`}>
                         <span>{startTime || '--:--'}</span>
@@ -1275,10 +1527,20 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                 }}
                 onMouseEnter={handleOpenDetails}
                 onMouseLeave={handleCloseDetails}
-                title={overrideTooltip}
-                className={`relative w-full h-full flex flex-col justify-center ${overrideTooltip ? 'cursor-help' : ''} ${attendanceData?.checkIn ? 'cursor-pointer' : ''}`}
+                className={`relative w-full h-full flex flex-col justify-center ${hasPopoverInfo ? 'cursor-pointer' : ''}`}
             >
-                {/* Marco dorado: el día tiene uno o más comentarios (borde en los 4 lados + esquina doblada) */}
+                {/* Guardia del día: campana azul */}
+                {attendanceData?.onDuty && (
+                    <div className='absolute top-0 left-0 z-20 pointer-events-none flex items-center gap-0.5 bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-br-md'>
+                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                            <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                        </svg>
+                        Guardia
+                    </div>
+                )}
+
+                {/* Marco dorado: el día tiene comentarios (borde + muescas en las 4 esquinas) */}
                 {attendanceData?.comments?.length > 0 && (
                     <>
                         <div className='absolute inset-0 z-10 pointer-events-none border-2 border-[#f0a500]' />
@@ -1286,7 +1548,44 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                             className='absolute top-0 right-0 z-10 pointer-events-none'
                             style={{ borderTop: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
                         />
+                        <div
+                            className='absolute top-0 left-0 z-10 pointer-events-none'
+                            style={{ borderTop: '15px solid #f0a500', borderRight: '15px solid transparent' }}
+                        />
+                        <div
+                            className='absolute bottom-0 right-0 z-10 pointer-events-none'
+                            style={{ borderBottom: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
+                        />
+                        <div
+                            className='absolute bottom-0 left-0 z-10 pointer-events-none'
+                            style={{ borderBottom: '15px solid #f0a500', borderRight: '15px solid transparent' }}
+                        />
                     </>
+                )}
+
+                {/* Burbujas: fotos de quienes crearon/editaron/comentaron el documento */}
+                {cellPeople.length > 0 && (
+                    <div className='absolute top-0 right-0 z-20 flex -space-x-1'>
+                        {cellPeople.slice(0, 3).map(({ person, role }, i) => (
+                            <div
+                                key={i}
+                                title={`${role} ${person.name} ${person.surName || ''}`.trim()}
+                                className='w-6 h-6 rounded-full bg-slate-200 border border-white shadow-sm overflow-hidden flex items-center justify-center cursor-help'
+                            >
+                                {person.img
+                                    ? <img src={thumbUrl(person.img, 64)} className='w-full h-full object-cover rounded-full' alt='' />
+                                    : <span className='text-[8px] font-bold text-slate-600'>{person.name?.[0]}</span>}
+                            </div>
+                        ))}
+                        {cellPeople.length > 3 && (
+                            <div
+                                title={cellPeople.slice(3).map(({ person, role }) => `${role} ${person.name} ${person.surName || ''}`.trim()).join('\n')}
+                                className='w-6 h-6 rounded-full bg-gray-700 text-white text-[9px] font-black flex items-center justify-center border border-white shadow-sm cursor-help'
+                            >
+                                +{cellPeople.length - 3}
+                            </div>
+                        )}
+                    </div>
                 )}
                 <div style={{ pointerEvents: 'none' }} className='w-full h-full flex flex-col justify-center'>
                     {renderDaySchedule()}

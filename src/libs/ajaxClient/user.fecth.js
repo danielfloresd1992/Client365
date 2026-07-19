@@ -125,4 +125,20 @@ export const addAttendanceComment = async (payload) => {
 }
 
 
+/**
+ * Designa o quita la guardia del día de un usuario (solo usuarios super).
+ * El backend valida que no exista otra guardia del mismo departamento esa fecha.
+ * @param {{ userId?: string, dni?: string, date: string, onDuty: boolean }} payload
+ */
+export const setOnDutyGuard = async (payload) => {
+    try {
+        const response = await axiosInstance.post('/user/attendance/on-duty', payload);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
 

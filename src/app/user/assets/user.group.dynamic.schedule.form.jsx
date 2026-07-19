@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { format } from 'date-fns';
+import { getCachedAttendance } from './user.list';
 import { es } from 'date-fns/locale';
 
 const GREEN_THEME_GRADIENT = 'linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%)';
@@ -57,14 +58,22 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                 const dayRule = scheduleMap[String(dayNumber)] || {};
                 const key = `${userId}-${dateKey}`;
 
+                // Si ya existe documento para ese día (celda cargada en la
+                // grilla), pre-cargar su override y detectar jornada cerrada
+                const cached = getCachedAttendance(user?.dni, dateKey);
+                const override = cached?.scheduleOverride?.workType ? cached.scheduleOverride : null;
+                const dayClosed = Boolean(cached?.checkIn && cached?.checkOut);
+
                 acc[key] = {
                     userId,
                     dni: user?.dni,
                     dateISO: dateKey,
-                    workType: dayRule.workType || 'laboral',
-                    shift: dayRule.shift || globalShift,
-                    startTime: dayRule.startTime || '09:00',
-                    endTime: dayRule.endTime || '18:00',
+                    workType: override?.workType || dayRule.workType || 'laboral',
+                    shift: override?.shift || dayRule.shift || globalShift,
+                    startTime: override ? override.startTime : (dayRule.startTime || '09:00'),
+                    endTime: override ? override.endTime : (dayRule.endTime || '18:00'),
+                    note: '',
+                    dayClosed,
                 };
             });
 
@@ -79,6 +88,13 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
         setFormByCell((prev) => {
             const current = prev[key];
             if (!current) return prev;
+
+            // Jornada cerrada (entrada Y salida marcadas): no se puede pasar a
+            // permiso/descanso ni editar el horario — sí a extra u otros
+            if (current.dayClosed) {
+                if (field === 'workType' && ['permiso', 'descanso'].includes(value)) return prev;
+                if (field === 'startTime' || field === 'endTime') return prev;
+            }
 
             const next = {
                 ...current,
@@ -149,7 +165,15 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
             // Los tipos sin horario envían null para no pisar horas existentes
             startTime: NO_TIME_TYPES.has(item.workType) ? null : item.startTime,
             endTime:   NO_TIME_TYPES.has(item.workType) ? null : item.endTime,
+            note: item.note?.trim() || null,
         }));
+
+        // Los permisos requieren comentario (el backend también lo exige)
+        const missingPermisoNote = updates.some((item) => item.workType === 'permiso' && !item.note);
+        if (missingPermisoNote) {
+            alert('Todos los permisos deben llevar un comentario que los justifique.');
+            return;
+        }
 
         // Validar que los tipos con horario tengan entrada y salida definidas
         const hasInvalidWorkingTime = updates.some((item) => {
@@ -268,7 +292,14 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                 className={`w-full text-[11px] font-bold uppercase tracking-wider rounded px-2 py-1.5 appearance-none cursor-pointer outline-none transition-all ${pal.selBg}`}
                                                             >
                                                                 {WORK_MODE_OPTIONS.map((option) => (
-                                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                                    <option
+                                                                        key={option.value}
+                                                                        value={option.value}
+                                                                        // Jornada cerrada: no puede pasar a permiso ni descanso
+                                                                        disabled={row?.dayClosed && ['permiso', 'descanso'].includes(option.value)}
+                                                                    >
+                                                                        {option.label}
+                                                                    </option>
                                                                 ))}
                                                             </select>
                                                             {/* Flecha del selector */}
@@ -276,6 +307,13 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                 <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
                                                             </div>
                                                         </div>
+
+                                                        {/* Jornada cerrada: entrada y salida ya marcadas */}
+                                                        {row?.dayClosed && (
+                                                            <div className='text-[9px] font-black text-emerald-700 text-center uppercase tracking-wider'>
+                                                                ✓ Jornada marcada
+                                                            </div>
+                                                        )}
 
                                                         {/* ── Selector de turno (solo si el tipo requiere horario) ── */}
                                                         {!isNoTime && (
@@ -301,8 +339,9 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                     type='time'
                                                                     value={row?.startTime || ''}
                                                                     onChange={(e) => updateField(key, 'startTime', e.target.value)}
-                                                                    className='w-full text-[12px] font-semibold text-gray-700 bg-transparent text-center outline-none cursor-pointer'
-                                                                    title="Hora de Entrada"
+                                                                    disabled={row?.dayClosed}
+                                                                    className='w-full text-[12px] font-semibold text-gray-700 bg-transparent text-center outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                                                    title={row?.dayClosed ? 'Jornada cerrada: horario no editable' : 'Hora de Entrada'}
                                                                 />
                                                                 <div className={`flex items-center justify-center px-0.5 ${wt === 'extra' ? 'text-indigo-300' : 'text-emerald-300'}`}>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
@@ -311,8 +350,9 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                     type='time'
                                                                     value={row?.endTime || ''}
                                                                     onChange={(e) => updateField(key, 'endTime', e.target.value)}
-                                                                    className='w-full text-[12px] font-semibold text-gray-700 bg-transparent text-center outline-none cursor-pointer'
-                                                                    title="Hora de Salida"
+                                                                    disabled={row?.dayClosed}
+                                                                    className='w-full text-[12px] font-semibold text-gray-700 bg-transparent text-center outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed'
+                                                                    title={row?.dayClosed ? 'Jornada cerrada: horario no editable' : 'Hora de Salida'}
                                                                 />
                                                             </div>
                                                         ) : (
@@ -323,6 +363,18 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                                                                     Sin horario
                                                                 </span>
                                                             </div>
+                                                        )}
+
+                                                        {/* Comentario obligatorio del permiso */}
+                                                        {wt === 'permiso' && (
+                                                            <textarea
+                                                                value={row?.note || ''}
+                                                                onChange={(e) => updateField(key, 'note', e.target.value)}
+                                                                rows={2}
+                                                                maxLength={500}
+                                                                placeholder='Motivo del permiso (obligatorio)...'
+                                                                className={`w-full text-[11px] border rounded px-1.5 py-1 resize-none bg-white focus:outline-none focus:ring-1 focus:ring-purple-400 placeholder:text-gray-400 ${row?.note?.trim() ? 'border-purple-200' : 'border-red-300'}`}
+                                                            />
                                                         )}
                                                     </div>
                                                 </td>

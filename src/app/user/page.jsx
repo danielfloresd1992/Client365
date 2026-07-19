@@ -30,7 +30,9 @@ const COLORS_DEPARTMENTS = [
     { name: 'Reportes', diurno: '#fdaeae', nocturno: "#fdc5ff" },
     { name: 'Sin definir', diurno: '#bbbbbb', nocturno: "#bbb" },
 ];
-const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Operador senior', 'Operador experto', 'Operador', 'Analista de sistemas', 'Analista de reportes', 'Analista de RRHH'];
+// Mantener sincronizado con POSITION_ENUM del backend (user.schema.js/user.model.js).
+// El orden define la prioridad de ordenamiento en la grilla.
+const POSITIONS = ['Gerente', 'Subgerente', 'Coordinador', 'Supervisor', 'Operador senior', 'Operador experto', 'Operador', 'Verificador', 'Auditor de datos', 'Analista de sistemas', 'Analista de reportes', 'Analista de auditoria', 'Analista de RRHH'];
 const GREEN_THEME_GRADIENT = 'linear-gradient(90deg, #29c50c 0%, #4e8300 45%, #6b7f47 100%)';
 
 // Usuarios visibles en la grilla (los outForkSchedule no se renderizan)
