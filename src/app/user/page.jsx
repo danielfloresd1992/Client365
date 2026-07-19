@@ -179,8 +179,12 @@ export default function UserScheduler() {
                 }
             };
 
-            // Sort by Position Priority first
+            // Orden por antigüedad: los más antiguos primero, los más nuevos al
+            // final; a igual fecha de creación, desempata la jerarquía del cargo
             const sortedByPosition = [...deptUsers].sort((a, b) => {
+                const dateA = a.createdOn ? new Date(a.createdOn).getTime() : 0;
+                const dateB = b.createdOn ? new Date(b.createdOn).getTime() : 0;
+                if (dateA !== dateB) return dateA - dateB;
                 const posA = POSITIONS.indexOf(a.jobInformation?.position);
                 const posB = POSITIONS.indexOf(b.jobInformation?.position);
                 return (posA === -1 ? 99 : posA) - (posB === -1 ? 99 : posB);
@@ -610,7 +614,7 @@ export default function UserScheduler() {
 
                                                     {/* Sticky Section Header */}
                                                     <div
-                                                        className='sticky left-0 top-[60px] w-[46%] z-20 bg-gray-100 px-4 py-1 border-y text-[13px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-2'
+                                                        className='sticky left-0 top-[60px] w-fit rounded-br-lg z-20 bg-gray-100 px-4 py-1 border-y text-[13px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-2'
                                                         style={{
                                                             backgroundColor: color
                                                         }}
@@ -634,7 +638,7 @@ export default function UserScheduler() {
                                                             return (
                                                                 <div key={`${dept}-${shift}-${subcategory}`}>
                                                                     <div
-                                                                        className='sticky left-0 w-[46%] z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
+                                                                        className='sticky left-0 w-fit rounded-r-md z-10 bg-gray-100 px-4 py-1 border-y text-xs font-bold text-gray-500 uppercase tracking-wider'
                                                                         style={{
                                                                             backgroundColor: '#ddd',
                                                                             color: 'black',

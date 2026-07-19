@@ -37,8 +37,8 @@ const MODE_CONFIG = {
         buttonClass: 'bg-cyan-600 hover:bg-cyan-700',
     },
     guardia: {
-        title: 'Designar guardia del día',
-        badge: 'Guardia',
+        title: 'Designar encargado de turno',
+        badge: 'Turno',
         badgeClass: 'bg-blue-100 text-blue-800',
         buttonClass: 'bg-blue-600 hover:bg-blue-700',
     },

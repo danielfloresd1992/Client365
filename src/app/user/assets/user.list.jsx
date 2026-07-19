@@ -144,16 +144,22 @@ const OVERRIDE_FIELD_LABELS = {
 //   falta > extra > descanso > cambio de guardia > empleado nuevo > guardia
 // ══════════════════════════════════════════════════════════════
 const CELL_COLOR_SYSTEM = {
-    falta:    { bg: 'bg-red-100',    text: 'text-red-800',    accent: 'text-red-600' },    // Rojo: falta
+    falta:    { bg: 'bg-red-600',    text: 'text-white',      accent: 'text-red-100' },    // Rojo pleno: falta (texto blanco)
     extra:    { bg: 'bg-green-100',  text: 'text-green-900',  accent: 'text-green-700' },  // Verde: día extra
     cambio:   { bg: 'bg-yellow-100', text: 'text-yellow-900', accent: 'text-yellow-700' }, // Amarillo: cambio de guardia (override)
     descanso: { bg: 'bg-gray-200',   text: 'text-gray-700',   accent: 'text-gray-500' },   // Gris: descanso
     permiso:  { bg: 'bg-yellow-100', text: 'text-yellow-900', accent: 'text-yellow-700' }, // Amarillo: permiso (con comentario obligatorio)
     vacaciones: { bg: 'bg-cyan-100', text: 'text-cyan-900',   accent: 'text-cyan-700' },   // Cian: vacaciones
-    nuevo:    { bg: 'bg-purple-200', text: 'text-purple-950', accent: 'text-purple-700' }, // Morado: empleado con < 1 semana
+    nuevo:    { bg: 'bg-purple-200', text: 'text-purple-950', accent: 'text-purple-700' }, // Morado: empleado nuevo (el fondo real es el degradado continuo NEW_EMPLOYEE_BASE_RGB)
     guardia:  { bg: 'bg-white',      text: 'text-gray-800',   accent: 'text-teal-600' },   // Blanco: guardia por defecto (modelo user)
     // turno: { bg: 'bg-blue-900',  text: 'text-white',      accent: 'text-blue-200' },   // Azul oscuro: quien lleva el turno (futura implementación)
 };
+
+// Degradado CONTINUO de antigüedad: máxima intensidad el día 1 y
+// desvanecimiento lineal hasta blanco a los 3 meses (90 días).
+// Base: purple-800 (#6b21a8); la intensidad se aplica como alpha.
+const NEW_EMPLOYEE_BASE_RGB = '107, 33, 168';
+const NEW_EMPLOYEE_FADE_DAYS = 90;
 
 // Foto de perfil en miniatura para la auditoría del popover
 function MiniAvatar({ user }) {
@@ -690,10 +696,10 @@ export default forwardRef(function UserList({
             // La celda se refresca sola por el evento socket del backend
             dispatch(setConfigModal({
                 type: 'successfull',
-                title: onDuty ? 'Guardia designada' : 'Guardia retirada',
+                title: onDuty ? 'Encargado de turno designado' : 'Encargado de turno retirado',
                 description: onDuty
-                    ? `${userState?.name} queda como guardia del día.`
-                    : `${userState?.name} ya no es la guardia del día.`,
+                    ? `${userState?.name} queda como encargado de turno.`
+                    : `${userState?.name} ya no es el encargado de turno.`,
                 modalOpen: true,
             }));
             return true;
@@ -799,6 +805,11 @@ export default forwardRef(function UserList({
                             <p className='font-black text-[15px] md:text-[16px] text-gray-900 leading-tight truncate'>{userState?.name}</p>
                             <p className='font-bold text-[12px] md:text-[13px] text-gray-600 leading-tight truncate'>{userState?.surName}</p>
                             <p className='text-[10px] md:text-[11px] font-bold text-gray-400 mt-1 truncate uppercase tracking-widest'>{userState?.jobInformation?.position || 'Sin definir'}</p>
+                            {userState?.createdOn && (
+                                <p className='text-[9px] md:text-[10px] font-semibold text-gray-400 leading-tight truncate'>
+                                    Ingreso: {new Date(userState.createdOn).toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                                </p>
+                            )}
                         </div>
                         {/* Tuerca de edición — visible solo para administradores */}
                         {dataSessionState?.dataSession?.admin === true && (
@@ -982,7 +993,7 @@ export default forwardRef(function UserList({
                                             <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
                                         </svg>
                                     )}
-                                    {menuDayOnDuty ? 'Quitar guardia' : 'Designar guardia del día'}
+                                    {menuDayOnDuty ? 'Quitar encargado de turno' : 'Designar encargado de turno'}
                                 </button>
                             )}
 
@@ -1361,8 +1372,12 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     }
 
     // Empleado nuevo: menos de una semana desde su creación (color morado)
-    const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
-    const isNewEmployee = Boolean(user?.createdOn) && (Date.now() - new Date(user.createdOn).getTime()) < ONE_WEEK_MS;
+    // Días desde la creación del empleado → tramo del degradado morado (null si > 90)
+    const employeeAgeDays = user?.createdOn ? Math.floor((Date.now() - new Date(user.createdOn).getTime()) / 86400000) : null;
+    // Intensidad 1 → 0: día 1 al máximo, blanco a los 90 días
+    const newEmployeeFade = (employeeAgeDays != null && employeeAgeDays >= 0 && employeeAgeDays < NEW_EMPLOYEE_FADE_DAYS)
+        ? 1 - (employeeAgeDays / NEW_EMPLOYEE_FADE_DAYS)
+        : 0;
 
 
 
@@ -1433,9 +1448,14 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         else if (effectiveType === 'permiso') colorKey = 'permiso';
         else if (effectiveType === 'vacaciones') colorKey = 'vacaciones';
         else if (hasOverride) colorKey = 'cambio';
-        else if (isNewEmployee) colorKey = 'nuevo';
-
-        const color = CELL_COLOR_SYSTEM[colorKey];
+        else if (newEmployeeFade > 0) colorKey = 'nuevo';
+        // Empleado nuevo con fondo aún oscuro: textos y rótulos en variantes claras
+        const isDarkNuevo = colorKey === 'nuevo' && newEmployeeFade >= 0.6 && !isLateArrival;
+        const color = colorKey === 'nuevo'
+            ? (isDarkNuevo
+                ? { bg: '', text: 'text-white', accent: 'text-purple-100' }
+                : { bg: '', text: 'text-gray-800', accent: 'text-teal-600' })
+            : CELL_COLOR_SYSTEM[colorKey];
 
         // Borde rojo resaltado: llegada tarde y falta. Si no, marca sutil de "hoy"
         // (el fondo del sistema de colores cubre el tinte azul que tenía el wrapper).
@@ -1476,40 +1496,46 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         <div className={`text-[10px] font-black uppercase tracking-widest text-center ${color.accent}`}>✦ EXTRA</div>
                     )}
                     <div className='flex justify-between items-center px-1.5'>
-                        <span className='text-[10px] font-black text-emerald-600 tracking-tighter'>IN</span>
+                        <span className={`text-[10px] font-black ${isDarkNuevo ? 'text-emerald-300' : 'text-emerald-600'} tracking-tighter`}>IN</span>
                         <span className={`text-[13px] md:text-[14px] font-extrabold tracking-tight ${color.text}`}>{formatTimeVE(attendanceData.checkIn)}</span>
                     </div>
                     <div className='flex justify-between items-center px-1.5'>
-                        <span className='text-[10px] font-black text-orange-500 tracking-tighter'>OUT</span>
+                        <span className={`text-[10px] font-black ${isDarkNuevo ? 'text-orange-300' : 'text-orange-500'} tracking-tighter`}>OUT</span>
                         <span className={`text-[13px] md:text-[14px] font-extrabold tracking-tight ${color.text}`}>{attendanceData?.checkOut ? formatTimeVE(attendanceData.checkOut) : '--'}</span>
                     </div>
                     {isLateArrival && (
-                        <div className='text-[9px] text-red-600 text-center font-black uppercase tracking-widest leading-none'>Tarde</div>
+                        <div className={`text-[9px] ${isDarkNuevo ? 'text-red-300' : 'text-red-600'} text-center font-black uppercase tracking-widest leading-none`}>Tarde</div>
                     )}
                 </div>
             );
         }
         else if (isPast && !attendanceData) {
-            content = <span className='text-[10px] text-gray-400 text-center'>Sin registros</span>;
+            content = <span className={`text-[10px] ${isDarkNuevo ? 'text-white/70' : 'text-gray-400'} text-center`}>Sin registros</span>;
         }
         else {
             // Hoy sin marcar todavía, o fecha futura → horario programado
             content = (
                 <>
                     <div className={`text-[10px] font-black uppercase tracking-widest text-center mb-0.5 ${color.accent}`}>
-                        {isExtra ? '✦ EXTRA' : '✦ Laboral'}
+                        {isExtra ? '✦ EXTRA' : '◆ Laboral'}
                     </div>
                     <div className={`flex justify-center items-center gap-1 pt-0.5 text-[11px] font-extrabold ${color.text}`}>
-                        <span>{startTime || '--:--'}</span>
-                        <span>-</span>
-                        <span>{endTime || '--:--'}</span>
+                        <span className={color.text}>{startTime || '--:--'}</span>
+                        <span className={color.text}>-</span>
+                        <span className={color.text}>{endTime || '--:--'}</span>
                     </div>
                 </>
             );
         }
 
         return (
-            <div className={`w-full h-full flex flex-col justify-center ${color.bg} ${alertRing}`}>
+            <div
+                className={`w-full h-full flex flex-col justify-center ${isLateArrival && !isFalta ? 'bg-rose-100' : color.bg} ${alertRing}`}
+                // Degradado continuo de antigüedad: alpha del morado según los días
+                style={colorKey === 'nuevo' && !isLateArrival
+                    ? { backgroundColor: `rgba(${NEW_EMPLOYEE_BASE_RGB}, ${newEmployeeFade.toFixed(3)})` }
+                    : undefined}
+            >
                 {content}
             </div>
         );
@@ -1531,33 +1557,33 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             >
                 {/* Guardia del día: campana azul */}
                 {attendanceData?.onDuty && (
-                    <div className='absolute top-0 left-0 z-20 pointer-events-none flex items-center gap-0.5 bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-br-md'>
+                    <div className='absolute top-0 left-0 z-[2] pointer-events-none flex items-center gap-0.5 bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-br-md'>
                         <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
                             <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
                             <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
                         </svg>
-                        Guardia
+                        Turno
                     </div>
                 )}
 
                 {/* Marco dorado: el día tiene comentarios (borde + muescas en las 4 esquinas) */}
                 {attendanceData?.comments?.length > 0 && (
                     <>
-                        <div className='absolute inset-0 z-10 pointer-events-none border-2 border-[#f0a500]' />
+                        <div className='absolute inset-0 z-[1] pointer-events-none border-2 border-[#f0a500]' />
                         <div
-                            className='absolute top-0 right-0 z-10 pointer-events-none'
+                            className='absolute top-0 right-0 z-[1] pointer-events-none'
                             style={{ borderTop: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
                         />
                         <div
-                            className='absolute top-0 left-0 z-10 pointer-events-none'
+                            className='absolute top-0 left-0 z-[1] pointer-events-none'
                             style={{ borderTop: '15px solid #f0a500', borderRight: '15px solid transparent' }}
                         />
                         <div
-                            className='absolute bottom-0 right-0 z-10 pointer-events-none'
+                            className='absolute bottom-0 right-0 z-[1] pointer-events-none'
                             style={{ borderBottom: '15px solid #f0a500', borderLeft: '15px solid transparent' }}
                         />
                         <div
-                            className='absolute bottom-0 left-0 z-10 pointer-events-none'
+                            className='absolute bottom-0 left-0 z-[1] pointer-events-none'
                             style={{ borderBottom: '15px solid #f0a500', borderRight: '15px solid transparent' }}
                         />
                     </>
@@ -1565,7 +1591,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
                 {/* Burbujas: fotos de quienes crearon/editaron/comentaron el documento */}
                 {cellPeople.length > 0 && (
-                    <div className='absolute top-0 right-0 z-20 flex -space-x-1'>
+                    <div className='absolute top-0 right-0 z-[2] flex -space-x-1'>
                         {cellPeople.slice(0, 3).map(({ person, role }, i) => (
                             <div
                                 key={i}
@@ -1593,7 +1619,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
                 {isLoadingDetails && (
                     <div
-                        className='absolute top-1 right-1 z-20 flex items-center gap-1 bg-white/90 px-1.5 py-0.5 rounded-full shadow-sm border border-blue-200'
+                        className='absolute top-1 right-1 z-[2] flex items-center gap-1 bg-white/90 px-1.5 py-0.5 rounded-full shadow-sm border border-blue-200'
                         style={{ pointerEvents: 'none' }}
                     >
                         <div className='w-3 h-3 border-2 border-blue-500 border-t-transparent rounded-full animate-spin' />

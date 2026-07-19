@@ -11,6 +11,25 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-19
+- **Leyenda de colores en el sidebar + tarde rosado + falta en rojo pleno:**
+  el Panel de Empleados ganó una leyenda bajo los botones con chips de todos
+  los colores de la grilla (laboral, cambio/permiso, extra, descanso,
+  vacaciones, tarde, falta, degradado del empleado nuevo "del día 1 a los 3
+  meses", muesca dorada de comentarios y campana azul del encargado de
+  turno), con scroll propio. Llegada tarde ahora pinta el fondo rosado
+  (`bg-rose-100`, gana al degradado morado) y la falta pasó a rojo pleno
+  (`bg-red-600`) con texto blanco. La tarjeta del operador muestra la fecha
+  de ingreso (DD/MM/YYYY) y las horas del horario programado llevan la clase
+  de color en cada span (una regla global de `span` en styles.css las pintaba
+  gris sobre el morado oscuro). _(Claude Code)_
+- **Degradado de antigüedad y orden por antigüedad:** el morado de empleado
+  nuevo ahora es un degradado por tramos (`NEW_EMPLOYEE_TIERS`): intenso la
+  1ª semana (purple-300), suavizándose por mes (200 → 100 → 50) hasta llegar
+  a blanco a los 3 meses. Además, las listas de todos los departamentos se
+  ordenan por antigüedad (los más antiguos primero; a igual fecha desempata
+  la jerarquía del cargo). También: el rol onDuty se renombró solo
+  estéticamente en el front a "encargado de turno"/"Turno" (botones, modal,
+  badge) — internamente sigue siendo onDuty/guardia. _(Claude Code)_
 - **Miniaturas de fotos vía backend (`sharp`):** el endpoint
   `/user/multimedia/:namefile` acepta `?w=` (1–512) y redimensiona al vuelo
   con sharp (cuadrado, cover) + `Cache-Control` de 24h; de paso se blindó con

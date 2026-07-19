@@ -76,7 +76,7 @@ export default function AsideNav() {
         <div className={`relative h-full transition-all duration-300 motion-reduce:transition-none ${isOpen ? 'w-[250px]' : 'w-[0px]'} max-[599px]:absolute max-[599px]:top-0 max-[599px]:left-0 max-[599px]:z-[200] max-[599px]:h-full`}>
             <aside className={`absolute top-0 left-0 h-full bg-white rounded-xl shadow-sm transition-all duration-300 motion-reduce:transition-none overflow-hidden flex flex-col justify-between ${isOpen ? 'w-[250px] p-2.5 opacity-100 border' : 'w-[0px] p-0 opacity-0 border-transparent'}`}>
                 <div className='w-[230px] h-full flex flex-col justify-between'>
-                    <div className='w-full'>
+                    <div className='w-full overflow-y-auto'>
 
                         {/* Encabezado del panel — misma jerarquía que los headers de página */}
                         <div className='px-2.5 pt-2 pb-3 border-b border-gray-100 mb-2'>
@@ -107,6 +107,74 @@ export default function AsideNav() {
                                 })}
                             </div>
                         </nav>
+
+                        {/* Leyenda del sistema de colores de la grilla de horarios */}
+                        <div className='w-full mt-4'>
+                            <p className='px-2.5 pb-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap'>Leyenda de colores</p>
+                            <ul className='flex flex-col gap-1.5 px-2.5 text-[11px] text-gray-600'>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-gray-400 bg-white flex-shrink-0 flex items-center justify-center'>
+                                        <span className='w-1.5 h-1.5 bg-teal-700 rotate-45' />
+                                    </span>
+                                    Laboral (por defecto)
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-yellow-400 bg-yellow-100 flex-shrink-0' />
+                                    Cambio de guardia / Permiso
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-green-400 bg-green-100 flex-shrink-0 flex items-center justify-center'>
+                                        <span
+                                            className='w-2.5 h-2.5 bg-green-700'
+                                            style={{ clipPath: 'polygon(50% 0%, 62% 38%, 100% 50%, 62% 62%, 50% 100%, 38% 62%, 0% 50%, 38% 38%)' }}
+                                        />
+                                    </span>
+                                    Día extra
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-gray-400 bg-gray-200 flex-shrink-0' />
+                                    Descanso / Libre
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-cyan-400 bg-cyan-100 flex-shrink-0' />
+                                    Vacaciones
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-rose-400 bg-rose-100 flex-shrink-0' />
+                                    Llegada tarde
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-red-700 bg-red-600 flex-shrink-0' />
+                                    Falta
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span
+                                        className='mt-0.5 w-3.5 h-3.5 rounded border border-purple-500 flex-shrink-0'
+                                        style={{ background: 'linear-gradient(to bottom, #6b21a8, #f3e8ff)' }}
+                                    />
+                                    Empleado nuevo: degrada del día 1 a los 3 meses
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    {/* Réplica en miniatura de la celda con comentarios: marco + 4 muescas */}
+                                    <span className='relative mt-0.5 w-3.5 h-3.5 rounded-sm bg-white border border-[#f0a500] flex-shrink-0 overflow-hidden'>
+                                        <span className='absolute top-0 right-0' style={{ borderTop: '5px solid #f0a500', borderLeft: '5px solid transparent' }} />
+                                        <span className='absolute top-0 left-0' style={{ borderTop: '5px solid #f0a500', borderRight: '5px solid transparent' }} />
+                                        <span className='absolute bottom-0 right-0' style={{ borderBottom: '5px solid #f0a500', borderLeft: '5px solid transparent' }} />
+                                        <span className='absolute bottom-0 left-0' style={{ borderBottom: '5px solid #f0a500', borderRight: '5px solid transparent' }} />
+                                    </span>
+                                    Muesca dorada: comentarios
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded border border-blue-900 bg-blue-700 text-white flex items-center justify-center flex-shrink-0'>
+                                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                                            <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                        </svg>
+                                    </span>
+                                    Encargado de turno (depto.)
+                                </li>
+                            </ul>
+                        </div>
                     </div>
 
                     {/* Volver al Lobby — control secundario, mismo vocabulario que los botones de la página */}
