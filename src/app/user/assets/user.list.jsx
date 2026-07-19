@@ -109,7 +109,7 @@ export function AttendanceSummaryRow({ label, users, daysRange, tone = 'sub' }) 
                 return (
                     <div
                         key={day.fullDateISO}
-                        className={`flex-shrink-0 w-24 border-r border-gray-300 px-1.5 py-1 flex flex-col justify-center gap-0.5 ${day.isToday ? 'bg-blue-50/40' : ''}`}
+                        className={`flex-shrink-0 w-24 border-r border-gray-300 px-1.5 py-1 flex flex-col justify-center gap-0.5 ${day.isToday ? 'bg-blue-50/40 shadow-[inset_3px_0_0_#3b82f6,inset_-3px_0_0_#3b82f6]' : ''}`}
                     >
                         <div className='flex justify-between items-center px-1.5 py-0.5 bg-emerald-100/80 border border-emerald-200 rounded'>
                             <span className='text-[9px] font-black text-emerald-700 uppercase tracking-tighter'>Disp</span>
@@ -835,7 +835,7 @@ export default forwardRef(function UserList({
                             onMouseDown={(event) => onStartDragSelection?.(day.fullDateISO, event.button)}
                             onMouseEnter={() => onDragOverCell?.(day.fullDateISO)}
                             className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center cursor-pointer
-                            ${day.isToday ? 'bg-blue-50/20' : ''}
+                            ${day.isToday ? 'bg-blue-50/20 shadow-[inset_3px_0_0_#3b82f6,inset_-3px_0_0_#3b82f6]' : ''}
                             ${selectedDateMap[day.fullDateISO] ? 'ring-2 ring-inset ring-indigo-500 bg-indigo-100/70' : ''}`}
                         >
                             {/* Invocamos al hijo pasándole los datos necesarios */}

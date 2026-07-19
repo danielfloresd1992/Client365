@@ -56,8 +56,9 @@ export default function AsideNav() {
 
     const pathname = usePathname();
 
-    // true = sidebar visible. Se persiste en localStorage (misma clave de siempre).
-    const [isOpen, setIsOpen] = useState(false);
+    // true = sidebar visible. Abierto por defecto; el estado guardado en
+    // localStorage (misma clave de siempre) tiene la última palabra.
+    const [isOpen, setIsOpen] = useState(true);
 
     useEffect(() => {
         const savedState = localStorage.getItem('asideNavHidden');
@@ -153,6 +154,10 @@ export default function AsideNav() {
                                         style={{ background: 'linear-gradient(to bottom, #6b21a8, #f3e8ff)' }}
                                     />
                                     Empleado nuevo: degrada del día 1 a los 3 meses
+                                </li>
+                                <li className='flex items-start gap-2'>
+                                    <span className='mt-0.5 w-3.5 h-3.5 rounded bg-blue-50 border-2 border-blue-500 flex-shrink-0' />
+                                    Marco azul: columna del día de hoy
                                 </li>
                                 <li className='flex items-start gap-2'>
                                     {/* Réplica en miniatura de la celda con comentarios: marco + 4 muescas */}

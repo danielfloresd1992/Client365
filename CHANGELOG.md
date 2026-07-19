@@ -11,6 +11,15 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-19
+- **Columna del día de hoy, header de fecha y preferencias persistentes:** la
+  columna del día presente lleva rieles azules de 3px a los lados (box-shadow
+  inset, sin desplazar el layout) en celdas, resúmenes y header — que además
+  gana tapa superior, fondo azulado y número en azul — con su chip "Marco
+  azul: columna del día de hoy" en la leyenda. El header de fecha pasó a tres
+  líneas (Mes completo / número / día de la semana completo, 12px, findes en
+  rojo) y el rótulo sticky de departamento se recalibró a top-69px. El
+  sidebar abre por defecto (localStorage manda) y el zoom de la grilla se
+  persiste (`userSchedulerZoom`, clamp 50–100). _(Claude Code)_
 - **Leyenda de colores en el sidebar + tarde rosado + falta en rojo pleno:**
   el Panel de Empleados ganó una leyenda bajo los botones con chips de todos
   los colores de la grilla (laboral, cambio/permiso, extra, descanso,

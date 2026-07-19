@@ -81,8 +81,12 @@ export default function UserScheduler() {
         try {
             const saved = localStorage.getItem('userSchedulerCollapsedGroups');
             if (saved) setCollapsedGroups(JSON.parse(saved));
+
+            // Zoom guardado de la sesión anterior (con clamp por seguridad)
+            const savedZoom = Number(localStorage.getItem('userSchedulerZoom'));
+            if (savedZoom) setZoomPercent(Math.min(100, Math.max(50, savedZoom)));
         } catch (error) {
-            console.error('No se pudo leer el estado de grupos colapsados:', error);
+            console.error('No se pudo leer las preferencias guardadas:', error);
         }
     }, []);
 
@@ -115,11 +119,15 @@ export default function UserScheduler() {
     const daysRange = useMemo(() => {
         const startDate = startOfMonth(pivotDate);
         const endDate = endOfMonth(pivotDate);
+        const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
         return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
             fullDateISO: date.toISOString(),
             dayNumber: format(date, 'd'),
             dayName: format(date, 'eee', { locale: es }),
             monthName: format(date, 'MMM', { locale: es }),
+            // Nombres completos para el header (Julio / Domingo)
+            monthFull: capitalize(format(date, 'MMMM', { locale: es })),
+            dayFull: capitalize(format(date, 'EEEE', { locale: es })),
             dateObj: date,
             isToday: isSameDay(date, new Date())
         }));
@@ -329,6 +337,11 @@ export default function UserScheduler() {
     const handleZoomStep = (delta) => {
         setZoomPercent((prev) => {
             const next = Math.min(100, Math.max(50, prev + delta));
+            try {
+                localStorage.setItem('userSchedulerZoom', String(next));
+            } catch (error) {
+                console.error('No se pudo guardar el zoom:', error);
+            }
             return next;
         });
     };
@@ -575,13 +588,16 @@ export default function UserScheduler() {
                                     <div
                                         key={day.fullDateISO}
                                         ref={day.isToday ? todayRef : null}
-                                        className={`flex-shrink-0 w-24 text-center p-2 border-r transition-colors ${day.isToday ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500' : ''}`}
+                                        className={`flex-shrink-0 w-24 text-center p-2 border-r transition-colors ${day.isToday ? 'bg-blue-50 shadow-[inset_3px_0_0_#3b82f6,inset_-3px_0_0_#3b82f6,inset_0_3px_0_#3b82f6]' : ''}`}
                                     >
-                                        <div className={`text-[10px] uppercase font-bold ${['sáb', 'dom'].includes(day.dayName) ? 'text-red-500' : 'text-gray-400'}`}>
-                                            {day.monthName} {day.dayName}
+                                        <div className='text-[12px] font-bold text-gray-500 leading-tight'>
+                                            {day.monthFull}
                                         </div>
-                                        <div className={`text-lg font-bold ${day.isToday ? 'text-emerald-700' : 'text-gray-800'}`}>
+                                        <div className={`text-lg font-bold leading-tight ${day.isToday ? 'text-blue-700' : 'text-gray-800'}`}>
                                             {day.dayNumber}
+                                        </div>
+                                        <div className={`text-[12px] font-bold leading-tight ${['sáb', 'dom'].includes(day.dayName) ? 'text-red-500' : 'text-gray-500'}`}>
+                                            {day.dayFull}
                                         </div>
                                     </div>
                                 ))}
@@ -614,7 +630,7 @@ export default function UserScheduler() {
 
                                                     {/* Sticky Section Header */}
                                                     <div
-                                                        className='sticky left-0 top-[60px] w-fit rounded-br-lg z-20 bg-gray-100 px-4 py-1 border-y text-[13px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-2'
+                                                        className='sticky left-0 top-[69px] w-fit rounded-br-lg z-20 bg-gray-100 px-4 py-1 border-y text-[13px] font-black text-gray-800 uppercase tracking-wider flex items-center gap-2'
                                                         style={{
                                                             backgroundColor: color
                                                         }}
