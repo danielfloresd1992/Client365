@@ -10,6 +10,18 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-23
+- **Menús (`/alertmanasgement`) — envío parcial + auditoría de ediciones
+  (FormReact + `/menu/put` en api_jarvis365):** el formulario ahora envía SOLO
+  los campos modificados (diff del `menu` actual vs el original cargado, por
+  clave de nivel superior; aviso "Sin cambios" si no hay). En el backend, el
+  modelo `Menu` ganó `updateByUser` (array `{user: ref 'user', change:
+  [{key,value}], date}`, `select:false`); la capa `putMenu` se reescribió para
+  hacer `$set` solo de lo recibido + `$push` al historial con el autor de la
+  sesión (antes reconstruía el documento entero, lo que con un parcial borraría
+  campos), y `getMenuById` popula el historial. El verbo pasó de
+  `POST /menu/put` a **`PUT /menu/put`** en front y back. _(Claude Code)_
+
 ## 2026-07-22
 - **Header reestructurado + /auth responsivo + fixes del registro:** el Header
   autenticado pasó de 3 botones a campana de notificaciones (estética, con dos

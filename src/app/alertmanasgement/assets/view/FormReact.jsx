@@ -236,7 +236,25 @@ function Form({
             });
         }
         else if (menu._id !== null) {
-            putMenuProps(menu, (err, data) => {
+            // Enviar SOLO los campos modificados respecto al menú original cargado.
+            // El backend hace $set de esos campos y registra la auditoría; mandar
+            // el documento completo borraría lo no incluido y no habría historial.
+            const original = menuIndividual || {};
+            const changed = {};
+            Object.keys(menu).forEach(key => {
+                if (key === '_id' || key === 'updateByUser' || key === '__v') return;
+                if (JSON.stringify(menu[key]) !== JSON.stringify(original[key])) {
+                    changed[key] = menu[key];
+                }
+            });
+
+            if (Object.keys(changed).length === 0) {
+                return dispatch(setConfigModal({ modalOpen: true, title: 'Sin cambios', description: 'No hay cambios para guardar.', isCallback: null, type: 'warning' }));
+            }
+
+            const payload = { _id: menu._id, ...changed };
+
+            putMenuProps(payload, (err, data) => {
                 if (err) return console.error(err);
                 resetNoveltie();
                 setMenu(factorReset);

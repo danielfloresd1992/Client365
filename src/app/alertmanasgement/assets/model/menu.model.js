@@ -61,7 +61,7 @@ const sendMenu = (body, callback) => {
 
 
 const putMenu = (body, callback) => {
-    axiosStand.post(`/menu/put`, body)
+    axiosStand.put(`/menu/put`, body)
         .then(response => {
             callback(null, response);
         })
