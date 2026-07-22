@@ -220,8 +220,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
 
-            //    if(!hasVideo) await typeShareJarvis([noveltieCopi], groupId)
-
+                //if(!hasVideo) await typeShareJarvis([noveltieCopi], groupId)
+                await typeShareJarvis([noveltieCopi], groupId);
 
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
