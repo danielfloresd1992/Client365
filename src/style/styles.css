@@ -2731,54 +2731,193 @@ a:hover {
     align-items: center;
 }
 
-.header-main .header-buttonContain {
-    position: static;
-    min-width: unset;
-    height: auto;
-    background-color: transparent;
+/* ── Contenedor de acciones autenticadas (campana + usuario) ── */
+.header-main__menu {
     display: flex;
     align-items: center;
-    gap: 0.35rem;
-    overflow: visible;
+    gap: 0.4rem;
 }
 
-.header-main .header-buttonContain:hover {
-    height: auto;
-    top: 0;
-    box-shadow: none;
-}
-
-.header-main .btn-item__btn-for-head {
-    border-radius: 9px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
-    background: rgba(255, 255, 255, 0.14);
-    color: #f2fff8;
-    height: 36px;
-    padding: 0.35rem 0.55rem;
-    font-size: 0.76rem;
-    font-weight: 600;
+/* Botón de icono (campana de notificaciones) */
+.header-main__iconBtn {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
     backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.1s ease;
 }
 
-.header-main .btn-item__white {
-    background: rgba(255, 255, 255, 0.86);
-    color: #3f552a;
-    border: 1px solid rgba(65, 89, 38, 0.2);
+.header-main__iconBtn:hover {
+    background: rgba(255, 255, 255, 0.3);
 }
 
-.header-main .btn-item__white:hover {
-    background: #ffffff;
+.header-main__iconBtn:active {
+    transform: scale(0.94);
+}
+
+/* Estado con notificaciones nuevas: fondo un poco más presente */
+.header-main__iconBtn--active {
+    background: rgba(255, 255, 255, 0.26);
+}
+
+/* Punto decorativo de notificaciones (solo estético) */
+.header-main__notifDot {
+    position: absolute;
+    top: 6px;
+    right: 7px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #ff3b3b;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.9);
+}
+
+/* Usuario con menú desplegable */
+.header-main__user {
+    position: relative;
+}
+
+.header-main__userBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    height: 38px;
+    padding: 0 0.5rem 0 0.35rem;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+
+.header-main__userBtn:hover {
+    background: rgba(255, 255, 255, 0.28);
+}
+
+.header-main__avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.25);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.header-main__avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .header-main__userName {
-    max-width: 190px;
+    max-width: 150px;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     font-weight: 600;
+    font-size: 0.8rem;
     letter-spacing: 0.01em;
 }
 
+.header-main__chevron {
+    flex-shrink: 0;
+    opacity: 0.9;
+    transition: transform 0.2s ease;
+}
+
+.header-main__chevron.is-open {
+    transform: rotate(180deg);
+}
+
+/* Panel desplegable */
+.header-main__dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 190px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    box-shadow: 0 12px 28px rgba(10, 46, 31, 0.22);
+    padding: 6px;
+    z-index: 120;
+    animation: headerDropIn 0.14s ease-out;
+}
+
+@keyframes headerDropIn {
+    from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .header-main__dropdown { animation: none; }
+}
+
+.header-main__dropItem {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.7rem;
+    border-radius: 8px;
+    background: transparent;
+    color: #374151;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+}
+
+.header-main__dropItem:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.header-main__dropItem svg {
+    color: #9ca3af;
+    flex-shrink: 0;
+}
+
+.header-main__dropItem:hover svg {
+    color: #6b7280;
+}
+
+.header-main__dropItem--danger {
+    color: #dc2626;
+}
+
+.header-main__dropItem--danger svg {
+    color: #f87171;
+}
+
+.header-main__dropItem--danger:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+}
+
+.header-main__dropItem--danger:hover svg {
+    color: #ef4444;
+}
+
+.header-main__dropDivider {
+    height: 1px;
+    background: #f0f0f0;
+    margin: 4px 6px;
+}
 
 
 @media screen and (max-width: 1200px) {
@@ -2792,23 +2931,23 @@ a:hover {
     }
 }
 
+/* Tablet/móvil: se mantiene en UNA sola fila (logo | campana + usuario) */
 @media screen and (max-width: 767px) {
     .header-main {
-        height: auto;
-        min-height: 52px;
+        height: 56px;
         padding: 0.4rem 0.6rem;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         align-items: center;
         gap: 0.5rem;
     }
 
-    /* Público (login/inicio): logo + botón en una sola fila compacta */
     .header-main__brand {
         width: auto;
+        min-width: 0;
     }
 
     .header-main__logo {
-        width: 140px;
+        width: 132px;
         height: auto;
     }
 
@@ -2821,35 +2960,23 @@ a:hover {
         margin-left: auto;
     }
 
-    /* Autenticado (menú de botones): apilar a lo ancho como antes */
-    .header-main:has(.header-buttonContain) {
-        align-items: flex-start;
+    .header-main__menu {
+        gap: 0.3rem;
     }
+}
 
-    .header-main:has(.header-buttonContain) .header-main__brand,
-    .header-main:has(.header-buttonContain) .header-main__actions {
-        width: 100%;
-        margin-left: 0;
-    }
-
-    .header-main .header-buttonContain {
-        width: 100%;
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 0.35rem;
-    }
-
-    .header-main .header-main__userBtn {
-        grid-column: 1 / -1;
-    }
-
-    .header-main .btn-item__btn-for-head {
-        font-size: 0.72rem;
-        height: 34px;
-    }
-
+/* Móvil estrecho: se oculta el nombre para que quepa campana + avatar */
+@media screen and (max-width: 460px) {
     .header-main__userName {
-        max-width: 170px;
+        display: none;
+    }
+
+    .header-main__userBtn {
+        padding: 0 0.4rem;
+    }
+
+    .header-main__logo {
+        width: 116px;
     }
 }
 
@@ -6786,7 +6913,7 @@ tfoot {
 
 /* ─── Shell: tarjeta única que une bienvenida + formulario ────────── */
 .auth-shell {
-    position: relative;
+    position: static;
     z-index: 1;
     width: 100%;
     max-width: 940px;
@@ -6939,6 +7066,7 @@ tfoot {
 /* Escritorio: bienvenida y formulario lado a lado dentro de la misma tarjeta */
 @media (min-width: 820px) {
     .auth-shell {
+        position: relative;
         flex-direction: row;
         min-height: 560px;
     }
@@ -7179,6 +7307,45 @@ tfoot {
 @media (max-width: 600px) {
     .auth-double-col {
         flex-direction: column;
+    }
+}
+
+/* Fila de teléfono: código compacto + número que llena el resto.
+   min-width:0 deja que el número encoja bien dentro del flex. */
+.auth-phone-code {
+    flex: 0 0 110px;
+}
+
+.auth-phone-number {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+/* En columna (<600px) se resetea el flex: si no, el flex-basis del código
+   aplicaría a la ALTURA y lo volvería una caja alta. Ambos a ancho completo. */
+@media (max-width: 600px) {
+    .auth-phone-code,
+    .auth-phone-number {
+        flex: none;
+        width: 100%;
+    }
+}
+
+/* Fila "Verificar teléfono": botón compacto + input del código.
+   basis:auto (no 0%) evita que en columna se colapse la altura del input. */
+.auth-verify-btn {
+    flex: 0 0 auto;
+}
+
+.auth-verify-input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .auth-verify-input {
+        flex: none;
+        width: 100%;
     }
 }
 
@@ -7443,6 +7610,62 @@ tfoot {
 
 .auth-brand-panel__circle--3 {
     border-color: rgba(181, 118, 59, 0.32);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   MÓVIL (<820px): /auth a PANTALLA COMPLETA, sin recuadro ni márgenes.
+   Solo afecta móvil; el layout de escritorio (min-width:820px) NO se toca.
+   ═══════════════════════════════════════════════════════════════════ */
+@media (max-width: 819px) {
+
+    /* Rompe el padding global del <body> (px-10 / pb-40) para ir de borde a
+       borde. El top NO se negativa: ahí está el header fijo (62px). */
+    .auth-page {
+        margin: 0 -10px -40px -10px;
+        width: 100vw;
+        padding: 0;
+        align-items: stretch;
+        overflow-y: auto;
+        min-height: calc(100vh - 62px);
+        min-height: calc(100dvh - 62px);
+    }
+
+    /* El shell deja de ser tarjeta: ocupa toda la pantalla, sin bordes */
+    .auth-shell {
+        width: 100%;
+        max-width: none;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        min-height: calc(100vh - 62px);
+        min-height: calc(100dvh - 62px);
+    }
+
+    /* En móvil solo el formulario: se oculta el panel de marca (marketing) */
+    .auth-brand-panel {
+        display: none;
+    }
+
+    /* El formulario llena toda la pantalla, centrado, con un margen interno
+       mínimo para que los campos no toquen el borde */
+    .auth-form-side {
+        flex: 1;
+        width: 100%;
+        padding: 1.5rem 1.25rem;
+        min-height: calc(100vh - 62px);
+        min-height: calc(100dvh - 62px);
+    }
+
+    /* Al no estar el panel de marca, se vuelve a mostrar el logo del formulario */
+    .auth-form-side .auth-logo img {
+        display: block;
+    }
+
+    /* La tarjeta del formulario puede ensancharse al ancho disponible */
+    .auth-form-side .auth-card {
+        max-width: 460px;
+    }
 }
 
 

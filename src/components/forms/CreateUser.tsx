@@ -246,7 +246,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
                 <div className='auth-input-group'>
                     <label className='auth-input-label'>Teléfono</label>
                     <div className='auth-double-col'>
-                        <div className={`auth-input-wrapper ${errors.code_tel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: '0 0 140px' }}>
+                        <div className={`auth-input-wrapper auth-phone-code ${errors.code_tel ? 'auth-input-wrapper--error' : ''}`}>
                             <select
                                 className='auth-select'
                                 defaultValue=''
@@ -260,7 +260,7 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
                                 <option value='412'>0412</option>
                             </select>
                         </div>
-                        <div className={`auth-input-wrapper ${errors.tel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: 1 }}>
+                        <div className={`auth-input-wrapper auth-phone-number ${errors.tel ? 'auth-input-wrapper--error' : ''}`}>
                             <input
                                 className='auth-input'
                                 type='tel'
@@ -282,10 +282,10 @@ export default function CreatUser({ setType, callback, update }: CreateUserProps
                 <div className='auth-input-group'>
                     <label className='auth-input-label'>Verificar teléfono</label>
                     <div className='auth-double-col' style={{ alignItems: 'flex-start' }}>
-                        <button className='auth-btn auth-btn--secondary auth-btn--small' type='button' onClick={sendCode} style={{ flexShrink: 0 }}>
+                        <button className='auth-btn auth-btn--secondary auth-btn--small auth-verify-btn' type='button' onClick={sendCode}>
                             Enviar código
                         </button>
-                        <div className={`auth-input-wrapper ${errors.codeConfirmTel ? 'auth-input-wrapper--error' : ''}`} style={{ flex: 1 }}>
+                        <div className={`auth-input-wrapper auth-verify-input ${errors.codeConfirmTel ? 'auth-input-wrapper--error' : ''}`}>
                             <input
                                 className='auth-input'
                                 type='text'

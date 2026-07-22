@@ -10,6 +10,18 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-22
+- **Header reestructurado + /auth responsivo + fixes del registro:** el Header
+  autenticado pasó de 3 botones a campana de notificaciones (estética, con dos
+  iconos según haya o no no-leídas) + avatar con menú desplegable que agrupa
+  Configuración y Cerrar sesión; responsivo en una sola fila (nombre oculto
+  <460px). La ruta `/auth` ahora es pantalla completa en móvil (<820px):
+  rompe el padding global del body, oculta el panel de marca y el formulario
+  ocupa el 100% (desktop ≥820px intacto). En el registro (`CreateUser`) se
+  arreglaron los inputs de teléfono y del código de verificación: los `flex`
+  inline con basis 0/px colapsaban la altura o descuadraban al pasar a columna
+  (<600px); ahora usan clases con basis auto y reset en columna. _(Claude Code)_
+
 ## 2026-07-19
 - **Columna del día de hoy, header de fecha y preferencias persistentes:** la
   columna del día presente lleva rieles azules de 3px a los lados (box-shadow
