@@ -694,6 +694,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             {
                                                 hasVideo ?
                                                     <>
+                                                    {/*
                                                         <button
                                                             className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
                                                             type='button'
@@ -707,7 +708,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar video</p>
                                                         </button>
-
+                                                        */}
                                                         <button //button whastapp
                                                             className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
                                                             type='button'
@@ -737,6 +738,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             {
                                                 noveltyState.imageToShare ?
                                                     <>
+                                                    {/*
                                                         <button
                                                             className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
                                                             type='button'
@@ -750,6 +752,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             <FiDownload className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Descargar imagen</p>
                                                         </button>
+                                                    */}
+
 
                                                         <button //button for image
                                                             className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
