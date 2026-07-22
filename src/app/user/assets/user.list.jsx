@@ -759,6 +759,7 @@ export default forwardRef(function UserList({
                 extra: 'Día extra asignado para la fecha.',
                 permiso: 'Permiso asignado con su comentario.',
                 vacaciones: `Vacaciones asignadas (${dates.length} día${dates.length !== 1 ? 's' : ''}).`,
+                falta: 'Día marcado como falta.',
             };
             dispatch(setConfigModal({
                 type: 'successfull',
@@ -911,6 +912,22 @@ export default forwardRef(function UserList({
                                     <path d='M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z'></path>
                                 </svg>
                                 Marcar descanso
+                            </button>
+
+                            <button
+                                role='menuitem'
+                                className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                onClick={() => {
+                                    closeContextMenu();
+                                    saveDayOverride({ workType: 'falta' });
+                                }}
+                            >
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-red-400'>
+                                    <circle cx='12' cy='12' r='10'></circle>
+                                    <path d='m15 9-6 6'></path>
+                                    <path d='m9 9 6 6'></path>
+                                </svg>
+                                Marcar falta
                             </button>
 
                             <button
