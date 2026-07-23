@@ -11,6 +11,20 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-23
+- **Horario de monitoreo (`/clients&manasgement`) — modal, tipo, invierno USA y
+  tarjeta de hoy:** el horario de un establecimiento dejó de abrirse en la
+  subruta `/time_monitoring` y ahora se gestiona en un **modal** dentro de la
+  ruta (como el formulario de gerentes). En el formulario de rangos se añadió el
+  **tipo de monitoreo** (Analítico / Perimetral), inputs `type='time'`, botón
+  **Cancelar** (se quitó la X), aviso de horario corrido y se arregló un bug por
+  el que el Domingo (día 0) no guardaba. El render del horario se rehízo:
+  columnas de día como tarjetas, cada rango con badge de tipo y total que cuenta
+  bien el corrido. Se agregó el **switch "Este local usa horario USA"** con
+  pestañas Normal / Invierno para editar cada horario, y un **interruptor global
+  de invierno** en el header (solo admin). La tarjeta "Horario monitoreo" ganó
+  ícono de monitoreo y muestra el **horario de hoy** (con horario / libre /
+  sin configurar), con el botón "Gestionar" al pie. Requiere el backend de
+  api_jarvis365 (tipo/USA/invierno + endpoints `active` y `today`). _(Claude Code)_
 - **Novedades (`Noveltie`) — sin envío doble por WhatsApp y botones
   unificados:** un doble clic en "Enviar video"/"Enviar imagen" disparaba dos
   veces `shareNoveltyForApiAva` (async, con dos llamadas de red), enviando la

@@ -1,4 +1,4 @@
-import calcularTotalHoras from '@/libs/script/calculateHours';
+import { FaTrashAlt, FaMoon } from 'react-icons/fa';
 
 interface Hour {
     start: string;
@@ -8,6 +8,7 @@ interface Hour {
 interface Item {
     key: string;
     hours: Hour;
+    type?: 'analytical' | 'perimeter';
 }
 
 interface BoxHoursProps {
@@ -15,66 +16,73 @@ interface BoxHoursProps {
     deleteHour: (key: string) => void;
 }
 
+// Paleta por tipo de monitoreo
+const TYPE_META = {
+    analytical: { label: 'Analítico',  bg: '#ecfdf5', color: '#047857', ring: '#a7f3d0' },
+    perimeter:  { label: 'Perimetral', bg: '#fff7ed', color: '#c2410c', ring: '#fed7aa' },
+} as const;
+
+/** Duración en horas contemplando el corrido (fin ≤ inicio → cruza medianoche). */
+function durationHours(start: string, end: string): number {
+    const s = Number(String(start).split(':')[0]) || 0;
+    const e = Number(String(end).split(':')[0]) || 0;
+    return e > s ? e - s : (24 - s) + e;
+}
+
+/** "07:00:00" → "07:00" */
+const hhmm = (t: string) => String(t ?? '').slice(0, 5);
+
 
 export default function BoxHours({ arr, deleteHour }: BoxHoursProps): JSX.Element {
-
-
     return (
         <>
-            {
-                arr.map((item, index) => (
+            {arr.map((item, index) => {
+                const meta      = TYPE_META[item.type ?? 'analytical'] ?? TYPE_META.analytical;
+                const hours     = durationHours(item.hours.start, item.hours.end);
+                const overnight = hhmm(item.hours.end) <= hhmm(item.hours.start);
+
+                return (
                     <div
                         key={index}
-                        className='box-contain'
+                        className='w-[90%] rounded-lg flex flex-col gap-1.5 p-2.5'
                         style={{
-                            minHeight: `${calcularTotalHoras(item.hours.start, item.hours.end) * 25}px`,
-                            position: 'relative',
-                            width: '90%',
-                            padding: '.3rem',
-                            backgroundColor: '#b7b7b7',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '.3rem',
-                            borderRadius: '4px',
-                            justifyContent: 'center'
+                            minHeight: `${Math.max(hours * 22, 64)}px`,
+                            background: meta.bg,
+                            border: `1px solid ${meta.ring}`,
                         }}
                     >
-                        <div className='contain-btn contain-btn--withText'
-                            style={{
-                                position: 'relative',
-                                width: '100%',
-                                display: 'flex',
-                                justifyContent: 'flex-end',
-                                padding: '.5rem',
-                                cursor: 'auto',
-                                left: 0,
-                                top: 0,
-                                textAlign: 'start'
-                            }}
-                        >
-                            <button
-                                className='btn-invisivily'
-                                onClick={() => {
-                                    deleteHour(item.key);
-                                }
-                                }
+                        {/* Tipo + eliminar */}
+                        <div className='flex items-center justify-between'>
+                            <span
+                                className='inline-flex items-center gap-1 rounded-full px-2 py-[1px] text-[10px] font-bold'
+                                style={{ color: meta.color, background: '#ffffffcc', border: `1px solid ${meta.ring}` }}
                             >
-                                <img
-                                    style={{
-                                        pointerEvents: 'none',
-                                        width: '24px'
-                                    }}
-                                    className='filter-invert' src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAAACXBIWXMAAAsTAAALEwEAmpwYAAAB50lEQVR4nO2Z30rDMBSH46XDm4mIiOALzW627saHcJ3YernX2nRT/PM2Ui9szo0IR4qbxpGlSXuSoOQHuU2/b6Xd+aWMhYSEhPyZwGl+Bkm2wOFkh3pv7E06EOezMr4+Z7bgeZy/Q5Ijj/NHSgn8gp8v9/4glxDhV4tKAgV4YW86CRk8lQRK4EklVPBtJVTwQCGhA99UQgce2kggY1uQZFOdC/ysbFGBacEn2cJw72nFZCYxHG9Dkt+aXKjuTpj88rDaM8keGj9nlBLO4SklvMFTSHiHb/PwldFoxqP03jt8kzvBB2Modg/fXveOkPdT//AmEiv4F8awWjoS3AW8jsQ6vI4EdwmvktgEr5LgPuBlEnXwMgnuE/5bojfpVG+bolsPL0qU0cWzd/iVAPTTu2L/WAu+WkX3gMPJaO5d4FeTGlyijkQFX0YjkP1jO420SdVIiPCbxg4nUTapDRIyePAhodWk1iRU8OBSwqhJLSV04MGFRKOpsp8+8Si9sdHsjNJmJLbR7IxCMc97k0DCMuJcAi00KWcS+B+OVSC+SrQPtgynSqNmF7c5ndOQaDoSazW7mOJ8VCHRdp5HVbMjPaGWSFCVEZQ1OyvfCAQJ6iaFYrOzAS9KWPvENKwksqk1+JCQkBBmI5/G9M0wq45fBQAAAABJRU5ErkJggg=="
-                                />
+                                {meta.label}
+                                {overnight && <FaMoon size={8} title='Horario corrido' />}
+                            </span>
+
+                            <button
+                                type='button'
+                                title='Eliminar rango'
+                                onClick={() => deleteHour(item.key)}
+                                className='text-slate-400 hover:text-red-500 transition-colors'
+                            >
+                                <FaTrashAlt size={12} />
                             </button>
                         </div>
-                        <p className='box-text'>desde: {item.hours.start}</p>
-                        <p className='box-text'>hasta: {item.hours.end}</p>
-                        <p className='box-text'>total: {Math.floor(calcularTotalHoras(item.hours.start, item.hours.end))} horas</p>
+
+                        {/* Horas */}
+                        <div className='text-[13px] font-bold text-slate-800 leading-none'>
+                            {hhmm(item.hours.start)} <span className='text-slate-400 font-normal'>–</span> {hhmm(item.hours.end)}
+                        </div>
+
+                        {/* Total */}
+                        <div className='text-[11px] text-slate-500'>
+                            {hours} h{overnight ? ' · corrido' : ''}
+                        </div>
                     </div>
-                ))
-            }
+                );
+            })}
         </>
     );
 }

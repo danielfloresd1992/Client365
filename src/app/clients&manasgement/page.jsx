@@ -31,6 +31,7 @@
 import FormFranchise from './assets/FormFranchise';
 import FormClient from './assets/client/FormClient';
 import ClientBox from './assets/client/clientBox';
+import WinterScheduleToggle from './assets/schedule/WinterScheduleToggle';
 
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
@@ -97,12 +98,15 @@ export default function Content() {
                             <StatPill value={totalFranchise} label='Franquicias' color='blue' />
                         </div>
                     </div>
-                    <div className='flex flex-col gap-[1rem]'>
-                        <button  
-                            className='btn-primary btn-sm'
-                            onClick={openCreateFranchice}
-                        >+ Franquicia</button>
-                        <button className='btn-primary btn-sm' onClick={openCreateClient}>+ Establecimiento</button>
+                    <div className='flex items-start gap-3'>
+                        <WinterScheduleToggle />
+                        <div className='flex flex-col gap-[1rem]'>
+                            <button
+                                className='btn-primary btn-sm'
+                                onClick={openCreateFranchice}
+                            >+ Franquicia</button>
+                            <button className='btn-primary btn-sm' onClick={openCreateClient}>+ Establecimiento</button>
+                        </div>
                     </div>
                 </div>
 

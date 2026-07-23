@@ -23,12 +23,14 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 import useAxios from '@/hook/useAxios';
+import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import useAuthOnServer from '@/hook/auth';
 import { setTypeForm } from '@/store/slices/typeForm';
 import { setConfigModal } from '@/store/slices/globalModal';
 
 import WindowFormLayaut from '@/layaut/windowForForm';
 import FormManager from '@/app/clients&manasgement/assets/managers/FormManager';
+import FormSchedule from '@/app/clients&manasgement/assets/schedule/FormSchedule';
 import ManagerItem from '../managers/manager';
 import DataFormart from '@/libs/time/dateFormat.js';
 
@@ -47,6 +49,9 @@ export default function ClientBox({ data }) {
 
     const [showManagerForm, setShowManagerForm] = useState(false);
     const [editManager, setEditManager] = useState(null);
+    const [showScheduleForm, setShowScheduleForm] = useState(false);
+    // Horario de HOY: undefined = cargando · null = sin configurar · {ranges,…} = ok
+    const [todaySchedule, setTodaySchedule] = useState(undefined);
 
 
     const { ref, inView } = useInView({ triggerOnce: true });
@@ -70,9 +75,20 @@ export default function ClientBox({ data }) {
 
 
 
+    /* ── Horario de monitoreo de HOY (para la tarjeta) ─────────────────────── */
+    const loadTodaySchedule = () => {
+        axiosStand.get(`/schedule/today/idLocal=${data._id}`)
+            .then(res => setTodaySchedule(res.data))
+            .catch(err => setTodaySchedule(err.response?.status === 404 ? null : null));
+    };
+
+
     /* ── Fetch del establecimiento completo al entrar en viewport ──────────── */
     useEffect(() => {
-        if (inView) fetchData();
+        if (inView) {
+            fetchData();
+            loadTodaySchedule();
+        }
     }, [inView, data]);
 
 
@@ -320,20 +336,18 @@ export default function ClientBox({ data }) {
 
                         {/* ── Módulo: Horario monitoreo ────────────────── */}
                         <InfoModule
-                            icon='/ico/clock/icons8-reloj-despertador-50.png'
+                            icon='/ico/monitoring/monitoring.svg'
                             title='Horario monitoreo'
                             color='amber'
-                            configured={!!client?.schedules}
                         >
-                            <div className='flex flex-col items-center gap-2 pt-1'>
-                                <span className={`${client?.schedules ? 'tag-green' : 'tag-gray'} px-2.5 py-1`}>
-                                    {client?.schedules ? 'Configurado' : 'Sin configurar'}
-                                </span>
+                            <div className='flex flex-col h-full pt-1 gap-3'>
+                                <ScheduleTodaySummary today={todaySchedule} />
                                 <button
-                                    onClick={() => router.push(`/clients&manasgement/time_monitoring?id=${data._id}`)}
-                                    className='text-xs font-semibold text-emerald-600 hover:text-emerald-700 hover:underline transition-colors'
+                                    type='button'
+                                    onClick={() => validateAuth(() => setShowScheduleForm(true))}
+                                    className='mt-auto flex items-center justify-center gap-1 text-xs font-semibold text-emerald-700 border border-emerald-200 bg-emerald-50/50 rounded-lg py-[7px] hover:bg-emerald-100/70 hover:border-emerald-300 transition-colors'
                                 >
-                                    Gestionar →
+                                    Gestionar horario →
                                 </button>
                             </div>
                         </InfoModule>
@@ -378,6 +392,20 @@ export default function ClientBox({ data }) {
                     />
                 </WindowFormLayaut>
             )}
+
+            {/* ── MODAL: HORARIO DE MONITOREO ───────────────────────────────── */}
+            {showScheduleForm && (
+                <WindowFormLayaut close={() => setShowScheduleForm(false)}>
+                    <FormSchedule
+                        idLocal={data._id}
+                        establishment={client}
+                        onSaved={() => {
+                            setClient(prev => prev ? { ...prev, schedules: true } : prev);
+                            loadTodaySchedule();
+                        }}
+                    />
+                </WindowFormLayaut>
+            )}
         </div>
     );
 }
@@ -396,6 +424,92 @@ const moduleColors = {
     emerald: { bg: 'bg-emerald-50/60 ring-emerald-100', icon: 'bg-emerald-100', text: 'text-emerald-700' },
 };
 
+
+
+/* ─────────────────────────────────────────────────────────────────────────────
+ * ScheduleTodaySummary — Estado del horario de monitoreo de HOY en la tarjeta.
+ *   undefined → cargando · null → sin configurar · { ranges } → hoy / libre
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+const DAY_NAMES = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+const SCH_TYPE_META = {
+    analytical: { label: 'Analítico',  badge: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+    perimeter:  { label: 'Perimetral', badge: 'bg-amber-50 text-amber-700 ring-amber-200' },
+};
+const hhmm = t => String(t ?? '').slice(0, 5);
+const durH = (s, e) => { const a = Number(String(s).split(':')[0]) || 0, b = Number(String(e).split(':')[0]) || 0; return b > a ? b - a : (24 - a) + b; };
+
+function ScheduleTodaySummary({ today }) {
+    // Cargando
+    if (today === undefined) {
+        return (
+            <div className='flex justify-center py-5'>
+                <span className='w-4 h-4 border-2 border-amber-400 border-t-transparent rounded-full animate-spin' />
+            </div>
+        );
+    }
+
+    // Sin configurar
+    if (today === null) {
+        return (
+            <div className='rounded-lg border border-dashed border-slate-300/70 px-3 py-4 text-center'>
+                <p className='text-xs font-semibold text-slate-500'>Sin configurar</p>
+                <p className='text-[10px] text-slate-400 mt-0.5'>Aún no tiene horario de monitoreo</p>
+            </div>
+        );
+    }
+
+    const ranges  = Array.isArray(today.ranges) ? today.ranges : [];
+    const dayName = DAY_NAMES[today.day] ?? 'Hoy';
+
+    // Libre hoy
+    if (ranges.length === 0) {
+        return (
+            <div className='rounded-lg bg-white/70 ring-1 ring-slate-200/70 px-3 py-4 text-center'>
+                <p className='text-[10px] font-semibold text-slate-400 uppercase tracking-wide'>{dayName}</p>
+                <p className='text-sm font-bold text-sky-600 mt-0.5'>Libre hoy</p>
+                <p className='text-[10px] text-slate-400'>Sin monitoreo programado</p>
+            </div>
+        );
+    }
+
+    // Con horario hoy
+    const sorted = [...ranges].sort((a, b) => hhmm(a.hours?.start).localeCompare(hhmm(b.hours?.start)));
+    const total  = sorted.reduce((sum, r) => sum + durH(r.hours?.start, r.hours?.end), 0);
+    const shown  = sorted.slice(0, 3);
+    const extra  = sorted.length - shown.length;
+
+    return (
+        <div className='flex flex-col gap-2'>
+            <div className='flex items-center justify-between'>
+                <span className='text-[10px] font-semibold text-slate-400 uppercase tracking-wide'>Hoy · {dayName}</span>
+                <div className='flex items-center gap-1.5'>
+                    {today.usingWinter && (
+                        <span className='inline-flex items-center text-[9px] font-bold text-indigo-700 bg-indigo-50 ring-1 ring-indigo-200 rounded-full px-1.5 py-[1px]'>Invierno</span>
+                    )}
+                    <span className='text-[10px] font-semibold text-slate-500 tabular-nums'>{total} h</span>
+                </div>
+            </div>
+
+            <div className='flex flex-col gap-1.5'>
+                {shown.map((r, i) => {
+                    const meta = SCH_TYPE_META[r.type] ?? SCH_TYPE_META.analytical;
+                    const overnight = hhmm(r.hours?.end) <= hhmm(r.hours?.start);
+                    return (
+                        <div key={i} className='flex items-center justify-between gap-2 rounded-md bg-white ring-1 ring-slate-200/70 px-2 py-1'>
+                            <span className='text-[11px] font-bold text-slate-700 tabular-nums'>
+                                {hhmm(r.hours?.start)}<span className='text-slate-300 font-normal'>–</span>{hhmm(r.hours?.end)}
+                                {overnight && <span className='text-[9px] font-normal text-slate-400 ml-1'>+1d</span>}
+                            </span>
+                            <span className={`text-[9px] font-bold rounded-full ring-1 px-1.5 py-[1px] ${meta.badge}`}>{meta.label}</span>
+                        </div>
+                    );
+                })}
+                {extra > 0 && <span className='text-[10px] text-slate-400 text-center'>+{extra} ventana{extra > 1 ? 's' : ''} más</span>}
+            </div>
+        </div>
+    );
+}
 
 
 function InfoModule({ icon, title, count, color = 'blue', children }) {
