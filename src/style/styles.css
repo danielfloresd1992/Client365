@@ -4307,82 +4307,33 @@ footer a {
 }
 
 
+/* ============================================================================
+   BOTONES DE ACCIÓN (.btnPublic) — BASE ESTRUCTURAL
+   Solo estructura. El diseño visual (tamaños, color, estados) vive UNA sola vez
+   en la capa `body .btnPublic` más abajo, que es la que gana en especificidad.
+   No añadir aquí color, radio ni tamaños: se duplicarían y volverían a chocar.
+   ============================================================================ */
 .btnPublic {
-    display: flex;
-    gap: 0.5rem;
-    padding: 0.2rem;
-    flex-wrap: nowrap;
+    display: inline-flex;
     align-items: center;
-    width: 100%;
-    filter: grayscale(.5);
-    background-color: #ffffff00;
     justify-content: center;
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    background-color: #fff;
     cursor: pointer;
-    color: #000000;
-    transition: .2s;
-
+    line-height: 1.1;
+    transition: background-color .15s ease, color .15s ease, box-shadow .15s ease;
 }
 
 .btnPublic>p {
-    color: #000000;
-
+    color: inherit;
+    margin: 0;
+    white-space: nowrap;
 }
-
-.btnPublic:disabled {
-    background-color: #dbdbdb;
-    color: #363636;
-}
-
 
 .btnPublic-img {
-    width: 30px;
-}
-
-.__day {
-    background-color: #00adff
-}
-
-.__night {
-    background-color: #02006b;
-}
-
-.__borderBtn {
-    border-left: 1px solid #afaeae;
-    border-right: 1px solid #afaeae;
-}
-
-
-.__btn-blue {
-    background-color: #0b57c9;
-    color: #fff;
-    filter: none;
-}
-
-
-.__btn-red {
-    background-color: #c80404;
-    color: #fff;
-    filter: none;
-}
-
-
-.__btn-green:hover {
-    background-color: #0bd700;
-    color: #fff;
-    filter: none;
-}
-
-.__btn-green:hover>p {
-    color: #fff;
-}
-
-.__btn-download:hover {
-    background-color: rebeccapurple;
-}
-
-.__btn-download:hover>p {
-    background-color: rebeccapurple;
-    color: #fff;
+    flex-shrink: 0;
 }
 
 /*
@@ -5591,15 +5542,23 @@ body .lobby-noveltie-actionGrid {
     border-top: 1px solid var(--app-border);
 }
 
+/* ── Barra de acciones de una novedad ──────────────────────────────────────
+   Grupo segmentado: sin radio por botón (el contenedor recorta y redondea las
+   esquinas del grupo) y separadores de 1px. El color aparece SOLO cuando el
+   estado está activo — tinte suave de fondo, tinta saturada y una barra
+   inferior de 2px como indicador. Así el chrome no compite con el dato. */
 body .btnPublic {
-    min-height: 36px;
+    min-height: 30px;
     gap: .3rem;
+    padding: .25rem .4rem;
     filter: none;
+    border: none;
     border-right: 1px solid var(--app-border);
+    border-radius: 0;
     color: var(--app-text);
-    font-size: .74rem;
+    font-size: .7rem;
     font-weight: 600;
-    background-color: #fbfcfe;
+    background-color: #fff;
 }
 
 body .btnPublic:last-child {
@@ -5607,18 +5566,9 @@ body .btnPublic:last-child {
 }
 
 body .btnPublic>p {
-    color: var(--app-text);
-    font-size: .74rem;
+    color: inherit;
+    font-size: .7rem;
     letter-spacing: .01em;
-}
-
-body .btnPublic:hover:not(:disabled) {
-    background-color: #eef3e8;
-}
-
-body .btnPublic:disabled {
-    background-color: #f3f4f6;
-    color: #9ca3af;
 }
 
 body .btnPublic-img {
@@ -5626,80 +5576,94 @@ body .btnPublic-img {
     height: 14px;
 }
 
+body .btnPublic:hover:not(:disabled) {
+    background-color: #f6f8fa;
+    color: #1f2937;
+}
+
+body .btnPublic:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px #2f7a06;
+}
+
+body .btnPublic:active:not(:disabled) {
+    background-color: #eef1f5;
+}
+
+body .btnPublic:disabled {
+    background-color: #fafbfc;
+    color: #b9c0ca;
+    cursor: not-allowed;
+}
+
+/* Novedad aprobada: verde de marca en tono profundo */
 body .__btn-blue {
-    background-image: var(--gradient-verde);
+    background: #f1f8e9;
+    color: #3f6d00;
+    box-shadow: inset 0 -2px 0 #4e8300;
 }
 
 body .__btn-blue:hover:not(:disabled) {
-    background-color: #4d7a1b;
+    background: #e6f3d5;
+    color: #3f6d00;
 }
 
-body .__btn-blue>p,
-body .__btn-blue .btnPublic-img {
-    color: #fff;
-}
-
+/* Novedad rechazada */
 body .__btn-red {
-    background-color: #ff5656;
+    background: #fef2f2;
+    color: #b91c1c;
+    box-shadow: inset 0 -2px 0 #dc2626;
 }
 
 body .__btn-red:hover:not(:disabled) {
-    background-color: #9a4f2f;
+    background: #fee2e2;
+    color: #b91c1c;
 }
 
-body .__btn-red>p,
-body .__btn-red .btnPublic-img {
-    color: #fff;
-}
-
+/* Turno día: ámbar, acompaña al icono de sol */
 body .__day {
-    background-color: #7dd6ff;
-    color: #414141;
+    background: #fffbeb;
+    color: #b45309;
+    box-shadow: inset 0 -2px 0 #d97706;
 }
 
 body .__day:hover:not(:disabled) {
-    background-color: #7dd6ff;
+    background: #fef3c7;
+    color: #b45309;
 }
 
+/* Turno noche: índigo, acompaña al icono de luna */
 body .__night {
-    background: linear-gradient(180deg, #0b0972 0%, #0036c9 100%);
+    background: #eef2ff;
+    color: #4338ca;
+    box-shadow: inset 0 -2px 0 #4338ca;
 }
 
 body .__night:hover:not(:disabled) {
-    background: linear-gradient(180deg, #5f6e45 0%, #4e5c38 100%);
+    background: #e0e7ff;
+    color: #4338ca;
 }
 
-body .__day>p,
-body .__night>p,
-body .__day .btnPublic-img,
-body .__night .btnPublic-img {
-    color: #fff;
-}
-
+/* Enviar: acción primaria, verde brillante de marca (#29c50c) */
 body .__btn-green {
-    background-image: var(--gradient-verde);
+    background: #eefbe6;
+    color: #2f7a06;
+    box-shadow: inset 0 -2px 0 #29c50c;
 }
 
 body .__btn-green:hover:not(:disabled) {
-    background-image: var(--gradient-verde);
+    background: #ddf7cc;
+    color: #2f7a06;
 }
 
-body .__btn-green>p,
-body .__btn-green .btnPublic-img {
-    color: #fff;
-}
-
-body .__btn-download {
-    background-color: #785586;
-}
-
+/* Descargar: acción secundaria, sin color propio */
 body .__btn-download:hover:not(:disabled) {
-    background-color: #75428a;
+    background: #f1f5f9;
+    color: #334155;
 }
 
-body .__btn-download>p,
-body .__btn-download .btnPublic-img {
-    color: #fff;
+@media (prefers-reduced-motion: reduce) {
+    body .btnPublic { transition: none; }
 }
 
 body .lobby-aside-filterBox {

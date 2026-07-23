@@ -11,6 +11,24 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-23
+- **Novedades (`Noveltie`) — sin envío doble por WhatsApp y botones
+  unificados:** un doble clic en "Enviar video"/"Enviar imagen" disparaba dos
+  veces `shareNoveltyForApiAva` (async, con dos llamadas de red), enviando la
+  novedad duplicada. Se añadió un cerrojo en un `useRef` — no en el estado,
+  porque un doble clic ejecuta ambos handlers antes de que React re-renderice —
+  liberado en un `finally` para que ningún `return` temprano ni excepción deje
+  el botón bloqueado; además ambos botones se deshabilitan mientras dura el
+  envío. En lo visual se descubrió que **había dos sistemas de botones
+  compitiendo** (`.btnPublic` y una capa posterior `body .btnPublic`, que ganaba
+  por especificidad): lo que se veía era un híbrido de colores de una capa y
+  radio/padding de la otra. Se consolidaron en uno solo: la base queda
+  estructural y todo el diseño vive una única vez en la capa `body`. Los botones
+  pasan a grupo segmentado (sin radio propio, separadores de 1px, 30px de alto),
+  el color aparece solo cuando el estado está activo (tinte suave + tinta
+  saturada + barra inferior de 2px) y se retiraron el `filter: grayscale`, el
+  `rebeccapurple` placeholder del botón Descargar y los `color:#fff` forzados
+  que dejaban labels ilegibles. Estados completos (hover, foco, pulsado,
+  deshabilitado) y contraste AA verificado en todos. _(Claude Code)_
 - **Refactor de `/alertmanasgement` a componentes (sin cambios funcionales):**
   el formulario y la lista estaban en dos archivos monolíticos (`FormReact.jsx`
   1499 líneas y `ListMenu.jsx` 663). Se extrajo `assets/lib/` con lo que estaba

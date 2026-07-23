@@ -46,6 +46,12 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const noveltyStateRef = useRef(noveltyState);
     const saveMenuTimeout = useRef(null);
 
+    // Evita el envío duplicado por doble clic en "Enviar video" / "Enviar imagen".
+    // El cerrojo vive en un ref y no en el estado porque un doble clic ejecuta
+    // ambos handlers antes de que React re-renderice con el estado actualizado.
+    const isSharingRef = useRef(false);
+    const [isSharing, setIsSharing] = useState(false);
+
 
     const dataDeleteForUserRef = useRef();
     const { dataSessionState } = useAuthOnServer();
@@ -200,6 +206,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const shareNoveltyForApiAva = async (imageOnly) => {
+        if (isSharingRef.current) return;   // ya hay un envío en curso
+        isSharingRef.current = true;
+        setIsSharing(true);
+
         try {
             if (!whatsAppSendingDefault) {
                 dispatch(setConfigModal({
@@ -253,6 +263,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 type: 'error'
             }
             ));
+        }
+        finally {
+            isSharingRef.current = false;
+            setIsSharing(false);
         }
     };
 
@@ -628,7 +642,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 title={isReadOnly ? 'Sin permiso para validar' : 'Validar para poder enviar'}
                                             >
                                                 <FiCheckCircle className='btnPublic-img' />
-                                                <p style={isValidated ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Aprobar</p>
+                                                <p className='__textGrayForList'>Aprobar</p>
                                             </button>
 
                                             <button
@@ -649,7 +663,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiXCircle className='btnPublic-img' />
-                                                <p style={isInvalid ? { color: '#fff' } : { color: 'revert-layer' }} className='__textGrayForList'>Rechazar</p>
+                                                <p className='__textGrayForList'>Rechazar</p>
                                             </button>
 
 
@@ -665,11 +679,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiSun className='btnPublic-img' />
-                                                <p className='__textGrayForList'
-                                                    style={{
-                                                        color: noveltyState.shift === 'day' ? 'rgb(73 73 73)' : 'unset'
-                                                    }}
-                                                >Turno día</p>
+                                                <p className='__textGrayForList'>Turno día</p>
                                             </button>
                                             <button
                                                 className={noveltyState.shift === 'night' ? `btnPublic __night` : 'btnPublic'}
@@ -682,11 +692,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
                                             >
                                                 <FiMoon className='btnPublic-img' />
-                                                <p className='__textGrayForList'
-                                                    style={{
-                                                        color: noveltyState.shift === 'night' ? 'white' : 'unset'
-                                                    }}
-                                                >Turno noche</p>
+                                                <p className='__textGrayForList'>Turno noche</p>
                                             </button>
 
                                         </div>
@@ -725,7 +731,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                 shareNoveltyForApiAva()
                                                             }
                                                             }
-                                                            disabled={!canShare}
+                                                            disabled={!canShare || isSharing}
                                                             title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
                                                         >
                                                             <FiSend className='btnPublic-img' />
@@ -771,7 +777,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                 shareNoveltyForApiAva(noveltyState.imageToShare);
                                                             }
                                                             }
-                                                            disabled={!canShare}
+                                                            disabled={!canShare || isSharing}
                                                             title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
                                                         >
                                                             <FiSend className='btnPublic-img' />
