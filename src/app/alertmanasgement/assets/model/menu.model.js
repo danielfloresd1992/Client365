@@ -4,7 +4,9 @@ import axiosStand from '@/libs/ajaxClient/axios.fetch';
 
 
 const getMenuAll = (category, callback) => {
-    axiosStand.get(`/menu`)
+    // withAudit=true → el backend agrega createdBy (creador) y lastEditors
+    // (últimas 3 personas que editaron). Opt-in para no inflar otros consumidores.
+    axiosStand.get(`/menu?withAudit=true`)
         .then(response => {
             let menuList = [];
             const categoryList = [];
@@ -12,11 +14,18 @@ const getMenuAll = (category, callback) => {
                 if (categoryList.indexOf(menu.category) < 0) {
                     categoryList.push(menu.category);
                 }
+                // Normalización defensiva: la UI nunca recibe undefined aunque el
+                // backend aún no traiga la autoría (docs viejos / sin desplegar).
+                const normalized = {
+                    ...menu,
+                    createdBy: menu.createdBy ?? null,
+                    lastEditors: Array.isArray(menu.lastEditors) ? menu.lastEditors : []
+                };
                 if (category === 'all') {
-                    menuList.push(menu);
+                    menuList.push(normalized);
                 }
                 else if (menu.category === category) {
-                    menuList.push(menu);
+                    menuList.push(normalized);
                 }
             });
 

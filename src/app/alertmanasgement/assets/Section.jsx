@@ -23,6 +23,10 @@ export default function Section() {
     const [menuIndividual, setMenuIndividual] = useState(null);
     const [addManuState, setAddManuState] = useState(null);
     const [locals, setLocals] = useState(null);
+    // El formulario solo se muestra al seleccionar una alerta o al crear una nueva
+    const [showForm, setShowForm] = useState(false);
+    // Se incrementa tras guardar (crear/editar) para forzar el refetch de la lista
+    const [savedTick, setSavedTick] = useState(0);
 
     const { dataSessionState } = useAuthOnServer();
     const user = dataSessionState?.dataSession;
@@ -50,10 +54,25 @@ export default function Section() {
         axiosStand.get(`/menu/id=${id}`)
             .then(response => {
                 setMenuIndividual({ ...response.data[0] });
+                setShowForm(true);   // mostrar el formulario al seleccionar una alerta
             })
             .catch(err => {
                 console.log(err);
             });
+    };
+
+
+    // Abrir el formulario en modo "crear" (sin alerta seleccionada)
+    const createNewAlert = () => {
+        setMenuIndividual(null);
+        setShowForm(true);
+    };
+
+
+    // Cerrar el formulario y volver a la lista
+    const closeForm = () => {
+        setMenuIndividual(null);
+        setShowForm(false);
     };
 
 
@@ -81,21 +100,26 @@ export default function Section() {
                             <ListMenu
                                 setMenu={selectNoveltie}
                                 resetNoveltie={resetNoveltie}
-                                modal={null}
                                 newMENU={addManuState}
                                 resetAddManuState={resetAddManuState}
+                                onCreateNew={createNewAlert}
+                                expanded={true}
+                                refreshKey={savedTick}
+                                selectedId={menuIndividual?._id}
                             />
-                            <Form
-                                menuIndividual={menuIndividual}
-
-                                local={locals}
-                                resetNoveltie={resetNoveltie}
-                                putMenuProps={putMenu}
-                                createMenu={sendMenu}
-                                modal={null}
-                                addMenu={addMenu}
-                                user={user}
-                            />
+                            {showForm && (
+                                <Form
+                                    menuIndividual={menuIndividual}
+                                    local={locals}
+                                    resetNoveltie={resetNoveltie}
+                                    putMenuProps={putMenu}
+                                    createMenu={sendMenu}
+                                    addMenu={addMenu}
+                                    user={user}
+                                    onClose={closeForm}
+                                    onSaved={() => setSavedTick(t => t + 1)}
+                                />
+                            )}
                         </>
                     )
                     :

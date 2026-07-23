@@ -11,6 +11,39 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-23
+- **Refactor de `/alertmanasgement` a componentes (sin cambios funcionales):**
+  el formulario y la lista estaban en dos archivos monolíticos (`FormReact.jsx`
+  1499 líneas y `ListMenu.jsx` 663). Se extrajo `assets/lib/` con lo que estaba
+  duplicado (`fieldLabels`, `format` con `initials`/`photoUrl`/`norm`/`slug`, y
+  `categoryMeta`), la lista se dividió en `view/list/` (AlertCard, PersonRow,
+  FlagChip, SearchBar, CategoryPills, CategoryGroup, skeleton y estado vacío) y
+  el formulario en `view/form/` con **12 secciones** en `form/sections/`. El
+  JSX de las secciones se movió verbatim (corte programático, no re-tipeado) y
+  cada helper viajó con su sección. Resultado: 365 y 253 líneas; ningún archivo
+  pasa de 365. De paso se quitó código muerto (`categoryRef`, prop `modal`,
+  import `axiosStand`). _(Claude Code)_
+- **Permiso de super usuario al crear/editar alertas:** los errores del backend
+  ya no se pierden en consola: `FormReact` muestra un modal con el `message`
+  del 403/401 (nuevo `validateSuperUser` en api_jarvis365, que evalúa
+  `req.session.super`). _(Claude Code)_
+- **Autoría visible en cada alerta:** debajo de los títulos ES/EN se muestra
+  quién creó la alerta y las últimas 3 ediciones, con miniatura de la foto del
+  usuario, nombre y qué campos cambió. Requiere el `populate` de `createdBy` y
+  `updateByUser.user` que se agregó en api_jarvis365. La lista se refresca sola
+  al guardar. _(Claude Code)_
+- **Mejoras de UI del panel de alertas:** historial de cambios colapsable
+  dentro del modal, aviso al cerrar con cambios sin guardar (✕/Escape/clic
+  fuera), barra de navegación por secciones del formulario, resaltado de la
+  alerta seleccionada, encabezados de categoría fijos al hacer scroll y
+  skeleton de carga. _(Claude Code)_
+- **Formulario como modal glass y lista rediseñada:** el formulario dejó de ser
+  un panel lateral al 50% y pasó a ser un **modal fijo en el viewport** con
+  fondo oscurecido + `backdrop-filter` (estilos scopeados bajo `.alert-modal`
+  para no tocar las utilidades globales `__input`/`__label`). La lista se
+  rediseñó: buscador por título (sin acentos ni mayúsculas), botón "Nueva
+  alerta" compacto, filtros de categoría con más aire, **agrupación por
+  categoría** e indicadores ✓ de "uso en reporte del cliente" y "alerta en
+  vivo" por alerta. _(Claude Code)_
 - **Menús (`/alertmanasgement`) — envío parcial + auditoría de ediciones
   (FormReact + `/menu/put` en api_jarvis365):** el formulario ahora envía SOLO
   los campos modificados (diff del `menu` actual vs el original cargado, por
