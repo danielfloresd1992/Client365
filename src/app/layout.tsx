@@ -9,6 +9,7 @@ import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import Head from 'next/head';
 import Header from '@/components/Header/Header';
+import AlertLiveJarvis from '@/components/alertSpeackComponent';
 import LoandingPage from '@/components/loandingComponent/loandingPage';
 import ErrorServerAlert from '@/components/error/Error_Server'
 
@@ -55,6 +56,7 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                             <Header />
                             {children}
                             <Modal />
+                            <AlertLiveJarvis />
                             <Config_window />
                             <FixedBottomBar />
                             <ImageViewer />

@@ -7,7 +7,6 @@ import { ImgProvider } from '@/contexts/imgContext';
 // Importa los componentes de manera dinámica
 import PublicationsBox from '@/components/Publications/PublicationsBox';
 import AsideInfoUser from '@/app/Lobby/AsideInfoUser/AsideInfoUser';
-import AlertLiveJarvis from '@/components/alertSpeackComponent';
 
 import Aside_Eyelash from '@/components/aside/aside_establishment/Aside_Eyelash';
 import ChatGeneral365 from '@/components/chats/chat_general_365/ChatGeneral365';
@@ -57,7 +56,6 @@ export default function Lobby() {
         >
             <ImgProvider>
                 <Nav />
-                <AlertLiveJarvis />
                 <PublicationsBox filterSignal={publicationFilterSignal} />
                 <AsideInfoUser
                     onApplyPublicationFilter={handleApplyPublicationFilter}

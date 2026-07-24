@@ -11,6 +11,15 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-24
+- **Anuncio por voz del monitoreo en tiempo real (watcher + sockets):** el
+  nuevo watcher de api_jarvis365 emite `monitoring-start` / `monitoring-end`
+  por establecimiento y POR TIPO (analítico/perimetral), respetando corridos y
+  el horario de invierno USA, con estado durable en Mongo (los reinicios no
+  pierden transiciones). Client365 lo recibe por el socket existente y lo
+  anuncia con `useSpeckAlert` + notificación del navegador: "Inicio de
+  Monitoreo analítico en <local>" (ídem fin). `AlertLiveJarvis` se movió del
+  Lobby al layout raíz, así que TODAS las alertas de voz suenan ahora en toda
+  la app, no solo en /Lobby. _(Claude Code)_
 - **Horario de monitoreo — edición de rangos, copia de días arrastrando, clonado
   con invierno y pulido:** ahora un rango existente se **edita** con clic sobre
   su tarjeta (formulario precargado; guardar reemplaza por `key`). Nuevo hook

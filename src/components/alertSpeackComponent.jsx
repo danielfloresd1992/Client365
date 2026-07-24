@@ -100,11 +100,45 @@ export default function AlertLiveJarvis() {
         };
 
 
+        // Watcher de monitoreo (jarvis_api): anuncia por voz el inicio y el fin
+        // de la ventana de monitoreo de cada establecimiento (invierno incluido).
+        const monitoringTypeLabel = (msm) =>
+            msm?.typeLabel
+            ?? (msm?.type === 'perimeter' ? 'perimetral'
+              : msm?.type === 'analytical' ? 'analítico'
+              : '');
+
+        const handdlerMonitoringStart = (msm) => {
+            if (isSubscribed) {
+                const tipo = monitoringTypeLabel(msm);
+                const text = `Inicio de Monitoreo${tipo ? ` ${tipo}` : ''} en ${msm?.name ?? 'establecimiento'}`;
+                speak(text);
+                showBrowserNotification('Inicio de monitoreo', {
+                    body: text,
+                    icon: '/ico/icons8-campana-48.png',
+                });
+            }
+        };
+
+        const handdlerMonitoringEnd = (msm) => {
+            if (isSubscribed) {
+                const tipo = monitoringTypeLabel(msm);
+                const text = `Fin de Monitoreo${tipo ? ` ${tipo}` : ''} en ${msm?.name ?? 'establecimiento'}`;
+                speak(text);
+                showBrowserNotification('Fin de monitoreo', {
+                    body: text,
+                    icon: '/ico/icons8-campana-48.png',
+                });
+            }
+        };
+
         socket_jarvis.on('warning', handlerMsmSocket);
         socket_jarvis.on('alert', handdlerAlertSocket);
 
         socket.on('created_Alert', handdlerCreateSocket);
         socket.on('document_updated', handdlerPutSocket);
+        socket.on('monitoring-start', handdlerMonitoringStart);
+        socket.on('monitoring-end', handdlerMonitoringEnd);
 
 
         return () => {
@@ -113,6 +147,8 @@ export default function AlertLiveJarvis() {
             socket_jarvis.off('alert', handdlerAlertSocket);
             socket.off('document_created', handdlerCreateSocket);
             socket.off('document_updated', handdlerPutSocket);
+            socket.off('monitoring-start', handdlerMonitoringStart);
+            socket.off('monitoring-end', handdlerMonitoringEnd);
         }
     }, [voice_definitive]);
 
