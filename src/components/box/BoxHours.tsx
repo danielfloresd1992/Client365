@@ -14,6 +14,8 @@ interface Item {
 interface BoxHoursProps {
     arr: Item[];
     deleteHour: (key: string) => void;
+    /** Si viene, la tarjeta del rango es clickeable y abre el formulario de edición. */
+    onEdit?: (item: Item) => void;
 }
 
 // Paleta por tipo de monitoreo
@@ -33,7 +35,7 @@ function durationHours(start: string, end: string): number {
 const hhmm = (t: string) => String(t ?? '').slice(0, 5);
 
 
-export default function BoxHours({ arr, deleteHour }: BoxHoursProps): JSX.Element {
+export default function BoxHours({ arr, deleteHour, onEdit }: BoxHoursProps): JSX.Element {
     return (
         <>
             {arr.map((item, index) => {
@@ -44,7 +46,9 @@ export default function BoxHours({ arr, deleteHour }: BoxHoursProps): JSX.Elemen
                 return (
                     <div
                         key={index}
-                        className='w-[90%] rounded-lg flex flex-col gap-1.5 p-2.5'
+                        onClick={onEdit ? () => onEdit(item) : undefined}
+                        title={onEdit ? 'Editar rango' : undefined}
+                        className={`w-[90%] rounded-lg flex flex-col gap-1.5 p-2.5 ${onEdit ? 'cursor-pointer hover:shadow-md transition-shadow' : ''}`}
                         style={{
                             minHeight: `${Math.max(hours * 22, 64)}px`,
                             background: meta.bg,
@@ -64,7 +68,7 @@ export default function BoxHours({ arr, deleteHour }: BoxHoursProps): JSX.Elemen
                             <button
                                 type='button'
                                 title='Eliminar rango'
-                                onClick={() => deleteHour(item.key)}
+                                onClick={e => { e.stopPropagation(); deleteHour(item.key); }}
                                 className='text-slate-400 hover:text-red-500 transition-colors'
                             >
                                 <FaTrashAlt size={12} />

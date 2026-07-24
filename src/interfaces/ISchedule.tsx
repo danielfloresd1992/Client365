@@ -21,7 +21,13 @@ interface IScheduleProps extends HTMLFormElement{
     openSetForm: () => void, // Reemplaza 'void' con el tipo de retorno del método, si hay alguno
     deleteHour: () => void, // Reemplaza 'void' con el tipo de retorno del método, si hay alguno
     pushDateDay: () => void,
-    addDataRequest: (data: any) => void
+    addDataRequest: (data: any) => void,
+    // Reemplaza un rango existente (key original, rango nuevo). Opcional:
+    // si no se pasa, las tarjetas de rango no son editables.
+    updateDataRequest?: (key: string, data: any) => void,
+    // Copia el horario completo de un día sobre otro (arrastrar y soltar).
+    // Opcional: si no se pasa, las cabeceras de día no son arrastrables.
+    copyDayRequest?: (sourceDay: number, targetDay: number) => void
 };
 
 

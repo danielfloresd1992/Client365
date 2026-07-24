@@ -335,12 +335,19 @@ export default function ClientBox({ data }) {
 
 
                         {/* ── Módulo: Horario monitoreo ────────────────── */}
+                        {/* Establecimiento inactivo → todo el segmento en gris + tag */}
                         <InfoModule
                             icon='/ico/monitoring/monitoring.svg'
                             title='Horario monitoreo'
-                            color='amber'
+                            color={client?.isActive === false ? 'gray' : 'amber'}
                         >
-                            <div className='flex flex-col h-full pt-1 gap-3'>
+                            <div className={`flex flex-col h-full pt-1 gap-3 ${client?.isActive === false ? 'grayscale opacity-70' : ''}`}>
+                                {client?.isActive === false && (
+                                    <span className='self-center inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide text-slate-600 bg-slate-200/80 ring-1 ring-slate-300 rounded-full px-2 py-[2px]'>
+                                        <span className='w-[5px] h-[5px] rounded-full bg-slate-500' />
+                                        Inactivo
+                                    </span>
+                                )}
                                 <ScheduleTodaySummary today={todaySchedule} />
                                 <button
                                     type='button'
@@ -422,6 +429,7 @@ const moduleColors = {
     amber: { bg: 'bg-amber-50/60 ring-amber-100', icon: 'bg-amber-100', text: 'text-amber-700' },
     purple: { bg: 'bg-violet-50/60 ring-violet-100', icon: 'bg-violet-100', text: 'text-violet-700' },
     emerald: { bg: 'bg-emerald-50/60 ring-emerald-100', icon: 'bg-emerald-100', text: 'text-emerald-700' },
+    gray: { bg: 'bg-slate-100/60 ring-slate-200', icon: 'bg-slate-200', text: 'text-slate-500' },
 };
 
 

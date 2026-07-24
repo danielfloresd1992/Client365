@@ -6,6 +6,8 @@ interface Iprops {
     idLocal: string,
     dayNumber: number | undefined,
     pushDateDay: (day: Day) => void,
+    /** Rango existente a editar; si viene, el formulario abre precargado. */
+    initial?: Day | null,
 }
 
 interface Hours {
@@ -29,7 +31,12 @@ const TYPE_OPTIONS: { value: Day['type']; label: string }[] = [
 ];
 
 
-export default function Form({ close, idLocal, dayNumber, pushDateDay }: Iprops): JSX.Element {
+// "07:00:00" → "07:00" (el input type=time trabaja con HH:mm)
+const asHHmm = (t?: string) => String(t ?? '').slice(0, 5);
+
+export default function Form({ close, idLocal, dayNumber, pushDateDay, initial = null }: Iprops): JSX.Element {
+
+    const isEdit = Boolean(initial);
 
     // dayNumber puede ser 0 (Domingo): validar por tipo, no por "truthy".
     const dn = Number(dayNumber);
@@ -38,12 +45,17 @@ export default function Form({ close, idLocal, dayNumber, pushDateDay }: Iprops)
     const keyOf = (start: string, end: string, type: string) =>
         `${idLocal}-${start}-${end}-${type}-${hasDay ? DAYS[dn] : ''}`;
 
-    const [day, setDay] = useState<Day>({
-        dayMonitoring: hasDay ? dn : undefined,
-        hours: { start: '', end: '' },
-        idLocal,
-        type: 'analytical',
-        key: keyOf('', '', 'analytical'),
+    const [day, setDay] = useState<Day>(() => {
+        const start = asHHmm(initial?.hours?.start);
+        const end   = asHHmm(initial?.hours?.end);
+        const type  = initial?.type ?? 'analytical';
+        return {
+            dayMonitoring: hasDay ? dn : undefined,
+            hours: { start, end },
+            idLocal,
+            type,
+            key: keyOf(start, end, type),
+        };
     });
 
     const patch = (next: { type?: Day['type']; start?: string; end?: string }) => {
@@ -78,7 +90,7 @@ export default function Form({ close, idLocal, dayNumber, pushDateDay }: Iprops)
             >
                 {/* Cabecera */}
                 <div className='px-5 py-4 border-b border-slate-200 bg-slate-50/70'>
-                    <h3 className='text-base font-bold text-slate-800'>Nuevo rango de monitoreo</h3>
+                    <h3 className='text-base font-bold text-slate-800'>{isEdit ? 'Editar rango de monitoreo' : 'Nuevo rango de monitoreo'}</h3>
                     {hasDay && <p className='text-xs text-slate-500 mt-0.5'>{DAYS[dn]}</p>}
                 </div>
 

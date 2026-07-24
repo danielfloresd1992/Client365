@@ -10,6 +10,21 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-24
+- **Horario de monitoreo — edición de rangos, copia de días arrastrando, clonado
+  con invierno y pulido:** ahora un rango existente se **edita** con clic sobre
+  su tarjeta (formulario precargado; guardar reemplaza por `key`). Nuevo hook
+  reutilizable **`useDragCopy`** (`src/hook/`): arrastrar la cabecera de un día
+  configurado y soltarla sobre otro copia su horario, previa confirmación con el
+  modal global (avisa si el destino tiene rangos: se reemplazan); respeta la
+  pestaña Normal/Invierno y el gate de admin. **Clonar horario** de otro
+  establecimiento ahora incluye el **horario de invierno** cuando el origen lo
+  tiene habilitado (y enciende `usesUsTimezone` en el destino); el select de
+  establecimientos sale en orden alfabético (es, sin distinguir acentos). Los
+  establecimientos con `isActive: false` muestran su segmento y modal de horario
+  **en gris** con tag "Inactivo" (solo visual, se puede seguir editando).
+  _(Claude Code)_
+
 ## 2026-07-23
 - **Horario de monitoreo (`/clients&manasgement`) — modal, tipo, invierno USA y
   tarjeta de hoy:** el horario de un establecimiento dejó de abrirse en la
