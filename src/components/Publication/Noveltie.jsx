@@ -229,10 +229,28 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
                 if (imageOnly) delete noveltieCopi.videoUrl; // ojo aquí
 
+                // Destinos DEDUPLICADOS: si el grupo del establecimiento y el
+                // grupo por defecto son el mismo, se envía UNA sola vez (antes
+                // salían dos mensajes idénticos). También filtra ids vacíos
+                // (un establecimiento sin groupId posteaba a number=undefined).
+                const targets = [...new Set([groupId, whatsAppSendingDefault?.key].filter(Boolean))];
+                if (targets.length === 0) {
+                    return dispatch(setConfigModal({
+                        modalOpen: true,
+                        title: 'Error de envio',
+                        description: 'No hay grupo de destino configurado para esta novedad.',
+                        isCallback: null,
+                        type: 'error'
+                    }));
+                }
 
-                //if(!hasVideo) await typeShareJarvis([noveltieCopi], groupId)
-                await typeShareJarvis([noveltieCopi], groupId);
+                for (const target of targets) {
+                    await typeShareJarvis([noveltieCopi], target);
+                }
 
+                // El estado y el aviso de éxito van DESPUÉS de completar todos
+                // los envíos: antes el modal salía entre el 1º y el 2º envío, y
+                // un fallo del 2º invitaba a reintentar duplicando el 1º.
                 putValidateNoveltie(noveltyState._id, {
                     sharedByAmazonActive: true,
                     givenToTheGroup: true
@@ -247,8 +265,6 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                         type: 'successfull'
                     }
                 ));
-
-               const responseSendAmazonas = await typeShareJarvis([noveltieCopi], whatsAppSendingDefault?.key);
             }
 
 
