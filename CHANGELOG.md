@@ -11,6 +11,25 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-25
+- **Auxiliar del día en el horario (/user, con api_jarvis365):** nuevo rol
+  espejo del encargado de turno. Campo `auxiliary` en Attendance y endpoint
+  `POST /user/attendance/auxiliary` (fábrica compartida con on-duty: misma
+  exclusividad por departamento + fecha + turno, auditoría y socket). Click
+  derecho → "Designar auxiliar" abre el mismo formulario de horario + turno
+  (fija el día laboral y luego designa); la celda muestra campanita roja
+  "Auxiliar" apilada bajo la azul "Turno", con leyenda en el aside. El popover
+  de la celda ahora también abre con solo roles del día. _(Claude Code)_
+- **Reporte de silencio sin falsos positivos (api_jarvis365):** un local solo
+  se evalúa si lleva UNA HORA COMPLETA en ventana (el que abre a las 13:00 ya
+  no sale en el corte de las 13:00: solo se le siembra el baseline); y solo
+  entra quien declara `type: 'analytical'` explícito en su rango (los rangos
+  legados sin tipo, p. ej. Centro de producción, quedan fuera). _(Claude Code)_
+- **Aviso de silencio en vivo (AlertInputLive + api):** cuando una novedad del
+  local señalado queda validada + enviada al grupo, el api apaga el flag
+  durable y emite `monitoring-silence-clear`; el panel quita el parpadeo rojo
+  AL INSTANTE, sin esperar el corte de la próxima hora. Además el job hace
+  espejo exacto de flags tras cada corte (limpia los de locales que salieron
+  de ventana o de la evaluación) y con nadie en ventana limpia todo. _(Claude Code)_
 - **"Cambiar horario del mes siguiente" (/user):** nueva opción del menú
   contextual del perfil del operador (solo admin). Formulario Lunes→Domingo
   prellenado con el horario semanal por defecto; cada día configurado se aplica

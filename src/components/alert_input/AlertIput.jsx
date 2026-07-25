@@ -109,7 +109,7 @@ export default function AlertInputLive({ openAside }) {
             setLastEvent({ kind: 'end', name: msm.name, typeLabel: msm.typeLabel ?? msm.type, at: msm.at });
         };
 
-        // Corte de silencio (cada 30 min): la lista REEMPLAZA a la anterior,
+        // Corte de silencio (cada hora): la lista REEMPLAZA a la anterior,
         // así una lista vacía limpia los parpadeos del corte previo.
         const handleMonitoringSilence = (msm) => {
             const silent = {};
@@ -117,11 +117,24 @@ export default function AlertInputLive({ openAside }) {
             setSilentByLocal(silent);
         };
 
+        // El local señalado envió al grupo (novedad validada + enviada): el
+        // backend lo emite en el momento y el aviso rojo se apaga sin esperar
+        // al próximo corte.
+        const handleSilenceClear = (msm) => {
+            setSilentByLocal(prev => {
+                if (!msm?.idLocal || !prev[msm.idLocal]) return prev;
+                const next = { ...prev };
+                delete next[msm.idLocal];
+                return next;
+            });
+        };
+
         socket.on('created_Alert', scheduleRefresh);
         socket.on('document_updated', scheduleRefresh);
         socket.on('monitoring-start', handleMonitoringStart);
         socket.on('monitoring-end', handleMonitoringEnd);
         socket.on('monitoring-silence', handleMonitoringSilence);
+        socket.on('monitoring-silence-clear', handleSilenceClear);
 
         return () => {
             socket.off('created_Alert', scheduleRefresh);
@@ -129,6 +142,7 @@ export default function AlertInputLive({ openAside }) {
             socket.off('monitoring-start', handleMonitoringStart);
             socket.off('monitoring-end', handleMonitoringEnd);
             socket.off('monitoring-silence', handleMonitoringSilence);
+            socket.off('monitoring-silence-clear', handleSilenceClear);
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         };
     }, []);
