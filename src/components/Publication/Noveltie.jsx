@@ -141,6 +141,18 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                 })
                 .catch(err => {
                     console.log(err);
+                    // 403 = sin rol del día (encargado de turno / auxiliar); el
+                    // mensaje viene del middleware del backend. Otros errores
+                    // muestran un aviso genérico.
+                    const status = err?.response?.status;
+                    dispatch(setConfigModal({
+                        modalOpen: true,
+                        title: status === 403 ? 'Acción no permitida' : 'No se pudo actualizar',
+                        description: err?.response?.data?.message
+                            || 'No se pudo actualizar la novedad. Intenta de nuevo.',
+                        isCallback: null,
+                        type: status === 403 ? 'warning' : 'error'
+                    }));
                 });
         }
     };
