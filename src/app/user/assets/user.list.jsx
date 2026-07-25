@@ -895,8 +895,9 @@ export default forwardRef(function UserList({
                         Editar usuario
                     </button>
 
-                    {/* Acciones de jornada — no aplican si la jornada ya cerró (checkOut) */}
-                    {contextMenuDate && !menuDayClosed && (
+                    {/* Acciones de jornada (MODIFICAN el dia): solo administradores.
+                        No aplican si la jornada ya cerro (checkOut). Comentarios aparte (super). */}
+                    {dataSessionState?.dataSession?.admin === true && contextMenuDate && !menuDayClosed && (
                         <>
                             <div className='h-px bg-gray-100 my-1' />
 

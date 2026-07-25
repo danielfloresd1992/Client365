@@ -126,7 +126,7 @@ export const addAttendanceComment = async (payload) => {
 
 
 /**
- * Designa o quita la guardia del día de un usuario (solo usuarios super).
+ * Designa o quita la guardia del día de un usuario (solo administradores).
  * El backend valida que no exista otra guardia del mismo departamento esa fecha.
  * @param {{ userId?: string, dni?: string, date: string, onDuty: boolean }} payload
  */
