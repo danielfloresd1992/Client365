@@ -5,6 +5,7 @@ import ContextMenu from '@/components/ContextMenu';
 import UserScheduleCalendar from './user.schedule.calendar';
 import UserCommentForm from './user.comment.form';
 import UserDayAssignForm from './user.day.assign.form';
+import UserNextMonthScheduleForm from './user.nextmonth.schedule.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard } from '@/libs/ajaxClient/user.fecth';
@@ -646,6 +647,8 @@ export default forwardRef(function UserList({
 
     // Modal para agregar un comentario sobre el día de un operador
     const [showCommentForm, setShowCommentForm] = useState(false);
+    // Modal del patrón semanal aplicado al MES SIGUIENTE (overrides por fecha)
+    const [showNextMonthForm, setShowNextMonthForm] = useState(false);
 
     // Fecha de la celda donde ocurrió el click derecho (null si fue sobre el nombre)
     const [contextMenuDate, setContextMenuDate] = useState(null);
@@ -895,6 +898,26 @@ export default forwardRef(function UserList({
                         Editar usuario
                     </button>
 
+                    {/* Patrón semanal del mes siguiente — modifica: solo administradores */}
+                    {dataSessionState?.dataSession?.admin === true && (
+                        <button
+                            role='menuitem'
+                            className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                            onClick={() => {
+                                closeContextMenu();
+                                setShowNextMonthForm(true);
+                            }}
+                        >
+                            <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-gray-400'>
+                                <rect x='3' y='4' width='18' height='18' rx='2' ry='2'></rect>
+                                <line x1='16' y1='2' x2='16' y2='6'></line>
+                                <line x1='8' y1='2' x2='8' y2='6'></line>
+                                <path d='M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01M16 18h.01'></path>
+                            </svg>
+                            Cambiar horario del mes siguiente
+                        </button>
+                    )}
+
                     {/* Acciones de jornada (MODIFICAN el dia): solo administradores.
                         No aplican si la jornada ya cerro (checkOut). Comentarios aparte (super). */}
                     {dataSessionState?.dataSession?.admin === true && contextMenuDate && !menuDayClosed && (
@@ -1088,6 +1111,44 @@ export default forwardRef(function UserList({
                                 description: error?.response?.status === 403
                                     ? 'No tienes permisos para agregar comentarios (se requiere usuario super).'
                                     : (error?.response?.data?.message || 'Hubo un problema al guardar el comentario. Intenta nuevamente.'),
+                                modalOpen: true,
+                            }));
+                        }
+                    }}
+                />,
+                document.body
+            )}
+
+            {/* Patrón semanal → overrides por fecha en TODO el mes siguiente */}
+            {showNextMonthForm && typeof window !== 'undefined' && createPortal(
+                <UserNextMonthScheduleForm
+                    user={userState}
+                    onCancel={() => setShowNextMonthForm(false)}
+                    onSave={async (updates) => {
+                        try {
+                            const response = await saveGroupDynamicSchedule({
+                                updates: updates.map(u => ({ ...u, userId: userState._id, dni: userState.dni })),
+                                adminUserId: dataSessionState?.dataSession?._id,
+                            });
+                            const itemErrors = response?.data?.errors || [];
+                            if (itemErrors.length > 0) throw new Error(itemErrors[0]?.error || 'No se pudo aplicar el horario');
+
+                            setShowNextMonthForm(false);
+                            dispatch(setConfigModal({
+                                type: 'successfull',
+                                title: 'Horario del mes siguiente aplicado',
+                                description: `Se guardaron ${updates.length} día(s) como cambios por fecha. El horario por defecto y el mes en curso no se modificaron.`,
+                                modalOpen: true,
+                            }));
+                            // Las celdas se refrescan solas por los eventos socket del backend
+                        } catch (error) {
+                            console.error('Error aplicando horario del mes siguiente:', error);
+                            dispatch(setConfigModal({
+                                type: 'error',
+                                title: 'No se pudo aplicar',
+                                description: error?.response?.status === 403
+                                    ? 'No tienes permisos para modificar horarios (se requiere administrador).'
+                                    : (error?.response?.data?.message || error?.message || 'Hubo un problema al guardar. Intenta nuevamente.'),
                                 modalOpen: true,
                             }));
                         }
