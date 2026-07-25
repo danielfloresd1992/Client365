@@ -11,6 +11,27 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-07-25
+- **"Cambiar horario del mes siguiente" (/user):** nueva opción del menú
+  contextual del perfil del operador (solo admin). Formulario Lunes→Domingo
+  prellenado con el horario semanal por defecto; cada día configurado se aplica
+  a TODOS esos días del MES SIGUIENTE como overrides por fecha (endpoint de
+  grupo existente), sin tocar la regla semanal ni el mes en curso. "Permiso"
+  exige nota, queda auditoría completa y la grilla se refresca por los sockets
+  por fecha ya existentes. _(Claude Code)_
+- **Armonía de botones en /user + guardas de hover:** submit/cancelar de los 6
+  formularios, header ("Hoy", "Editar grupo") y aside "Panel de Empleados"
+  hablan ahora el vocabulario del design system: `btn-primary` (verde de marca
+  #29c50c) y el nuevo `btn-neutral` (blanco con borde gris, el secundario de
+  paneles internos) en styles.css. El ítem activo del aside pasó de emerald-600
+  al verde de marca. Guardas `a.btn-*:hover`: la regla global
+  `a:hover { color: var(--app-accent) }` pisaba el texto de los enlaces-botón
+  en hover (texto violeta sobre fondo verde); cada tipo conserva ahora el color
+  que concuerda con su fondo. _(Claude Code)_
+- **Permisos super/admin en el horario (con api_jarvis365):** comentar exige
+  `super`; modificar (editar usuario, falta/extra, guardias, horarios
+  dinámicos) exige `admin`, en el front (menús contextuales) y en el backend
+  (nuevo middleware `validateAdminUser`; `POST /user/schedule/dynamic/group`
+  estaba sin proteger). _(Claude Code)_
 - **AlertInputLive (Lobby) en vivo + envío sin duplicados:** el panel "Reporte
   de alertas" dejó de ser esqueleto: muestra solo locales activos agrupados por
   franquicia con los conteos del día operativo por local (total, ✓ aprobadas,

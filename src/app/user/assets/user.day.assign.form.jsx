@@ -16,31 +16,26 @@ const MODE_CONFIG = {
         title: 'Asignar guardia',
         badge: 'Guardia',
         badgeClass: 'bg-emerald-100 text-emerald-700',
-        buttonClass: 'bg-emerald-600 hover:bg-emerald-700',
     },
     extra: {
         title: 'Marcar día extra',
         badge: 'Extra',
         badgeClass: 'bg-green-100 text-green-800',
-        buttonClass: 'bg-green-600 hover:bg-green-700',
     },
     permiso: {
         title: 'Asignar permiso',
         badge: 'Permiso',
         badgeClass: 'bg-yellow-100 text-yellow-800',
-        buttonClass: 'bg-yellow-500 hover:bg-yellow-600',
     },
     vacaciones: {
         title: 'Asignar vacaciones',
         badge: 'Vacaciones',
         badgeClass: 'bg-cyan-100 text-cyan-800',
-        buttonClass: 'bg-cyan-600 hover:bg-cyan-700',
     },
     guardia: {
         title: 'Designar encargado de turno',
         badge: 'Turno',
         badgeClass: 'bg-blue-100 text-blue-800',
-        buttonClass: 'bg-blue-600 hover:bg-blue-700',
     },
 };
 
@@ -247,14 +242,14 @@ export default function UserDayAssignForm({ user, dateObj, mode = 'laboral', onS
                         <button
                             type='button'
                             onClick={onCancel}
-                            className='flex-1 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors'
+                            className='btn-neutral btn-sm flex-1'
                         >
                             Cancelar
                         </button>
                         <button
                             type='submit'
                             disabled={!canSave}
-                            className={`flex-1 py-2 rounded-lg text-sm font-semibold text-white transition-all shadow-sm active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${config.buttonClass}`}
+                            className='btn-primary btn-sm flex-1'
                         >
                             {saving ? 'Guardando...' : 'Guardar'}
                         </button>

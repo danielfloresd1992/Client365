@@ -391,15 +391,14 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
                     <button
                         type='button'
                         onClick={onCancel}
-                        className='px-4 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        className='btn-neutral btn-sm'
                     >
                         Cancelar
                     </button>
                     <button
                         type='submit'
                         disabled={isSaving}
-                        className='px-4 py-2 rounded-md text-white hover:brightness-95 disabled:opacity-60'
-                        style={{ background: GREEN_THEME_GRADIENT }}
+                        className='btn-primary btn-sm'
                     >
                         {isSaving ? 'Guardando...' : 'Guardar cambios'}
                     </button>

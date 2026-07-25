@@ -499,13 +499,13 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     <button 
                         type='button' 
                         onClick={onCancel} 
-                        className='flex-1 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors'
+                        className='btn-neutral btn-sm flex-1'
                     >
                         Cancelar
                     </button>
                     <button 
                         type='submit' 
-                        className='flex-1 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 shadow-lg shadow-blue-200 transition-all'
+                        className='btn-primary btn-sm flex-1'
                     >
                         Actualizar Cambios
                     </button>

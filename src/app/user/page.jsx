@@ -534,8 +534,7 @@ export default function UserScheduler() {
                             {/* Botón Hoy */}
                             <button
                                 onClick={() => setPivotDate(new Date())}
-                                className='h-8 px-3 sm:px-4 text-xs text-white rounded-lg shadow-sm transition-all font-medium hover:shadow-md hover:brightness-105 active:scale-95'
-                                style={{ background: GREEN_THEME_GRADIENT }}
+                                className='btn-primary btn-sm h-8 py-0'
                             >
                                 Hoy
                             </button>
@@ -548,14 +547,7 @@ export default function UserScheduler() {
                                     <button
                                         onClick={handleEditSelectedGroup}
                                         disabled={!selectedGroupStats.hasSelection}
-                                        className={`h-8 px-3 sm:px-4 text-xs rounded-lg transition-all font-semibold sm:ml-1 flex items-center gap-1.5 ${selectedGroupStats.hasSelection
-                                            ? 'text-white hover:brightness-105 hover:shadow-md active:scale-95 border-none'
-                                            : 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed'
-                                            }`}
-                                        style={{
-                                                backgroundColor: '#29c50c',
-                                                color: 'white'
-                                        }}
+                                        className='btn-primary btn-sm h-8 py-0 sm:ml-1'
                                     >
                                         <span className='text-white'>Editar grupo</span>
                                         {selectedGroupStats.hasSelection && (

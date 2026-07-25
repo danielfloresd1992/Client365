@@ -7720,6 +7720,13 @@ tfoot {
                focus-visible:ring-[#29c50c];
     }
 
+    /* Neutro de paneles internos: blanco con borde gris (Cancelar y acciones
+       secundarias de formularios). Los paneles NO usan el marfil de la portada. */
+    .btn-neutral {
+        @apply btn border border-gray-300 bg-white text-gray-700
+               hover:bg-gray-50 hover:text-gray-900 focus-visible:ring-gray-300;
+    }
+
     /* Contorno verde */
     .btn-outline {
         @apply btn border border-[#29c50c] bg-transparent text-[#1f9a08]
@@ -7746,6 +7753,16 @@ tfoot {
                hover:bg-gray-100 hover:text-slate-800
                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-300;
     }
+
+    /* Un <a>/<Link> vestido de botón NO hereda el hover global de anclas
+       (a:hover { color: var(--app-accent) } pisaba el texto y desentonaba con
+       el fondo del hover). Cada tipo fija el color que concuerda con su fondo. */
+    a.btn-primary:hover,
+    a.btn-danger:hover  { @apply text-white; }
+    a.btn-neutral:hover { @apply text-gray-900; }
+    a.btn-secondary:hover { @apply text-slate-700; }
+    a.btn-ghost:hover   { @apply text-slate-800; }
+    a.btn-outline:hover { @apply text-[#1f9a08]; }
 
     /* Tamaños / modificadores */
     .btn-sm    { @apply px-4 py-2 text-[13px] gap-1.5 rounded-lg; }

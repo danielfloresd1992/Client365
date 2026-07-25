@@ -98,7 +98,7 @@ export default function AsideNav() {
                                             aria-current={isActive ? 'page' : undefined}
                                             className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[12.5px] font-semibold whitespace-nowrap transition-colors
                                                 ${isActive
-                                                    ? 'bg-emerald-600 text-white shadow-sm'
+                                                    ? 'bg-[#29c50c] text-white shadow-sm hover:bg-[#1f9a08] hover:text-white'
                                                     : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
                                         >
                                             <Icon />
@@ -186,7 +186,7 @@ export default function AsideNav() {
                     <div className='w-full pt-2 border-t border-gray-100'>
                         <Link
                             href='/Lobby'
-                            className='w-full h-9 flex items-center justify-center gap-2 rounded-lg border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors whitespace-nowrap'
+                            className='btn-neutral btn-sm w-full h-9 py-0 text-xs whitespace-nowrap'
                         >
                             <ArrowLeftIcon />
                             Volver al Lobby

@@ -229,14 +229,13 @@ export default function UserDynamicScheduleForm({
                     <button
                         type='button'
                         onClick={onCancel}
-                        className='flex-1 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors'
+                        className='btn-neutral btn-sm flex-1'
                     >
                         Cancelar
                     </button>
                     <button
                         type='submit'
-                        className='flex-1 py-2 text-white rounded-md shadow-lg shadow-emerald-200 transition-all hover:brightness-95 disabled:opacity-50'
-                        style={{ background: GREEN_THEME_GRADIENT }}
+                        className='btn-primary btn-sm flex-1'
                         disabled={selectedDays.length === 0}
                     >
                         Guardar Horario Dinámico
