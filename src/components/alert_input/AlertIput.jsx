@@ -21,6 +21,11 @@ export default function AlertInputLive({ openAside }) {
     // { byId: { idLocal → {total, positivas, negativas, ignoradas, enviadas} }, totals }
     const [dayCounts, setDayCounts] = useState(null);
     const refreshTimerRef = useRef(null);
+    // openAside en un ref: el efecto de montaje no captura una versión vieja
+    const openAsideRef = useRef(openAside);
+    openAsideRef.current = openAside;
+    // Último total de "enviadas al grupo": el aside solo se abre cuando SUBE
+    const prevEnviadasRef = useRef(null);
 
     // Monitoreo EN VIVO por local: { idLocal → ['analytical'|'perimeter', …] }.
     // Se siembra desde /monitoring/status (estado durable del watcher) y se
@@ -43,6 +48,15 @@ export default function AlertInputLive({ openAside }) {
                     });
                 });
                 setDayCounts({ byId, totals: response.data?.totals ?? null });
+
+                // Abrir el aside únicamente cuando cambia la propiedad de envío
+                // al grupo: el total de "enviadas" superó al del refresco anterior.
+                // La carga inicial (sin valor previo) no lo dispara.
+                const enviadas = response.data?.totals?.enviadas ?? 0;
+                if (prevEnviadasRef.current !== null && enviadas > prevEnviadasRef.current) {
+                    if (typeof openAsideRef.current === 'function') openAsideRef.current();
+                }
+                prevEnviadasRef.current = enviadas;
             })
             .catch(err => {
                 // Endpoint no disponible (p. ej. API sin desplegar): '—' en vez de
@@ -75,8 +89,6 @@ export default function AlertInputLive({ openAside }) {
         const scheduleRefresh = () => {
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(loadDayCounts, 2000);
-            // El contador se actualizó por un evento → se abre el aside para verlo
-            if (typeof openAside === 'function') openAside();
         };
 
         // Inicio/fin de monitoreo por local (watcher de jarvis_api)
