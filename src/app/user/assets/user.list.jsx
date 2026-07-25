@@ -8,7 +8,7 @@ import UserDayAssignForm from './user.day.assign.form';
 import UserNextMonthScheduleForm from './user.nextmonth.schedule.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
-import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard } from '@/libs/ajaxClient/user.fecth';
+import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole } from '@/libs/ajaxClient/user.fecth';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
@@ -668,7 +668,7 @@ export default forwardRef(function UserList({
     // si la jornada ya está cerrada (con hora de salida marcada) y si el
     // usuario tiene la guardia del día (onDuty) en esa fecha.
     const getMenuDayInfo = () => {
-        if (!contextMenuDate) return { type: null, closed: false, onDuty: false };
+        if (!contextMenuDate) return { type: null, closed: false, onDuty: false, auxiliary: false };
         const normalized = new Date(contextMenuDate);
         normalized.setHours(0, 0, 0, 0);
         const cached = attendanceCache.get(`${userState?.dni}-${normalized.toISOString()}`);
@@ -677,9 +677,10 @@ export default forwardRef(function UserList({
             type: cached?.scheduleOverride?.workType || rule?.workType || 'laboral',
             closed: Boolean(cached?.checkOut),
             onDuty: Boolean(cached?.onDuty),
+            auxiliary: Boolean(cached?.auxiliary),
         };
     };
-    const { type: menuDayType, closed: menuDayClosed, onDuty: menuDayOnDuty } = getMenuDayInfo();
+    const { type: menuDayType, closed: menuDayClosed, onDuty: menuDayOnDuty, auxiliary: menuDayAuxiliary } = getMenuDayInfo();
 
     // Departamentos habilitados para la guardia del día (igual que el backend)
     const ONDUTY_DEPARTMENTS = ['Operaciones', 'Reportes', 'Sistemas y desarrollo'];
@@ -712,6 +713,39 @@ export default forwardRef(function UserList({
                 type: 'error',
                 title: 'No se pudo asignar',
                 description: error?.response?.data?.message || 'Hubo un problema al asignar la guardia. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+            return false;
+        }
+    };
+
+    // Designa o quita el auxiliar del día para la fecha clickeada
+    const toggleAuxiliaryRole = async (auxiliary) => {
+        try {
+            const dateObj = new Date(contextMenuDate);
+            dateObj.setHours(0, 0, 0, 0);
+            await setAuxiliaryRole({
+                userId: userState._id,
+                dni: userState.dni,
+                date: dateObj.toISOString(),
+                auxiliary,
+            });
+            // La celda se refresca sola por el evento socket del backend
+            dispatch(setConfigModal({
+                type: 'successfull',
+                title: auxiliary ? 'Auxiliar designado' : 'Auxiliar retirado',
+                description: auxiliary
+                    ? `${userState?.name} queda como auxiliar del día.`
+                    : `${userState?.name} ya no es auxiliar del día.`,
+                modalOpen: true,
+            }));
+            return true;
+        } catch (error) {
+            console.error('Error asignando auxiliar del día:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo asignar',
+                description: error?.response?.data?.message || 'Hubo un problema al asignar el auxiliar. Intenta nuevamente.',
                 modalOpen: true,
             }));
             return false;
@@ -1038,6 +1072,35 @@ export default forwardRef(function UserList({
                                 </button>
                             )}
 
+                            {/* Auxiliar del día — solo departamentos habilitados */}
+                            {canHaveOnDuty && (
+                                <button
+                                    role='menuitem'
+                                    className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
+                                    onClick={() => {
+                                        closeContextMenu();
+                                        // Designar abre el formulario (horario + turno); quitar es directo
+                                        if (menuDayAuxiliary) toggleAuxiliaryRole(false);
+                                        else setAssignFormMode('auxiliar');
+                                    }}
+                                >
+                                    {menuDayAuxiliary ? (
+                                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-red-500'>
+                                            <path d='M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5'></path>
+                                            <path d='M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7'></path>
+                                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                            <line x1='2' y1='2' x2='22' y2='22'></line>
+                                        </svg>
+                                    ) : (
+                                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-4 h-4 flex-shrink-0 text-red-500'>
+                                            <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                        </svg>
+                                    )}
+                                    {menuDayAuxiliary ? 'Quitar auxiliar' : 'Designar auxiliar'}
+                                </button>
+                            )}
+
                             {/* Extra: solo cuando el día efectivo es libre/descanso */}
                             {menuDayType === 'descanso' && (
                                 <button
@@ -1165,9 +1228,10 @@ export default forwardRef(function UserList({
                     mode={assignFormMode}
                     onCancel={() => setAssignFormMode(null)}
                     onSave={async (payload) => {
-                        // Guardia del día: primero fija el horario laboral del día
-                        // y luego designa el onDuty (el backend valida turno único)
-                        if (payload.workType === 'guardia') {
+                        // Roles del día (guardia/auxiliar): primero fija el horario
+                        // laboral del día y luego designa el rol (el backend valida
+                        // turno único por departamento)
+                        if (payload.workType === 'guardia' || payload.workType === 'auxiliar') {
                             const savedSchedule = await saveDayOverride({
                                 workType: 'laboral',
                                 shift: payload.shift,
@@ -1175,7 +1239,9 @@ export default forwardRef(function UserList({
                                 endTime: payload.endTime,
                             });
                             if (!savedSchedule) return;
-                            const designated = await toggleOnDutyGuard(true);
+                            const designated = payload.workType === 'guardia'
+                                ? await toggleOnDutyGuard(true)
+                                : await toggleAuxiliaryRole(true);
                             if (designated) setAssignFormMode(null);
                             return;
                         }
@@ -1216,10 +1282,11 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         }
         if (manuallyClosedRef.current) return;
         // Abre con marcaje registrado, cualquier override asignado (guardia,
-        // cambio, descanso, falta...) o comentarios del día
+        // cambio, descanso, falta...), comentarios o roles del día
         const hasOverrideInfo = Boolean(attendanceData?.scheduleOverride?.workType);
         const hasComments = attendanceData?.comments?.length > 0;
-        if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return;
+        const hasDayRole = Boolean(attendanceData?.onDuty || attendanceData?.auxiliary);
+        if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments && !hasDayRole) return;
         if (showDetails) return;
         if (openTimeoutRef.current) return;
 
@@ -1345,7 +1412,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             notifyAttendanceCacheChange();
 
             // Mostrar datos si hay checkIn, scheduleOverride asignado o comentarios
-            if (record?.checkIn || record?.scheduleOverride?.workType || record?.comments?.length > 0 || record?.onDuty) {
+            if (record?.checkIn || record?.scheduleOverride?.workType || record?.comments?.length > 0 || record?.onDuty || record?.auxiliary) {
                 setStatus('data');
                 setAttendanceData(record);
                 return;
@@ -1380,7 +1447,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     const cachedData = attendanceCache.get(attendanceCacheKey);
                     if (!isMounted) return;
 
-                    if (cachedData?.checkIn || cachedData?.scheduleOverride?.workType || cachedData?.comments?.length > 0 || cachedData?.onDuty) {
+                    if (cachedData?.checkIn || cachedData?.scheduleOverride?.workType || cachedData?.comments?.length > 0 || cachedData?.onDuty || cachedData?.auxiliary) {
                         setAttendanceData(cachedData);
                         setStatus('data');
                     } else {
@@ -1408,7 +1475,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
                 if (!isMounted) return;
 
-                if (data?.checkIn || data?.scheduleOverride?.workType || data?.comments?.length > 0 || data?.onDuty) {
+                if (data?.checkIn || data?.scheduleOverride?.workType || data?.comments?.length > 0 || data?.onDuty || data?.auxiliary) {
                     setAttendanceData(data);
                     setStatus('data');
                 } else {
@@ -1464,7 +1531,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const hasPopoverInfo = Boolean(
         attendanceData?.checkIn ||
         attendanceData?.scheduleOverride?.workType ||
-        attendanceData?.comments?.length > 0
+        attendanceData?.comments?.length > 0 ||
+        attendanceData?.onDuty ||
+        attendanceData?.auxiliary
     );
 
     // Personas que tocaron el documento (creador, editores, comentaristas)
@@ -1634,14 +1703,27 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                 onMouseLeave={handleCloseDetails}
                 className={`relative w-full h-full flex flex-col justify-center ${hasPopoverInfo ? 'cursor-pointer' : ''}`}
             >
-                {/* Guardia del día: campana azul */}
-                {attendanceData?.onDuty && (
-                    <div className='absolute top-0 left-0 z-[2] pointer-events-none flex items-center gap-0.5 bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-br-md'>
-                        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
-                            <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
-                            <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
-                        </svg>
-                        Turno
+                {/* Roles del día: campana azul (encargado de turno) y roja (auxiliar) */}
+                {(attendanceData?.onDuty || attendanceData?.auxiliary) && (
+                    <div className='absolute top-0 left-0 z-[2] pointer-events-none flex flex-col items-start'>
+                        {attendanceData?.onDuty && (
+                            <div className={`flex items-center gap-0.5 bg-blue-700 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 ${attendanceData?.auxiliary ? '' : 'rounded-br-md'}`}>
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                                    <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                    <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                </svg>
+                                Turno
+                            </div>
+                        )}
+                        {attendanceData?.auxiliary && (
+                            <div className='flex items-center gap-0.5 bg-red-600 text-white text-[8px] font-black uppercase tracking-wider px-1 py-0.5 rounded-br-md'>
+                                <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                                    <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                    <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                </svg>
+                                Auxiliar
+                            </div>
+                        )}
                     </div>
                 )}
 

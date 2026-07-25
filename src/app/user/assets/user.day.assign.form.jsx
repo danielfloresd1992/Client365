@@ -37,6 +37,11 @@ const MODE_CONFIG = {
         badge: 'Turno',
         badgeClass: 'bg-blue-100 text-blue-800',
     },
+    auxiliar: {
+        title: 'Designar auxiliar',
+        badge: 'Auxiliar',
+        badgeClass: 'bg-red-100 text-red-700',
+    },
 };
 
 // Fecha local → valor de <input type='date'> (YYYY-MM-DD)
@@ -52,7 +57,7 @@ export default function UserDayAssignForm({ user, dateObj, mode = 'laboral', onS
     const dayNumber = dateObj ? String(new Date(dateObj).getDay()) : null;
     const dayRule = dayNumber != null ? user?.workSchedule?.scheduleByDay?.[dayNumber] : null;
 
-    const isTimed = mode === 'laboral' || mode === 'extra' || mode === 'guardia';
+    const isTimed = mode === 'laboral' || mode === 'extra' || mode === 'guardia' || mode === 'auxiliar';
     const isPermiso = mode === 'permiso';
     const isVacaciones = mode === 'vacaciones';
 

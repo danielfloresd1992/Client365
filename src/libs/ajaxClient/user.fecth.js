@@ -141,4 +141,20 @@ export const setOnDutyGuard = async (payload) => {
 }
 
 
+/**
+ * Designa o quita el auxiliar del día de un usuario (solo administradores).
+ * Misma regla que la guardia: único por departamento, fecha y turno.
+ * @param {{ userId?: string, dni?: string, date: string, auxiliary: boolean }} payload
+ */
+export const setAuxiliaryRole = async (payload) => {
+    try {
+        const response = await axiosInstance.post('/user/attendance/auxiliary', payload);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
 
