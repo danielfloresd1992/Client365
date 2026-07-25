@@ -10,6 +10,23 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-25
+- **AlertInputLive (Lobby) en vivo + envío sin duplicados:** el panel "Reporte
+  de alertas" dejó de ser esqueleto: muestra solo locales activos agrupados por
+  franquicia con los conteos del día operativo por local (total, ✓ aprobadas,
+  ◌ ignoradas, ➤ enviadas) desde `GET /noveltyReport/today`, números estilo
+  **odómetro** (dígitos que ruedan), columnas de ancho fijo con encabezados
+  alineados, barra sticky de totales con el último inicio/fin de monitoreo,
+  punto verde pulsante por local en ventana (sembrado de `/monitoring/status` +
+  eventos `monitoring-start/end`), y **parpadeo rojo** con el aviso "Local sin
+  actualización de alerta en el grupo" para los señalados por el corte de
+  silencio (`monitoring-silence`). Los eventos que refrescan el contador abren
+  el aside (`openAside`). Se quitaron los botones muertos "Generar…". En
+  `Noveltie`, el compartir por WhatsApp deduplica destinos (establecimiento vs
+  grupo por defecto), bloquea `groupId` vacío y muestra el éxito solo tras
+  completar todos los envíos. Requiere el backend con los endpoints nuevos.
+  _(Claude Code)_
+
 ## 2026-07-24
 - **Anuncio por voz del monitoreo en tiempo real (watcher + sockets):** el
   nuevo watcher de api_jarvis365 emite `monitoring-start` / `monitoring-end`
