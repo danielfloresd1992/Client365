@@ -16,6 +16,7 @@ import newEstablishmentStore from './slices/newEstablishment';
 import sessionStore from '@/store/slices/session'
 import filterClientReducer from '@/store/slices/filterAlert';
 import imageViewerReducer from '@/store/slices/imageViewer';
+import dayRole from '@/store/slices/dayRole';
 
 
 
@@ -37,7 +38,8 @@ const store = configureStore({
         newEstablishment: newEstablishmentStore,
         session: sessionStore,
         filterClientList: filterClientReducer,
-        imageViewer: imageViewerReducer
+        imageViewer: imageViewerReducer,
+        dayRole: dayRole
     }
 });
 

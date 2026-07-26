@@ -1,17 +1,18 @@
 'use client';
-import { createContext, useContext, useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import useAuthOnServer from '@/hook/auth';
-import { getTodayRoster } from '@/libs/ajaxClient/user.fecth';
+import { getMyDayRole } from '@/libs/ajaxClient/user.fecth';
+import { setDayRole } from '@/store/slices/dayRole';
 
 /*
  * Rol del día del usuario en sesión: ¿es ENCARGADO DE TURNO (onDuty) o
  * AUXILIAR (auxiliary) según el horario de HOY?
  *
- * La verdad sale del roster del horario (GET /user/roster/today, que resuelve
- * la asistencia del día con overrides y roles). Vive en el layout raíz, así
- * que persiste al navegar y cualquier componente lo consume con useDayRole():
- *   · Noveltie: muestra los botones de validar/enviar solo a los designados
- *     (el backend ya lo exige con validateDayRoleUser en el PUT).
+ * La verdad sale del roster del horario (GET /user/roster/today). El estado
+ * vive ahora en REDUX (slice `dayRole`): el loader lo despacha y cualquier
+ * componente lo lee con useDayRole() — sin Context.
+ *   · Noveltie: muestra los botones de validar/enviar a admin o al designado.
  *   · AppDock: resalta el rol en la barra de navegación.
  *
  * Se refresca cada 5 minutos y al volver a la pestaña (la designación puede
@@ -20,30 +21,38 @@ import { getTodayRoster } from '@/libs/ajaxClient/user.fecth';
 
 const REFRESH_MS = 5 * 60 * 1000;
 
-const DayRoleContext = createContext({ onDuty: false, auxiliary: false, hasDayRole: false, roleLabel: null });
+// Lectura: rol del día desde el store + derivados (hasDayRole, roleLabel).
+export const useDayRole = () => {
+    const { onDuty, auxiliary } = useSelector(state => state.dayRole);
+    return {
+        onDuty,
+        auxiliary,
+        hasDayRole: onDuty || auxiliary,
+        roleLabel: onDuty ? 'Encargado de turno' : auxiliary ? 'Auxiliar del día' : null,
+    };
+};
 
-export const useDayRole = () => useContext(DayRoleContext);
-
+// Loader (antes "Provider"): ya no hay Context; solo consulta el roster y
+// despacha el rol del día al store. Se monta en el layout raíz, así que
+// persiste al navegar. Envuelve a children solo por comodidad de montaje.
 export function DayRoleProvider({ children }) {
 
+    const dispatch = useDispatch();
     const { dataSessionState } = useAuthOnServer();
     const userId = dataSessionState?.dataSession?._id;
 
-    const [role, setRole] = useState({ onDuty: false, auxiliary: false });
-
     useEffect(() => {
         if (!userId) {
-            setRole({ onDuty: false, auxiliary: false });
+            dispatch(setDayRole({ onDuty: false, auxiliary: false }));
             return;
         }
 
         let alive = true;
         const load = () => {
-            getTodayRoster()
-                .then(data => {
+            getMyDayRole()
+                .then(role => {
                     if (!alive) return;
-                    const me = (data?.roster ?? []).find(r => String(r.userId) === String(userId));
-                    setRole({ onDuty: Boolean(me?.onDuty), auxiliary: Boolean(me?.auxiliary) });
+                    dispatch(setDayRole({ onDuty: Boolean(role?.onDuty), auxiliary: Boolean(role?.auxiliary) }));
                 })
                 .catch(err => console.error('Rol del día:', err?.message ?? err));
         };
@@ -58,18 +67,7 @@ export function DayRoleProvider({ children }) {
             clearInterval(timer);
             document.removeEventListener('visibilitychange', onVisible);
         };
-    }, [userId]);
+    }, [userId, dispatch]);
 
-    const value = {
-        onDuty: role.onDuty,
-        auxiliary: role.auxiliary,
-        hasDayRole: role.onDuty || role.auxiliary,
-        roleLabel: role.onDuty ? 'Encargado de turno' : role.auxiliary ? 'Auxiliar del día' : null,
-    };
-
-    return (
-        <DayRoleContext.Provider value={value}>
-            {children}
-        </DayRoleContext.Provider>
-    );
+    return children;
 }

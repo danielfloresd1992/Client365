@@ -173,4 +173,19 @@ export const getTodayRoster = async () => {
 }
 
 
+/**
+ * Rol del día SOLO del usuario en sesión (encargado de turno / auxiliar).
+ * Liviano: no trae todo el roster. @returns {{ onDuty, auxiliary }}
+ */
+export const getMyDayRole = async () => {
+    try {
+        const response = await axiosInstance.get('/user/day-role/today');
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
 

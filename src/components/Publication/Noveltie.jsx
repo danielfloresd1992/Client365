@@ -52,6 +52,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     // ambos handlers antes de que React re-renderice con el estado actualizado.
     const isSharingRef = useRef(false);
     const [isSharing, setIsSharing] = useState(false);
+    // Envío automático a WhatsApp falló → habilita descargar imagen/video
+    const [autoSendFailed, setAutoSendFailed] = useState(false);
 
 
     const dataDeleteForUserRef = useRef();
@@ -62,7 +64,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     // Rol del día según el horario: el designado (encargado/auxiliar) puede
     // validar/enviar — el backend lo exige con validateDayRoleUser en el PUT.
     const { hasDayRole } = useDayRole();
-    const isReadOnly = !(user?.admin || user?.super || hasDayRole);
+    const isReadOnly = !(user?.admin || hasDayRole);
     const hasVideo = !!noveltyState?.videoUrl;
     const { requestAction } = useAxios();
     const dispatch = useDispatch();
@@ -136,7 +138,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const putValidateNoveltie = (id, dataParams) => {
-        if (user?.admin || user?.super || hasDayRole) {
+        if (user?.admin || hasDayRole) {
             requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
@@ -225,6 +227,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
         if (isSharingRef.current) return;   // ya hay un envío en curso
         isSharingRef.current = true;
         setIsSharing(true);
+        setAutoSendFailed(false);   // nuevo intento: ocultar descargas hasta el resultado
 
         try {
             if (!whatsAppSendingDefault) {
@@ -239,7 +242,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
             }
 
 
-            if (user.admin || user.super) {
+            if (user.admin || hasDayRole) {
                 if (validationValue !== true) return
                 const noveltieCopi = { ...noveltyState };
 
@@ -287,12 +290,15 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
         }
         catch (error) {
             console.log(error);
+            // El envío automático falló: se habilita la descarga manual de la
+            // imagen y el video para que el usuario los suba al grupo a mano.
+            setAutoSendFailed(true);
             dispatch(setConfigModal({
                 modalOpen: true,
-                title: 'Error',
-                description: 'Chequea que este en el respectivo grupo de whatsapp y que el servidor de jarvis este activo.',
+                title: 'Envío automático falló',
+                description: 'No se pudo enviar la novedad automáticamente a WhatsApp. Quedó habilitada la opción de DESCARGAR la imagen y el video para enviarlos manualmente al grupo. Verifica que estés en el grupo y que el servidor de Jarvis esté activo.',
                 isCallback: null,
-                type: 'error'
+                type: 'warning'
             }
             ));
         }
@@ -735,21 +741,20 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             {
                                                 hasVideo ?
                                                     <>
-                                                    {/*
-                                                        <button
-                                                            className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
-                                                            type='button'
-                                                            onClick={e => {
-                                                                e.preventDefault();
-                                                                downloadBlob(noveltyState.videoUrl, noveltyState.title);
-                                                            }}
-                                                            disabled={!canShare}
-                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Descargar video de la alerta'}
-                                                        >
-                                                            <FiDownload className='btnPublic-img' />
-                                                            <p className='__textGrayForList'>Descargar video</p>
-                                                        </button>
-                                                        */}
+                                                        {autoSendFailed && (
+                                                            <button
+                                                                className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                                type='button'
+                                                                onClick={e => {
+                                                                    e.preventDefault();
+                                                                    downloadBlob(noveltyState.videoUrl, noveltyState.title);
+                                                                }}
+                                                                title='Descargar video de la alerta'
+                                                            >
+                                                                <FiDownload className='btnPublic-img' />
+                                                                <p className='__textGrayForList'>Descargar video</p>
+                                                            </button>
+                                                        )}
                                                         <button //button whastapp
                                                             className={isValidated ? 'btnPublic  __btn-green' : 'btnPublic'}
                                                             type='button'
@@ -779,21 +784,20 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             {
                                                 noveltyState.imageToShare ?
                                                     <>
-                                                    {/*
-                                                        <button
-                                                            className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
-                                                            type='button'
-                                                            onClick={e => {
-                                                                e.preventDefault();
-                                                                downloadBlob(noveltyState.imageToShare, noveltyState.title);
-                                                            }}
-                                                            disabled={!canShare}
-                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Descargar imagen de la alerta'}
-                                                        >
-                                                            <FiDownload className='btnPublic-img' />
-                                                            <p className='__textGrayForList'>Descargar imagen</p>
-                                                        </button>
-                                                    */}
+                                                        {autoSendFailed && (
+                                                            <button
+                                                                className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
+                                                                type='button'
+                                                                onClick={e => {
+                                                                    e.preventDefault();
+                                                                    downloadBlob(noveltyState.imageToShare, noveltyState.title);
+                                                                }}
+                                                                title='Descargar imagen de la alerta'
+                                                            >
+                                                                <FiDownload className='btnPublic-img' />
+                                                                <p className='__textGrayForList'>Descargar imagen</p>
+                                                            </button>
+                                                        )}
 
 
                                                         <button //button for image
