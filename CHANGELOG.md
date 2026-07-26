@@ -10,6 +10,31 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-07-26
+- **Muro de novedades (Lobby) tipo chat + video:** PublicationsBox absorbió la
+  lógica de Publications (que se eliminó). El muro va de abajo hacia arriba, las
+  alertas nuevas del socket entran por el fondo empujando las demás (animación),
+  el scroll queda al fondo por defecto y **pagina al subir** (scroll infinito
+  con spinner "Cargando más alertas"), con contador en vivo de alertas en el
+  header y pestañas por estado (Todo/Validadas/Invalidadas/Ignoradas, esta
+  filtrando por `/novelties/paginate?state=`). Scroll a medida (riel gris, barra
+  verde, sin flechas) con rebote de borde. El reproductor de video se rehízo:
+  el video es el slide principal, con autoplay en loop al estar a la vista y
+  controles propios (sonido, progreso). Se retiró del Lobby el Nav y el
+  AsideInfoUser (Consulta de alertas + Conectados). _(Claude Code)_
+- **Rol del día en acciones y navegación:** nuevo `dayRoleContext` global (lee
+  el roster del horario) — los botones de validar/enviar de Noveltie aparecen
+  para admins o para el encargado/auxiliar del día, y el AppDock resalta el rol
+  sobre el avatar. Chips de Noveltie (operador/coordinador/envío) a ancho igual,
+  sin border-radius ni sombra. _(Claude Code)_
+- **Panel analítico:** turnos de "Vienen hoy" como acordeones con resumen, chips
+  y números en estilo contorno, sección "Conectados · App Manager" con provider
+  global de presencia, reloj con segundos, y título "Sala de control" con
+  emblema. _(Claude Code)_
+- **Navegación y sesión:** el login aterriza en `/dashboard`; cierre de sesión
+  con recarga completa a `/` (arreglo del loader pegado); años de experiencia de
+  la portada calculados solos desde 2017. _(Claude Code)_
+
 ## 2026-07-25
 - **Auxiliar del día en el horario (/user, con api_jarvis365):** nuevo rol
   espejo del encargado de turno. Campo `auxiliary` en Attendance y endpoint

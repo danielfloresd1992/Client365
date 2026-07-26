@@ -5233,6 +5233,10 @@ body .lobby-live-empty {
 }
 
 body .lobby-feed-main {
+    /* Desktop: 60% (centrado por el contenedor). En móvil se lleva a 100%
+       dentro del media query max-width:767px. */
+    width: 60%;
+    max-width: 100%;
     border: 1px solid var(--app-border);
     border-radius: 14px;
     box-shadow: var(--app-shadow-soft);
@@ -5362,8 +5366,66 @@ body .lobby-feed-filterError {
 body .lobby-feed-list {
     width: 100%;
     display: flex;
-    flex-direction: column;
+    /* Chat: el elemento más nuevo (data[0], que llega por 'shift') se renderiza
+       ABAJO y los anteriores suben. La lista se ancla al fondo del contenedor. */
+    flex-direction: column-reverse;
     gap: .9rem;
+    margin-top: auto;
+}
+
+/* ── Muro: scroll a medida (riel gris, barra verde de la app) + rebote de
+   borde al topar arriba/abajo. Sobrescribe el ocultado de .box-Noveltie. ── */
+body .lobby-feed-scroll {
+    scrollbar-width: thin;
+    scrollbar-color: #29c50c #cfcfcf;   /* barra · riel (Firefox) */
+}
+
+body .lobby-feed-scroll::-webkit-scrollbar {
+    display: block;
+    width: 10px;
+}
+
+/* Sin las flechas de arriba/abajo del scrollbar: solo barra. Se cubren todas
+   las variantes de botón porque algunos WebKit ignoran la genérica. */
+body .lobby-feed-scroll::-webkit-scrollbar-button,
+body .lobby-feed-scroll::-webkit-scrollbar-button:single-button,
+body .lobby-feed-scroll::-webkit-scrollbar-button:vertical:start,
+body .lobby-feed-scroll::-webkit-scrollbar-button:vertical:end,
+body .lobby-feed-scroll::-webkit-scrollbar-button:vertical:start:decrement,
+body .lobby-feed-scroll::-webkit-scrollbar-button:vertical:end:increment,
+body .lobby-feed-scroll::-webkit-scrollbar-button:horizontal:start,
+body .lobby-feed-scroll::-webkit-scrollbar-button:horizontal:end {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    background: transparent;
+}
+
+body .lobby-feed-scroll::-webkit-scrollbar-track {
+    background: #cfcfcf;
+    border-radius: 999px;
+}
+
+body .lobby-feed-scroll::-webkit-scrollbar-thumb {
+    background: #29c50c;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+
+body .lobby-feed-scroll::-webkit-scrollbar-thumb:hover {
+    background: #1f9a08;
+}
+
+/* Rebote de borde: al topar el límite, el contenedor se desplaza 10px a la
+   izquierda y regresa (lo activa el listener de rueda en PublicationsBox). */
+body .lobby-feed-scroll.is-edge {
+    animation: feedEdgeBounce .4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes feedEdgeBounce {
+    0%, 100% { transform: translateX(0); }
+    40%      { transform: translateX(-10px); }
 }
 
 body .lobby-feed-actions {
@@ -5737,6 +5799,7 @@ body .lobby-title-row--compact {
 
     /* Contenedor principal: full width sin bordes */
     body .lobby-feed-main {
+        width: 100%;
         border: none;
         border-radius: 0;
         box-shadow: none;
@@ -6093,10 +6156,12 @@ body .lobby-aside-filterError {
     display: flex;
     align-items: center;
     gap: 4px;
-    border-radius: 9999px;
+    border-radius: 0;
+    /* Cada chip (operador / coordinador / envío) ocupa el mismo ancho en la fila */
+    flex: 1 1 0;
+    min-width: 0;
     cursor: pointer;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
     transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -6123,7 +6188,6 @@ body .lobby-aside-filterError {
 /* Hover: elevación + sombra coloreada + shimmer */
 .novelty-chip:hover {
     transform: translateY(-3px) scale(1.04);
-    box-shadow: 0 8px 25px var(--chip-glow, rgba(59,130,246,0.35));
 }
 
 .novelty-chip:hover::after {

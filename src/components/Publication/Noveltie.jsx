@@ -20,6 +20,7 @@ import axiosInstance from '@/libs/ajaxClient/axios.fetch';
 
 import changeHostNameForImg from '@/libs/script/changeHostName';
 import useAuthOnServer from '@/hook/auth';
+import { useDayRole } from '@/contexts/dayRoleContext';
 
 import TextAreaAutoResize from '@/components/inpust/text_area_autoresize';
 import MemoSlider from '@/components/carruzel/slider';
@@ -58,7 +59,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const user = dataSessionState?.dataSession;
 
     const { open: openImageViewer } = useImageViewer();
-    const isReadOnly = !(user?.admin || user?.super);
+    // Rol del día según el horario: el designado (encargado/auxiliar) puede
+    // validar/enviar — el backend lo exige con validateDayRoleUser en el PUT.
+    const { hasDayRole } = useDayRole();
+    const isReadOnly = !(user?.admin || user?.super || hasDayRole);
     const hasVideo = !!noveltyState?.videoUrl;
     const { requestAction } = useAxios();
     const dispatch = useDispatch();
@@ -132,7 +136,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
     const putValidateNoveltie = (id, dataParams) => {
-        if (user?.admin || user?.super) {
+        if (user?.admin || user?.super || hasDayRole) {
             requestAction({ url: `/novelties/id=${id}`, body: dataParams, action: 'PUT' })
                 .then(response => {
                     if (response?.status === 200) {
@@ -568,7 +572,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
 
-                            <div className='p-[.8rem_.5rem] flex items-center justify-start flex-wrap gap-[6px]'>
+                            <div className='p-[.8rem_0rem] flex items-stretch '>
 
                                 {/*operador*/}
                                 <div className='novelty-chip novelty-chip--operador'>
@@ -607,7 +611,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 </div>
                                                 {
                                                     typeof isValidated === 'boolean' ?
-                                                        <div className={`novelty-chip-icon w-[40px] h-[40px] flex justify-center items-center rounded-r-full ${isInvalid ? 'bg-[#891616]' : 'bg-[#161a89]'}`}>
+                                                        <div className={`novelty-chip-icon w-[40px] h-[40px] flex justify-center items-center ${isInvalid ? 'bg-[#891616]' : 'bg-[#161a89]'}`}>
                                                             {
                                                                 isInvalid ?
                                                                     <FiThumbsDown className='w-[18px] h-[18px] text-white' stroke='white' />
@@ -635,7 +639,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
                                             <div className='novelty-chip novelty-chip--envio'>
                                                 <p className='novelty-chip-text font-semibold text-[12px] text-primary-800 p-[0px_5px_0px_15px] truncate'>Enviado a amazonas365</p>
-                                                <div className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] flex justify-center items-center bg-[#18e018] rounded-r-full'>
+                                                <div className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] flex justify-center items-center bg-[#18e018]'>
                                                     <FaWhatsapp className='w-[20px] h-[20px]' style={{ color: 'white' }} />
                                                 </div>
                                             </div>
@@ -648,8 +652,11 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                             </div>
 
 
+                            {/* Acciones (validar, turno, enviar): para administradores
+                                o para quien tiene el rol del día en el horario
+                                (encargado de turno o auxiliar) */}
                             {
-                                !isMobile ? (
+                                !isMobile && (user?.admin === true || hasDayRole) ? (
                                     <>
                                         <div className='divContentNovelties-divBtn lobby-noveltie-actionGrid' style={{ gap: 0, overflow: 'hidden' }}>
                                             <button
