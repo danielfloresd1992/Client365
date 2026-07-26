@@ -145,7 +145,7 @@ export default function AlertLiveJarvis() {
             isSubscribed = false;
             socket_jarvis.off('warning', handlerMsmSocket);
             socket_jarvis.off('alert', handdlerAlertSocket);
-            socket.off('document_created', handdlerCreateSocket);
+            socket.off('created_Alert', handdlerCreateSocket);
             socket.off('document_updated', handdlerPutSocket);
             socket.off('monitoring-start', handdlerMonitoringStart);
             socket.off('monitoring-end', handdlerMonitoringEnd);

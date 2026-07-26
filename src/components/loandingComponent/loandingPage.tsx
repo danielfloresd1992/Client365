@@ -15,6 +15,7 @@ import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch';
 import { SessionState } from '@/types/submitAuth';
 import { isPublicRoute, isLoginRoute, isAdminRoute, DEFAULT_AUTHENTICATED_ROUTE } from '@/libs/auth/routes.config';
 import socket from '@/libs/socket/socketIo';
+import useAuthOnServer from '@/hook/auth';
 import useSpeckAlert from '@/hook/useSpeckAlert';
 
 
@@ -81,6 +82,9 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
 
     // El servidor está caído según el socket (eventos disconnect / connect_error).
     const [socketDown, setSocketDown] = useState(false);
+
+    // Para el control remoto entre instancias (cerrar sesión / recargar).
+    const { logOut }: any = useAuthOnServer();
 
 
     // ── 1. Verificar la sesión contra el backend (única fuente de verdad) ────
@@ -162,6 +166,25 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
             socket.off('connect', onUp);
         };
     }, []);
+
+
+    // ── 5. Control remoto entre instancias (desde el panel de configuración):
+    //    cerrar la sesión de un usuario o recargar a todos. Estos listeners
+    //    vivían en el Header (ya retirado); se reubican aquí, que SIEMPRE está
+    //    montado, para que el circuito vuelva a funcionar. ────────────────────
+    useEffect(() => {
+        const closeSession = (data: any) => {
+            if (data?._id && dataSessionState?.dataSession?._id === data._id) logOut('/');
+        };
+        const reloadPage = () => { if (typeof window !== 'undefined') window.location.reload(); };
+
+        socket.on('receivesclose-userClientAppManager', closeSession);
+        socket.on('reload-client-appmanager', reloadPage);
+        return () => {
+            socket.off('receivesclose-userClientAppManager', closeSession);
+            socket.off('reload-client-appmanager', reloadPage);
+        };
+    }, [dataSessionState, logOut]);
 
 
     // ¿Hay error de conexión? (chequeo de sesión por red caída O socket sin conexión)
