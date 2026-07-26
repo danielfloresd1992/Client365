@@ -9,6 +9,8 @@ import ServerConnectionError from '@/components/error/ServerConnectionError';
 import { myUserContext } from '@/contexts/userContext';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
 import { setClient } from '@/store/slices/Client';
+import { apdateLightSavingTime } from '@/store/slices/isDaylightSavingTimeStore';
+import getisDaylightSavingTime from '@/libs/ajaxServer/getIsDaylightSavingTime';
 import { checkIfSessionExists } from '@/libs/ajaxClient/authFetch';
 import { SessionState } from '@/types/submitAuth';
 import { isPublicRoute, isLoginRoute, isAdminRoute, DEFAULT_AUTHENTICATED_ROUTE } from '@/libs/auth/routes.config';
@@ -105,6 +107,17 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
                     if (response?.data) dispatch(setClient(response?.data));
                 },
             });
+        }
+    }, [dataSessionState]);
+
+
+    // ── 2b. Flag de horario de verano al store (lo cargaba el Header, que se
+    //        retiró del layout). Lo leen los formularios de alerta. ───────────
+    useEffect(() => {
+        if (dataSessionState?.stateSession === 'authenticated') {
+            getisDaylightSavingTime()
+                .then((response: any) => dispatch(apdateLightSavingTime(response.data.IsDaylightSavingTime)))
+                .catch((error: any) => console.log(error));
         }
     }, [dataSessionState]);
 

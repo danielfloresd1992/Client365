@@ -241,7 +241,7 @@ export default function Header() {
             <div className='header-main__brand'>
                 {
                     pathName !== '/' ?
-                        <Link href={'/Lobby'}>
+                        <Link href={'/dashboard'}>
                             <div className='header-main__brandInner'>
                                 <Image priority={false} className='header-logo-title header-main__logo' alt='logo' src='/img/LOGO-SLIDER.png' width={170} height={54} />
                             </div>

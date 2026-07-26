@@ -32,7 +32,7 @@ function Form(){
                     userSession.userSessionId = `${response.data._id}-${new Date().getTime()}`;
                     login(userSession);
                     localStorage.setItem('user-newappmanager2.5', JSON.stringify(response.data));
-                    router.push('/Lobby');
+                    router.push('/dashboard');
                 }
             })
             .catch(err => {
@@ -76,7 +76,7 @@ function Form(){
                 const userSession = loginResponse.data;
                 userSession.userSessionId = `${loginResponse.data._id}-${new Date().getTime()}`;
                 login(userSession);
-                router.push('/Lobby');
+                router.push('/dashboard');
                 dispatch(closeModal());
             }
         }

@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import socket from '@/libs/socket/socketIo';
+import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
 
 
 
@@ -267,34 +268,20 @@ function LocalDayCounts({ counts, loaded }) {
 
 
 /**
- * Odómetro: cada dígito es una columna 0-9 que RUEDA verticalmente hasta su
- * valor (transición suave, estilo contador analógico/mecánico). Usa unidades
- * em, así hereda el tamaño de fuente del contenedor.
+ * Odómetro: envoltorio del AnalogCounter compartido (visor analógico con
+ * animación mecánica al cambiar). Panel oscuro opaco con dígitos claros; el
+ * color se puede afinar por prop. Relleno compacto para caber en la grilla.
  */
-const ODOMETER_DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-function OdometerDigit({ digit }) {
+function Odometer({ value, className = '', color = '#f1f5f9', background = '#4b5563' }) {
     return (
-        <span style={{ display: 'inline-block', height: '1em', overflow: 'hidden', verticalAlign: 'baseline' }}>
-            <span style={{ display: 'block', transition: 'transform 0.7s cubic-bezier(0.22, 1, 0.36, 1)', transform: `translateY(-${digit}em)` }}>
-                {ODOMETER_DIGITS.map(n => (
-                    <span key={n} style={{ display: 'block', height: '1em', lineHeight: '1em' }}>{n}</span>
-                ))}
-            </span>
-        </span>
-    );
-}
-
-function Odometer({ value, className = '' }) {
-    const digits = String(Math.max(0, Number(value) || 0)).split('');
-    return (
-        <span className={`inline-flex tabular-nums ${className}`}>
-            {/* key por posición desde la derecha: al crecer de 99→100 los dígitos
-                existentes conservan su columna y siguen rodando en vez de remontarse */}
-            {digits.map((digit, index) => (
-                <OdometerDigit key={digits.length - index} digit={Number(digit)} />
-            ))}
-        </span>
+        <AnalogCounter
+            value={Math.max(0, Number(value) || 0)}
+            color={color}
+            background={background}
+            fontSize='1em'
+            pad='0.1em 0.2em'
+            className={`tabular-nums ${className}`}
+        />
     );
 }
 

@@ -66,7 +66,7 @@ export default function ContentForm() {
         const { email, password } = data;
 
         signIn({ email, password }, () => {
-            router.replace('/Lobby');
+            router.replace('/dashboard');
             dispatch(setConfigModal({
                 type: '',
                 title: '',

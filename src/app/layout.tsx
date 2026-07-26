@@ -4,11 +4,14 @@ import '@fontsource/roboto/300.css';
 import '@fontsource/roboto/400.css';
 import '@fontsource/roboto/500.css';
 import '@fontsource/roboto/700.css';
+// Victor Mono: dígitos casi cuadrados para los contadores del panel analítico
+import '@fontsource/victor-mono/400.css';
+import '@fontsource/victor-mono/500.css';
 import dynamic from 'next/dynamic';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import Head from 'next/head';
-import Header from '@/components/Header/Header';
+import AppShell from '@/components/AppNav/AppShell';
 import AlertLiveJarvis from '@/components/alertSpeackComponent';
 import LoandingPage from '@/components/loandingComponent/loandingPage';
 import ErrorServerAlert from '@/components/error/Error_Server'
@@ -49,12 +52,11 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
                 <meta name="robots" content="noindex, nofollow"></meta>
                 <meta name="google-site-verification" content="y0qtg0BfcGqooJZXzWhcf5_0W04rodr3hPdyLLr8qN0" />
             </Head>
-            <body className={`${GeistSans.className} h-[100vh] pt-[62px] md:pt-[48px] px-[10px] pb-[40px] bg-white`}>
+            <body className={`${GeistSans.className} h-[100vh] pt-2 px-[10px] pb-[40px] bg-white`}>
                 <SessionProvider>
                     <Providers>
                         <LoandingPage title='loanding...'>
-                            <Header />
-                            {children}
+                            <AppShell>{children}</AppShell>
                             <Modal />
                             <AlertLiveJarvis />
                             <Config_window />

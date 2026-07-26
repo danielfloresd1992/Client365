@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react';
-import Nav from './Nav/Nav';
 import ZoomImg from '@/components/zoomImage/ZoomImg';
 import { ImgProvider } from '@/contexts/imgContext';
 
@@ -55,7 +54,6 @@ export default function Lobby() {
             }}
         >
             <ImgProvider>
-                <Nav />
                 <PublicationsBox filterSignal={publicationFilterSignal} />
                 <AsideInfoUser
                     onApplyPublicationFilter={handleApplyPublicationFilter}
