@@ -85,14 +85,6 @@ function PersonCard({ p }) {
                                 {p.checkInLabel ? `✓ entró ${p.checkInLabel}` : '⚠ en horario, sin marcar'}
                             </span>
                         )}
-                        {p.progress !== null && (
-                            <>
-                                <span className={`relative flex-1 h-[5px] rounded-full overflow-hidden min-w-[50px] ${p.late ? 'bg-rose-100' : 'bg-emerald-100'}`}>
-                                    <span className={`absolute inset-y-0 left-0 rounded-full ${p.late ? 'bg-rose-400' : 'bg-[#29c50c]'}`} style={{ width: `${p.progress}%` }} />
-                                </span>
-                                <span className={`text-[9px] font-bold tabular-nums ${p.late ? 'text-rose-600' : 'text-emerald-700'}`}>{p.progress}%</span>
-                            </>
-                        )}
                     </>
                 )}
                 {p.state === 'porLlegar' && (
@@ -108,9 +100,26 @@ function PersonCard({ p }) {
     );
 }
 
+
+// Chevron del acordeón (rota al abrir)
+function Chevron({ open }) {
+    return (
+        <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round'
+            className={`w-3.5 h-3.5 shrink-0 text-gray-700 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+            <polyline points='6 9 12 15 18 9'></polyline>
+        </svg>
+    );
+}
+
+
+
 export default function OperationsToday({ now }) {
 
     const [roster, setRoster] = useState(null);      // null = cargando
+    // Acordeones de turno abiertos: { `${dept}|${shift}` → true }. Cerrados por defecto.
+    const [openShifts, setOpenShifts] = useState({});
+
+    const toggleShift = (key) => setOpenShifts(prev => ({ ...prev, [key]: !prev[key] }));
 
     useEffect(() => {
         let alive = true;
@@ -143,16 +152,15 @@ export default function OperationsToday({ now }) {
         for (const r of roster) {
             if (!r.comes) continue;
 
+            // ¿Está dentro de su franja horaria ahora? (define el estado 'turno')
             const start = toMinutes(r.startTime);
             const end = toMinutes(r.endTime);
             let inWindow = false;
-            let progress = null;
             if (minuteNow !== null && start !== null && end !== null) {
                 const span = end <= start ? (end + 1440 - start) : (end - start);
                 let elapsed = minuteNow - start;
                 if (elapsed < 0) elapsed += 1440;
                 inWindow = elapsed >= 0 && elapsed < span;
-                if (inWindow && span > 0) progress = Math.round((elapsed / span) * 100);
             }
 
             let state;
@@ -167,7 +175,6 @@ export default function OperationsToday({ now }) {
             people.push({
                 ...r,
                 state,
-                progress: state === 'turno' ? progress : null,
                 fullName: `${r.name} ${r.surName}`.trim(),
                 checkInLabel: fmtHour(r.checkIn),
                 checkOutLabel: fmtHour(r.checkOut),
@@ -213,10 +220,10 @@ export default function OperationsToday({ now }) {
             <div className='shrink-0 px-4 pt-2 pb-1.5 border-b border-gray-100'>
                 <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>Vienen hoy</h2>
                 <div className='flex items-center gap-1.5 pt-1 flex-wrap'>
-                    <span className='text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 tabular-nums'>{stats.enTurno} en turno</span>
-                    <span className='text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200 tabular-nums'>{stats.total} hoy</span>
+                    <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'><b className='font-black'>{stats.enTurno}</b> en turno</span>
+                    <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-gray-300 text-gray-500 tabular-nums'><b className='font-black'>{stats.total}</b> hoy</span>
                     {stats.tarde > 0 && (
-                        <span className='text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-50 text-rose-600 border border-rose-200 tabular-nums'>⏰ {stats.tarde} tarde</span>
+                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-rose-300 text-rose-600 tabular-nums'>⏰ <b className='font-black'>{stats.tarde}</b> tarde</span>
                     )}
                 </div>
             </div>
@@ -233,14 +240,50 @@ export default function OperationsToday({ now }) {
                         <h3 className='text-[10px] font-black uppercase tracking-wider text-gray-600 border-b border-gray-100 pb-1'>
                             {dept} · {shifts.Diurno.length + shifts.Nocturno.length}
                         </h3>
-                        {['Diurno', 'Nocturno'].map(shift => shifts[shift].length > 0 && (
-                            <div key={shift} className='flex flex-col gap-1.5'>
-                                <h4 className='text-[9.5px] font-bold uppercase tracking-wider text-gray-400'>
-                                    {shift === 'Nocturno' ? '🌙' : '☀️'} {shift} · {shifts[shift].length}
-                                </h4>
-                                {shifts[shift].map(p => <PersonCard key={p.userId} p={p} />)}
-                            </div>
-                        ))}
+                        {['Diurno', 'Nocturno'].map(shift => {
+                            const people = shifts[shift];
+                            if (people.length === 0) return null;
+                            const key = `${dept}|${shift}`;
+                            const open = Boolean(openShifts[key]);
+                            const enTurno = people.filter(p => p.state === 'turno').length;
+                            const tarde = people.filter(p => p.late).length;
+                            return (
+                                <div key={shift} className='rounded-lg border border-gray-100 overflow-hidden'>
+                                    {/* Cabecera-acordeón: resumen del turno + chevron */}
+                                    <button
+                                        type='button'
+                                        onClick={() => toggleShift(key)}
+                                        aria-expanded={open}
+                                        className='group w-full flex items-center gap-2 px-2.5 py-2 bg-gray-50/70 hover:bg-gray-100 transition-colors'
+                                    >
+                                        <span className='text-[11px] font-bold text-gray-600 whitespace-nowrap'>
+                                            {shift === 'Nocturno' ? '🌙' : '☀️'} {shift}
+                                        </span>
+                                        <span className='flex items-center gap-1 ml-auto'>
+                                            {enTurno > 0 && (
+                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'>
+                                                    <b className='text-[11px] font-black'>{enTurno}</b> en turno
+                                                </span>
+                                            )}
+                                            {tarde > 0 && (
+                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-rose-300 text-rose-600 tabular-nums' title='Llegaron tarde'>
+                                                    ⏰ <b className='text-[11px] font-black'>{tarde}</b>
+                                                </span>
+                                            )}
+                                            <span className='text-[11px] font-black px-1.5 py-0.5 rounded-full border border-gray-300 text-gray-700 tabular-nums min-w-[22px] text-center' title='Total del turno'>{people.length}</span>
+                                        </span>
+                                        <span className='w-5 h-5 shrink-0 flex items-center justify-center rounded-md bg-white border border-gray-400 group-hover:border-gray-500 group-hover:bg-gray-50 transition-colors'>
+                                            <Chevron open={open} />
+                                        </span>
+                                    </button>
+                                    {open && (
+                                        <div className='flex flex-col gap-1.5 p-1.5'>
+                                            {people.map(p => <PersonCard key={p.userId} p={p} />)}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 ))}
 

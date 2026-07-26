@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import useAuthOnServer from '@/hook/auth';
+import { useDayRole } from '@/contexts/dayRoleContext';
 import { setOpenWindowConfig } from '@/store/slices/configModalStore';
 import { setConfigModal } from '@/store/slices/globalModal';
 
@@ -89,6 +90,9 @@ export default function AppDock() {
     const pathname = usePathname();
     const dispatch = useDispatch();
     const { logOut, dataSessionState } = useAuthOnServer();
+    // Rol del día según el horario (encargado de turno / auxiliar): se resalta
+    // sobre el avatar (colapsado) y como chip al expandir la barra.
+    const { onDuty, auxiliary, hasDayRole, roleLabel } = useDayRole();
 
     // Notificaciones — placeholder estético (igual que en el Header)
     const [hasUnread, setHasUnread] = useState(true);
@@ -186,16 +190,34 @@ export default function AppDock() {
                         </span>
                     </button>
 
-                    {/* Usuario (avatar + nombre/rol) */}
-                    <div className={`${ROW} h-12 pointer-events-none`}>
-                        <span className={ICON_BOX}>
-                            <img src={user?.img || AVATAR_PLACEHOLDER} alt={userName || 'avatar'} className='w-8 h-8 rounded-full object-cover border-2 border-gray-200' />
+                    {/* Usuario (avatar + nombre/rol). Si el horario de hoy lo
+                        designa encargado/auxiliar, la campanita lo resalta. */}
+                    <div className={`${ROW} h-auto py-1.5 pointer-events-none`}>
+                        <span className={`${ICON_BOX} relative`}>
+                            <img src={user?.img || AVATAR_PLACEHOLDER} alt={userName || 'avatar'} className={`w-8 h-8 rounded-full object-cover border-2 ${onDuty ? 'border-blue-700' : auxiliary ? 'border-red-600' : 'border-gray-200'}`} />
+                            {hasDayRole && (
+                                <span className={`absolute -top-1 right-0.5 flex items-center justify-center w-4 h-4 rounded-full ring-2 ring-white text-white ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`} title={roleLabel}>
+                                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                                        <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                        <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                    </svg>
+                                </span>
+                            )}
                         </span>
                         <span className='min-w-0 flex-1 leading-tight opacity-0 group-hover:opacity-100 transition-opacity duration-150'>
                             <span className='block text-[12.5px] font-semibold text-gray-700 truncate'>{userName || 'Usuario'}</span>
                             <span className={`block text-[10px] font-bold uppercase tracking-wider ${user?.admin ? 'text-[#29c50c]' : 'text-gray-400'}`}>
                                 {user?.admin ? 'Administrador' : 'Usuario'}
                             </span>
+                            {roleLabel && (
+                                <span className={`inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider text-white px-1.5 py-[2px] rounded ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`}>
+                                    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5' strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                                        <path d='M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9'></path>
+                                        <path d='M10.3 21a1.94 1.94 0 0 0 3.4 0'></path>
+                                    </svg>
+                                    {roleLabel}
+                                </span>
+                            )}
                         </span>
                     </div>
 

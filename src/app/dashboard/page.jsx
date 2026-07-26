@@ -4,6 +4,7 @@ import { useSelector } from 'react-redux';
 import AlertsChart from './assets/AlertsChart';
 import LocalsOverview from './assets/LocalsOverview';
 import OperationsToday from './assets/OperationsToday';
+import ConnectedUsers from './assets/ConnectedUsers';
 import { TickerStat } from './assets/Ticker';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
 import useDayCounts from '@/hook/useDayCounts';
@@ -70,11 +71,11 @@ export default function Dashboard() {
         [schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, dayCounts],
     );
 
-    // Formato analógico 12 h sin espacio: "00:09AM" (la hora 00 = medianoche/
-    // mediodía, tal cual el visor mecánico)
+    // Formato analógico 12 h con segundos, sin espacio: "00:09:23AM" (la hora
+    // 00 = medianoche/mediodía, tal cual el visor mecánico)
     const clockLabel = now
-        ? `${String(now.getHours() % 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}${now.getHours() < 12 ? 'AM' : 'PM'}`
-        : '00:00AM';
+        ? `${String(now.getHours() % 12).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}${now.getHours() < 12 ? 'AM' : 'PM'}`
+        : '00:00:00AM';
     const dayLabel = opDate
         ? opDate.toLocaleDateString('es-VE', { weekday: 'long', day: 'numeric', month: 'long' })
         : '';
@@ -89,9 +90,21 @@ export default function Dashboard() {
 
                 {/* ── Cinta superior: contadores vivos, reloj y último evento ── */}
                 <header className='shrink-0 px-5 py-3 border-b border-gray-200 flex items-center gap-x-6 gap-y-2 flex-wrap'>
-                    <div className='leading-snug min-w-0 pr-2'>
-                        <h1 className='text-[11px] font-black uppercase tracking-[0.18em] text-gray-800 whitespace-nowrap'>Sala de control</h1>
-                        <p className='text-[11px] text-gray-500 capitalize truncate mt-0.5'>{dayLabel} · día operativo 08:00 → 07:00</p>
+                    <div className='flex items-center gap-2.5 min-w-0 pr-2'>
+                        {/* Emblema de sala de control: medidor en placa clara */}
+                        <span className='shrink-0 grid place-items-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200'>
+                            <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-[18px] h-[18px]'>
+                                <path d='m12 14 4-4' />
+                                <path d='M3.34 19a10 10 0 1 1 17.32 0' />
+                            </svg>
+                        </span>
+                        <div className='leading-tight min-w-0'>
+                            <h1 className='flex items-center gap-1.5 text-[15px] font-black tracking-tight text-slate-900 whitespace-nowrap'>
+                                Sala de control
+                                <span className='text-[8.5px] font-black uppercase tracking-[0.14em] text-emerald-600 border border-emerald-300 rounded px-1 py-[1px]'>Live</span>
+                            </h1>
+                            <p className='text-[10.5px] text-gray-500 capitalize truncate'>{dayLabel} · día operativo 08:00 → 07:00</p>
+                        </div>
                     </div>
 
                     <div className='flex items-center gap-x-5 gap-y-2 ml-auto flex-wrap justify-end'>
@@ -133,7 +146,7 @@ export default function Dashboard() {
                                     aria-pressed={centralTab === t.key}
                                     className={`px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors
                                         ${centralTab === t.key
-                                            ? 'bg-[#29c50c] text-white shadow-sm hover:bg-[#1f9a08]'
+                                            ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
                                             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
                                 >
                                     {t.label}
@@ -156,9 +169,16 @@ export default function Dashboard() {
                         </div>
                 </div>
 
-                {/* ── Riel derecho: personal que viene hoy, altura completa ── */}
-                <aside className='shrink-0 lg:w-[280px] lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col min-h-[220px] lg:min-h-0'>
-                    <OperationsToday now={now} />
+                {/* ── Riel derecho: personal (70%) + conectados App Manager (30%).
+                    Responsivo: en lg va al lado a toda altura con el split 70/30;
+                    en móvil baja debajo y cada sección apila con su alto mínimo. ── */}
+                <aside className='shrink-0 lg:w-[280px] lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col'>
+                    <div className='flex flex-col overflow-hidden min-h-[280px] lg:min-h-0 lg:h-[70%]'>
+                        <OperationsToday now={now} />
+                    </div>
+                    <div className='flex flex-col overflow-hidden min-h-[170px] lg:min-h-0 lg:h-[30%] border-t border-gray-200'>
+                        <ConnectedUsers />
+                    </div>
                 </aside>
         </main>
     );

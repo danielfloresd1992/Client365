@@ -30,6 +30,8 @@ import Favicon from '/public/favicon.ico';
 //redux
 import Providers from '../store/Providers';
 import { SessionProvider } from '@/contexts/userContext'
+import { ConnectedUsersProvider } from '@/contexts/connectedUsersContext'
+import { DayRoleProvider } from '@/contexts/dayRoleContext'
 
 
 export const metadata = {
@@ -55,14 +57,18 @@ export default function RootLayout({ children, }: Readonly<{ children: React.Rea
             <body className={`${GeistSans.className} h-[100vh] pt-2 px-[10px] pb-[40px] bg-white`}>
                 <SessionProvider>
                     <Providers>
-                        <LoandingPage title='loanding...'>
-                            <AppShell>{children}</AppShell>
-                            <Modal />
-                            <AlertLiveJarvis />
-                            <Config_window />
-                            <FixedBottomBar />
-                            <ImageViewer />
-                        </LoandingPage>
+                        <ConnectedUsersProvider>
+                        <DayRoleProvider>
+                            <LoandingPage title='loanding...'>
+                                <AppShell>{children}</AppShell>
+                                <Modal />
+                                <AlertLiveJarvis />
+                                <Config_window />
+                                <FixedBottomBar />
+                                <ImageViewer />
+                            </LoandingPage>
+                        </DayRoleProvider>
+                        </ConnectedUsersProvider>
                     </Providers>
                     <ErrorServerAlert />
                 </SessionProvider >

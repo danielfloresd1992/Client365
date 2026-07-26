@@ -37,15 +37,25 @@ export default function LocalsOverview({ groups }) {
 
             {/* Resumen por estado + leyenda de la vista */}
             <div className='shrink-0 px-4 pt-2 pb-1 flex items-center gap-2.5 flex-wrap text-[10px] font-bold'>
-                <span className='flex items-center gap-1.5 px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 tabular-nums'>
-                    <span className='relative flex h-[6px] w-[6px]'>
+                {/* Resúmenes por estado — mismo estilo contorno, número resaltado */}
+                <span className='flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-lg bg-white border-2 border-emerald-500 text-emerald-700'>
+                    <span className='relative flex h-[7px] w-[7px]'>
                         <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'></span>
-                        <span className='relative inline-flex rounded-full h-[6px] w-[6px] bg-emerald-500'></span>
+                        <span className='relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-500'></span>
                     </span>
-                    {groups.live.length} en monitoreo
+                    <b className='text-[16px] font-black tabular-nums leading-none'>{groups.live.length}</b>
+                    <span className='leading-tight'>en monitoreo<br /><span className='text-[8.5px] font-bold uppercase tracking-wider text-emerald-500'>en vivo ahora</span></span>
                 </span>
-                <span className='px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-500 border border-gray-200 tabular-nums'>⏳ {groups.upcoming.length} por abrir</span>
-                <span className='px-1.5 py-0.5 rounded-full bg-gray-50 text-gray-400 border border-gray-200 tabular-nums'>✔ {groups.done.length} cerraron</span>
+                <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-amber-400 text-amber-700'>
+                    <span aria-hidden='true'>⏳</span>
+                    <b className='text-[16px] font-black tabular-nums leading-none'>{groups.upcoming.length}</b>
+                    <span>por abrir</span>
+                </span>
+                <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-slate-300 text-slate-500'>
+                    <span aria-hidden='true'>✔</span>
+                    <b className='text-[16px] font-black tabular-nums leading-none'>{groups.done.length}</b>
+                    <span>cerraron</span>
+                </span>
 
                 <span className='flex items-center gap-1 font-semibold text-gray-500 ml-auto'>
                     <span className='w-5 h-[7px] rounded-full bg-[#29c50c]/45 inline-block' /> total
