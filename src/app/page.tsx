@@ -104,8 +104,12 @@ const faqs = [
     },
 ];
 
+// Año en que inició la empresa: los "años de experiencia" se calculan solos
+// contra el año actual (2017 → hoy), sin tener que actualizarlos a mano.
+const FOUNDING_YEAR = 2017;
+
 const companyStats = [
-    { value: 5, suffix: '+', label: 'Años de experiencia' },
+    { value: new Date().getFullYear() - FOUNDING_YEAR, suffix: '+', label: 'Años de experiencia' },
     { value: 50, suffix: '+', label: 'Empresas atendidas' },
     { value: 200, suffix: '+', label: 'Sedes monitoreadas' },
     { value: 99, suffix: '%', label: 'Disponibilidad' },

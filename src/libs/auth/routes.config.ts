@@ -22,7 +22,7 @@ export const ADMIN_ROUTES: string[] = [
 
 
 // Rutas que son el destino después del login
-export const DEFAULT_AUTHENTICATED_ROUTE = '/Lobby';
+export const DEFAULT_AUTHENTICATED_ROUTE = '/dashboard';
 
 // Rutas desde las que se redirige si el usuario ya está autenticado
 export const LOGIN_ROUTES = ['/', '/auth'];

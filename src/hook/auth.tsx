@@ -53,9 +53,11 @@ export default function useAuthOnServer(): ReturFunc {
 
 
 
-    const logOut = (): void => {
+    const logOut = (redirectTo: string = '/'): void => {
         closeSession(error => {
-            if (error) throw console.log(error);
+            // Aunque el backend falle, se cierra la sesión en el cliente y se
+            // navega igual (la comprobación en la ruta pública reevalúa).
+            if (error) console.log(error);
 
             const setDataResult: SessionState = {
                 stateSession: 'unauthenticated',
@@ -67,6 +69,11 @@ export default function useAuthOnServer(): ReturFunc {
                 }
             }
             setState(setDataResult);
+
+            // Recarga COMPLETA a la ruta pública: limpia todo el estado en
+            // memoria (Redux, contextos y los refs del LoadingGuard) y evita
+            // quedar atascado en el loader tras cerrar sesión.
+            if (typeof window !== 'undefined') window.location.href = redirectTo;
         });
     };
 
