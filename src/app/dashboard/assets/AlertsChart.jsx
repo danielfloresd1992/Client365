@@ -1,0 +1,145 @@
+'use client';
+import { useMemo } from 'react';
+import dynamic from 'next/dynamic';
+
+// ApexCharts usa `window`: se carga solo en el cliente
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
+
+/*
+ * Gráfica "Alertas por local — hoy" del panel analítico (ApexCharts).
+ *
+ * Barras HORIZONTALES por local (top por total del día), con dos barras por
+ * fila gracias a los grupos de series:
+ *   · grupo "dia":   ✓ aprobadas + ✗ rechazadas + ◌ ignoradas (apiladas = total)
+ *   · grupo "envio": ➤ enviadas al grupo (barra propia, para comparar)
+ *
+ * Con degradado del verde de marca, total al final de la pila y animación
+ * dinámica: cuando el conteo cambia por socket, la barra CRECE en vez de
+ * saltar. Recibe los datos del padre (dayCounts + clients del store).
+ */
+
+const COLOR_APROBADAS = '#29c50c';
+const COLOR_RECHAZADAS = '#fb7185';
+const COLOR_IGNORADAS = '#cbd5e1';
+const COLOR_ENVIADAS = '#f59e0b';
+
+export default function AlertsChart({ dayCounts, clients }) {
+
+    const chartData = useMemo(() => {
+        if (!dayCounts?.byId || !Array.isArray(clients)) return null;
+        const nameById = new Map(clients.map(c => [String(c._id), c.name]));
+        const rows = Object.entries(dayCounts.byId)
+            .map(([id, c]) => ({
+                id,
+                name: nameById.get(id) ?? c.name ?? id,
+                positivas: c.positivas ?? 0,
+                negativas: c.negativas ?? 0,
+                ignoradas: c.ignoradas ?? 0,
+                enviadas: c.enviadas ?? 0,
+                total: c.total ?? 0,
+            }))
+            .filter(l => l.total > 0)
+            .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'es'));
+        if (rows.length === 0) return null;
+        return {
+            names: rows.map(l => l.name.length > 20 ? `${l.name.slice(0, 19)}…` : l.name),
+            positivas: rows.map(l => l.positivas),
+            negativas: rows.map(l => l.negativas),
+            ignoradas: rows.map(l => l.ignoradas),
+            enviadas: rows.map(l => l.enviadas),
+            count: rows.length,
+        };
+    }, [dayCounts, clients]);
+
+    const series = useMemo(() => chartData ? [
+        { name: '✓ Aprobadas', group: 'dia', data: chartData.positivas },
+        { name: '✗ Rechazadas', group: 'dia', data: chartData.negativas },
+        { name: '◌ Ignoradas', group: 'dia', data: chartData.ignoradas },
+        { name: '➤ Enviadas al grupo', group: 'envio', data: chartData.enviadas },
+    ] : [], [chartData]);
+
+    const options = useMemo(() => chartData ? ({
+        chart: {
+            type: 'bar',
+            stacked: true,
+            toolbar: { show: false },
+            fontFamily: 'inherit',
+            parentHeightOffset: 0,
+            redrawOnParentResize: true,
+            animations: {
+                enabled: true,
+                speed: 650,
+                dynamicAnimation: { enabled: true, speed: 420 },
+            },
+        },
+        plotOptions: {
+            bar: {
+                horizontal: true,
+                barHeight: '72%',
+                borderRadius: 4,
+                borderRadiusApplication: 'end',
+                borderRadiusWhenStacked: 'last',
+                dataLabels: {
+                    // Total del día al final de la pila
+                    total: { enabled: true, style: { fontSize: '10px', fontWeight: 800, color: '#334155' } },
+                },
+            },
+        },
+        colors: [COLOR_APROBADAS, COLOR_RECHAZADAS, COLOR_IGNORADAS, COLOR_ENVIADAS],
+        fill: {
+            type: 'gradient',
+            gradient: { type: 'horizontal', shadeIntensity: 0.3, opacityFrom: 0.88, opacityTo: 1 },
+        },
+        dataLabels: {
+            enabled: true,
+            formatter: (v) => (v > 0 ? v : ''),
+            style: { fontSize: '9.5px', fontWeight: 700, colors: ['#fff'] },
+            dropShadow: { enabled: false },
+        },
+        xaxis: {
+            categories: chartData.names,
+            labels: { style: { fontSize: '10px', colors: '#94a3b8' } },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+        },
+        yaxis: {
+            labels: { style: { fontSize: '11px', fontWeight: 600, colors: '#475569' }, maxWidth: 160 },
+        },
+        legend: {
+            position: 'top',
+            horizontalAlign: 'right',
+            fontSize: '11px',
+            fontWeight: 600,
+            markers: { size: 5, shape: 'circle' },
+            itemMargin: { horizontal: 6 },
+        },
+        grid: {
+            borderColor: '#f1f5f9',
+            strokeDashArray: 3,
+            xaxis: { lines: { show: true } },
+            yaxis: { lines: { show: false } },
+            padding: { top: -8 },
+        },
+        tooltip: { shared: true, intersect: false, style: { fontSize: '11px' } },
+    }) : null, [chartData]);
+
+    return (
+        <section className='shrink-0 border-b border-gray-200 px-2 pt-1' aria-label='Alertas por local hoy'>
+            <h2 className='px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-400'>
+                Alertas por local — hoy {chartData && <span className='text-gray-300'>· {chartData.count} locales con alertas</span>}
+            </h2>
+            {chartData ? (
+                <ReactApexChart
+                    type='bar'
+                    height={Math.max(170, 80 + chartData.count * 38)}
+                    options={options}
+                    series={series}
+                />
+            ) : (
+                <p className='px-2 py-8 text-center text-xs text-gray-400'>
+                    {dayCounts ? 'Aún no hay alertas registradas hoy.' : 'Cargando conteos del día…'}
+                </p>
+            )}
+        </section>
+    );
+}

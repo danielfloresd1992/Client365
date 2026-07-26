@@ -8113,3 +8113,37 @@ tfoot {
 .skeleton-pulse {
     animation: skeletonPulse 1.2s ease-in-out infinite;
 }
+
+/* ══════════════════════════════════════════════════════════════════════
+   ApexCharts (panel analítico) — la leyenda SIEMPRE en fila horizontal.
+   Los estilos que inyecta la librería chocan con los globales de la app
+   y los ítems quedaban apilados en vertical.
+   ══════════════════════════════════════════════════════════════════════ */
+.apexcharts-legend,
+.apexcharts-legend.apexcharts-legend-group-horizontal {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px 12px;
+}
+
+/* Con series agrupadas (apilado + agrupado) la librería crea un contenedor
+   por grupo y los apila en columna; aquí también se aplanan a UNA fila. */
+.apexcharts-legend .apexcharts-legend-group,
+.apexcharts-legend .apexcharts-legend-group-vertical {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 12px;
+}
+
+.apexcharts-legend .apexcharts-legend-series {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center;
+    gap: 4px;
+    margin: 0 !important;
+}

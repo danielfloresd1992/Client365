@@ -157,4 +157,20 @@ export const setAuxiliaryRole = async (payload) => {
 }
 
 
+/**
+ * Ficha del personal de HOY: jornada efectiva de cada usuario (override por
+ * fecha > regla semanal > defecto), marcaje y roles del día.
+ * @returns {{ date: string, dayNumber: number, roster: Array }}
+ */
+export const getTodayRoster = async () => {
+    try {
+        const response = await axiosInstance.get('/user/roster/today');
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
 
