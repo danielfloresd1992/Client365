@@ -11,16 +11,29 @@ import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
  *   · su horario de hoy (chips de franjas + estado con contexto).
  *
  * El estado de monitoreo se identifica POR FILA sin romper el orden:
- *   · en monitoreo ahora → punto verde pulsante + fondo esmeralda suave
+ *   · en monitoreo ahora → punto pulsante POR TIPO (verde=analítico,
+ *     azul=perimetral; ambos si los dos están en ventana) + fondo suave
+ *     esmeralda (analítico) o celeste (solo perimetral)
  *   · por abrir          → "abre HH:MM · en X min" en gris
  *   · ya cerró           → fila atenuada, "cerró a las HH:MM"
  *   · señalado por silencio → fila roja con ⚠
- * Arriba, el resumen de cuántos hay en cada estado.
- * Recibe `groups` (scheduleGroups del padre).
+ * Arriba, el resumen de cuántos hay en cada estado con el desglose
+ * analítico/perimetral. Recibe `groups` (scheduleGroups del padre; cada
+ * entrada trae liveTypes con los tipos en ventana AHORA).
  */
 
 // En empate de alertas: primero los que están en monitoreo, luego por abrir
 const STATE_RANK = { live: 0, upcoming: 1, done: 2 };
+
+// Punto de estado en vivo, coloreado por tipo de monitoreo
+function LiveDot({ ping, bg }) {
+    return (
+        <span className='relative flex h-[6px] w-[6px] shrink-0'>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${ping} opacity-75`}></span>
+            <span className={`relative inline-flex rounded-full h-[6px] w-[6px] ${bg}`}></span>
+        </span>
+    );
+}
 
 export default function LocalsOverview({ groups }) {
 
@@ -31,6 +44,10 @@ export default function LocalsOverview({ groups }) {
             || a.name.localeCompare(b.name, 'es')
         );
     const maxTotal = Math.max(1, ...all.map(l => l.counts?.total ?? 0));
+
+    // Desglose de los EN VIVO por tipo (un local puede estar en ambos)
+    const liveAnalytical = groups.live.filter(l => (l.liveTypes ?? []).includes('analytical')).length;
+    const livePerimeter = groups.live.filter(l => (l.liveTypes ?? []).includes('perimeter')).length;
 
     return (
         <section className='flex flex-col' aria-label='Horario y alertas de los locales de hoy'>
@@ -44,7 +61,17 @@ export default function LocalsOverview({ groups }) {
                         <span className='relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-500'></span>
                     </span>
                     <b className='text-[16px] font-black tabular-nums leading-none'>{groups.live.length}</b>
-                    <span className='leading-tight'>en monitoreo<br /><span className='text-[8.5px] font-bold uppercase tracking-wider text-emerald-500'>en vivo ahora</span></span>
+                    <span className='leading-tight'>en monitoreo<br />
+                        {(liveAnalytical > 0 || livePerimeter > 0) ? (
+                            <span className='text-[8.5px] font-bold uppercase tracking-wider tabular-nums'>
+                                {liveAnalytical > 0 && <span className='text-emerald-500'>● {liveAnalytical} analítico</span>}
+                                {liveAnalytical > 0 && livePerimeter > 0 && <span className='text-gray-300'> · </span>}
+                                {livePerimeter > 0 && <span className='text-sky-500'>● {livePerimeter} perimetral</span>}
+                            </span>
+                        ) : (
+                            <span className='text-[8.5px] font-bold uppercase tracking-wider text-emerald-500'>en vivo ahora</span>
+                        )}
+                    </span>
                 </span>
                 <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-amber-400 text-amber-700'>
                     <span aria-hidden='true'>⏳</span>
@@ -70,19 +97,28 @@ export default function LocalsOverview({ groups }) {
                 // Fuera de monitoreo (por abrir o cerrado): toda la fila en
                 // gris claro — el color queda reservado para los EN VIVO.
                 const dim = l.state !== 'live' && !l.silent;
+                // Tipo(s) en ventana AHORA: definen el color del punto y del fondo
+                const liveA = l.state === 'live' && (l.liveTypes ?? []).includes('analytical');
+                const liveP = l.state === 'live' && (l.liveTypes ?? []).includes('perimeter');
                 return (
                     <div key={l.id}
                         className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_4.8rem]
-                            ${l.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse' : l.state === 'live' ? 'bg-emerald-50/40' : 'bg-gray-50'}`}>
+                            ${l.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
+                                : l.state === 'live'
+                                    ? (liveP && !liveA ? 'bg-sky-50/40' : 'bg-emerald-50/40')
+                                    : 'bg-gray-50'}`}>
 
-                        {/* Nombre + identificador de estado en vivo */}
+                        {/* Nombre + identificador de estado en vivo (un punto POR TIPO:
+                            verde=analítico, azul=perimetral; ambos si coinciden) */}
                         <span className={`flex items-center gap-1.5 min-w-0 text-[11.5px] font-semibold ${l.silent ? 'text-red-600' : dim ? 'text-gray-400' : 'text-gray-700'}`}
-                            title={l.silent ? `${l.name} — sin actualización de alerta en el grupo` : l.name}>
+                            title={l.silent ? `${l.name} — sin actualización de alerta en el grupo`
+                                : l.state === 'live' ? `${l.name} — en monitoreo ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ')}`
+                                    : l.name}>
                             {l.state === 'live' ? (
-                                <span className='relative flex h-[6px] w-[6px] shrink-0'>
-                                    <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'></span>
-                                    <span className='relative inline-flex rounded-full h-[6px] w-[6px] bg-emerald-500'></span>
-                                </span>
+                                <>
+                                    {(liveA || !liveP) && <LiveDot ping='bg-emerald-400' bg='bg-emerald-500' />}
+                                    {liveP && <LiveDot ping='bg-sky-400' bg='bg-sky-500' />}
+                                </>
                             ) : (
                                 <span className={`shrink-0 h-[6px] w-[6px] rounded-full ${l.state === 'upcoming' ? 'bg-gray-300' : 'bg-gray-200'}`} />
                             )}
@@ -94,16 +130,19 @@ export default function LocalsOverview({ groups }) {
                         <span className='flex items-center flex-wrap gap-1 min-w-0'>
                             {l.ranges.map((r, i) => (
                                 <span key={i}
+                                    title={r.type === 'perimeter' ? 'Franja perimetral' : 'Franja analítica'}
                                     className={`text-[9.5px] font-semibold tabular-nums px-1.5 py-[1px] rounded-full border whitespace-nowrap
                                         ${dim ? 'bg-gray-50 text-gray-400 border-gray-200'
                                             : r.type === 'perimeter'
-                                                ? 'bg-slate-100 text-slate-600 border-slate-200'
+                                                ? 'bg-sky-50 text-sky-700 border-sky-200'
                                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
                                     {r.label}
                                 </span>
                             ))}
-                            <span className={`text-[9.5px] font-bold whitespace-nowrap ${l.state === 'live' ? 'text-emerald-600' : l.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {l.state === 'live' ? `● ${l.stateLabel}` : l.stateLabel}
+                            <span className={`text-[9.5px] font-bold whitespace-nowrap ${l.state === 'live' ? (liveP && !liveA ? 'text-sky-600' : 'text-emerald-600') : l.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
+                                {l.state === 'live'
+                                    ? `● ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ') || 'en vivo'} · ${l.stateLabel}`
+                                    : l.stateLabel}
                             </span>
                             {l.silent && (
                                 <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>⚠ sin actualización de alerta en el grupo</span>

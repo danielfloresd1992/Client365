@@ -19,10 +19,11 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
  *
  * MONITOREO EN VIVO: recibe además liveByLocal/silentByLocal (los mantiene
  * useMonitoringLive en el padre con 'monitoring-start'/'monitoring-end'/
- * 'monitoring-silence(-clear)') y decora cada fila: etiqueta verde ● si su
- * monitoreo analítico está en ventana, azul ● si es perimetral, roja ⚠ si el
- * corte de silencio lo señaló sin reportar. En la cabecera, chips con el
- * total en monitoreo y sin reportar. Todo se actualiza al llegar el evento.
+ * 'monitoring-silence(-clear)') y decora cada fila POR TIPO: etiqueta verde
+ * ● si su monitoreo ANALÍTICO está en ventana, azul ◆ si es PERIMETRAL,
+ * roja ⚠ si el corte de silencio lo señaló sin reportar. En la cabecera,
+ * chips con el desglose analítico/perimetral y los sin reportar. Todo se
+ * actualiza al llegar el evento.
  */
 
 const COLOR_APROBADAS = '#29c50c';
@@ -67,7 +68,8 @@ export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByL
         return {
             names: rows.map(l => {
                 const short = l.name.length > 20 ? `${l.name.slice(0, 19)}…` : l.name;
-                return l.isSilent ? `⚠ ${short}` : (l.inAnalytical || l.inPerimeter) ? `● ${short}` : short;
+                // Glifo por tipo (además del color): ● analítico · ◆ perimetral
+                return l.isSilent ? `⚠ ${short}` : l.inAnalytical ? `● ${short}` : l.inPerimeter ? `◆ ${short}` : short;
             }),
             labelColors: rows.map(l =>
                 l.isSilent ? LABEL_SILENT
@@ -156,9 +158,11 @@ export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByL
         tooltip: { shared: true, intersect: false, style: { fontSize: '11px' } },
     }) : null, [chartData]);
 
-    // Totales globales del monitoreo (no solo de los locales graficados):
-    // cuántos están en ventana ahora y cuántos señaló el corte de silencio
-    const enMonitoreo = Object.values(liveByLocal ?? {}).filter(t => (t ?? []).length > 0).length;
+    // Totales globales del monitoreo (no solo de los locales graficados),
+    // desglosados POR TIPO — un local puede estar en ambos a la vez — y los
+    // señalados por el corte de silencio
+    const enAnalitico = Object.values(liveByLocal ?? {}).filter(t => (t ?? []).includes('analytical')).length;
+    const enPerimetral = Object.values(liveByLocal ?? {}).filter(t => (t ?? []).includes('perimeter')).length;
     const sinReportar = Object.keys(silentByLocal ?? {}).length;
 
     return (
@@ -167,10 +171,15 @@ export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByL
                 <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
                     Alertas por local — hoy {chartData && <span className='text-gray-300'>· {chartData.count} locales con alertas</span>}
                 </h2>
-                <span className='flex items-center gap-1.5'>
-                    {enMonitoreo > 0 && (
-                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums' title='Establecimientos con monitoreo en ventana ahora'>
-                            ● <b className='font-black'>{enMonitoreo}</b> en monitoreo
+                <span className='flex items-center gap-1.5 flex-wrap'>
+                    {enAnalitico > 0 && (
+                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums' title='Establecimientos con monitoreo ANALÍTICO en ventana ahora'>
+                            ● <b className='font-black'>{enAnalitico}</b> analítico
+                        </span>
+                    )}
+                    {enPerimetral > 0 && (
+                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-sky-300 text-sky-700 tabular-nums' title='Establecimientos con monitoreo PERIMETRAL en ventana ahora'>
+                            ◆ <b className='font-black'>{enPerimetral}</b> perimetral
                         </span>
                     )}
                     {sinReportar > 0 && (

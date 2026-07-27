@@ -8,8 +8,9 @@ import { AXIS_START, toMinutes, fmtAxisMinute, fmtInMinutes } from '@/libs/time/
  *   { live: [...], upcoming: [...], done: [...] }
  *
  * Cada entrada: { id, name, state, stateLabel, ranges: [{label, type,
- * sAxis, eAxis}], silent, counts, sortKey }. Sin efectos ni fetching: todo
- * llega por parámetros, así es testeable y reutilizable.
+ * sAxis, eAxis}], liveTypes: ['analytical'|'perimeter'], silent, counts,
+ * sortKey }. Sin efectos ni fetching: todo llega por parámetros, así es
+ * testeable y reutilizable.
  */
 
 export function buildScheduleGroups({
@@ -60,6 +61,16 @@ export function buildScheduleGroups({
 
         // Estado: el watcher manda (punto en vivo); el horario da el contexto
         const watcherLive = (liveByLocal?.[id] ?? []).length > 0;
+
+        // Tipos EN VIVO ahora ('analytical' | 'perimeter'): unión de lo que
+        // dice el watcher y de los rangos del horario que cubren este minuto
+        // (si un evento de socket se perdió, el horario sigue pintando bien).
+        const liveTypes = new Set(liveByLocal?.[id] ?? []);
+        if (minuteNowAxis !== null) {
+            for (const r of todays) {
+                if (minuteNowAxis >= r.sAxis && minuteNowAxis < r.eAxis) liveTypes.add(r.type);
+            }
+        }
         let state = 'done';
         let stateLabel = '';
         if (minuteNowAxis !== null) {
@@ -82,6 +93,7 @@ export function buildScheduleGroups({
         groups[state].push({
             id, name, state, stateLabel,
             ranges: todays,
+            liveTypes: [...liveTypes],
             silent: Boolean(silentByLocal?.[id])
                 && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical')),
             counts: dayCounts?.byId?.[id] ?? null,
