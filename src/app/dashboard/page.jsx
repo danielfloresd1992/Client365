@@ -164,7 +164,7 @@ export default function Dashboard() {
                         {/* Panorama unificado: horario + barra comparativa
                             de alertas por local (assets/LocalsOverview) */}
                         {centralTab === 'panorama' && (
-                        <LocalsOverview groups={scheduleGroups} />
+                        <LocalsOverview groups={scheduleGroups} now={now} />
                         )}
                         </div>
                 </div>

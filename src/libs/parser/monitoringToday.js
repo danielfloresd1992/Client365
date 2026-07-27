@@ -8,9 +8,9 @@ import { AXIS_START, toMinutes, fmtAxisMinute, fmtInMinutes } from '@/libs/time/
  *   { live: [...], upcoming: [...], done: [...] }
  *
  * Cada entrada: { id, name, state, stateLabel, ranges: [{label, type,
- * sAxis, eAxis}], liveTypes: ['analytical'|'perimeter'], silent, counts,
- * sortKey }. Sin efectos ni fetching: todo llega por parámetros, así es
- * testeable y reutilizable.
+ * sAxis, eAxis}], liveTypes: ['analytical'|'perimeter'], silent, silentSince,
+ * counts, sortKey }. Sin efectos ni fetching: todo llega por parámetros, así
+ * es testeable y reutilizable.
  */
 
 export function buildScheduleGroups({
@@ -90,12 +90,18 @@ export function buildScheduleGroups({
             }
         }
 
+        const silentInfo = silentByLocal?.[id];
+        const isSilent = Boolean(silentInfo)
+            && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical'));
+
         groups[state].push({
             id, name, state, stateLabel,
             ranges: todays,
             liveTypes: [...liveTypes],
-            silent: Boolean(silentByLocal?.[id])
-                && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical')),
+            silent: isSilent,
+            // Último envío al grupo (ISO) para mostrar "sin actualización hace X".
+            // silentByLocal[id] es { lastSentAt }; solo tiene sentido si está silencioso.
+            silentSince: isSilent ? (silentInfo?.lastSentAt ?? null) : null,
             counts: dayCounts?.byId?.[id] ?? null,
             sortKey: state === 'live'
                 ? Math.min(...todays.filter(r => minuteNowAxis >= r.sAxis && minuteNowAxis < r.eAxis).map(r => r.eAxis), Infinity)

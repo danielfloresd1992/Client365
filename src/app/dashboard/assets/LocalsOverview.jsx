@@ -1,5 +1,6 @@
 'use client';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
+import { formatSince } from '@/libs/time/operationalDay';
 
 /*
  * Panorama "Horario + alertas" del panel analítico: LA VISTA UNIFICADA.
@@ -35,7 +36,7 @@ function LiveDot({ ping, bg }) {
     );
 }
 
-export default function LocalsOverview({ groups }) {
+export default function LocalsOverview({ groups, now }) {
 
     const all = [...groups.live, ...groups.upcoming, ...groups.done]
         .sort((a, b) =>
@@ -145,7 +146,9 @@ export default function LocalsOverview({ groups }) {
                                     : l.stateLabel}
                             </span>
                             {l.silent && (
-                                <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>⚠ sin actualización de alerta en el grupo</span>
+                                <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>
+                                    ⚠ sin actualización al grupo{l.silentSince ? ` · ${formatSince(l.silentSince, now)}` : ' · sin envíos hoy'}
+                                </span>
                             )}
                         </span>
 

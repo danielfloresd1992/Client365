@@ -53,3 +53,18 @@ export const minuteOnAxis = (now) => {
     const m = now.getHours() * 60 + now.getMinutes();
     return m < AXIS_START ? m + 1440 : m;
 };
+
+// Tiempo transcurrido desde `fromIso` hasta `now`, en texto corto en español:
+// "hace un momento" · "hace 45 min" · "hace 3 h" · "hace 3 h 20 min". Devuelve
+// null si no hay fecha. Se usa para "tiempo sin actualización al grupo".
+export const formatSince = (fromIso, now = new Date()) => {
+    if (!fromIso) return null;
+    const from = new Date(fromIso);
+    if (Number.isNaN(from.getTime())) return null;
+    const mins = Math.floor((now.getTime() - from.getTime()) / 60000);
+    if (mins < 1) return 'hace un momento';
+    if (mins < 60) return `hace ${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `hace ${h} h ${m} min` : `hace ${h} h`;
+};

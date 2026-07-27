@@ -9,6 +9,7 @@ import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import socket from '@/libs/socket/socketIo';
 import useMonitoringLive from '@/hook/useMonitoringLive';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
+import { formatSince } from '@/libs/time/operationalDay';
 
 
 
@@ -151,7 +152,8 @@ export default function AlertInputLive({ openAside }) {
                                     const inWindow = inAnalytical || inPerimeter;
                                     // Aviso de silencio SOLO con el monitoreo analítico en ventana:
                                     // fuera de su rango del día no hay nada que reclamarle al local.
-                                    const isSilent = Boolean(silentByLocal[restaurant._id]) && inAnalytical;
+                                    const silentInfo = silentByLocal[restaurant._id];
+                                    const isSilent = Boolean(silentInfo) && inAnalytical;
                                     return (
                                         <div key={restaurant._id} className={`w-full flex items-center justify-between rounded-[6px] px-[.25rem] py-[.15rem] transition-colors ${isSilent ? 'bg-red-50 ring-1 ring-red-300 animate-pulse' : inAnalytical ? 'bg-emerald-50/60' : inPerimeter ? 'bg-sky-50/60' : ''}`}>
                                             <div className='flex justify-center items-center gap-[.5rem] min-w-0'>
@@ -161,7 +163,7 @@ export default function AlertInputLive({ openAside }) {
                                                 <div className='flex flex-col min-w-0 leading-tight'>
                                                     <label className={`text-[0.8rem] cursor-pointer truncate ${isSilent ? 'text-red-600 font-semibold' : inWindow ? 'text-slate-800 font-medium' : 'text-slate-500 font-normal'}`} htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
                                                     {isSilent && (
-                                                        <span className='text-[0.6rem] text-red-600 font-bold'>⚠ Local sin actualización de alerta en el grupo</span>
+                                                        <span className='text-[0.6rem] text-red-600 font-bold'>⚠ Sin actualización al grupo{silentInfo?.lastSentAt ? ` · ${formatSince(silentInfo.lastSentAt)}` : ' · sin envíos hoy'}</span>
                                                     )}
                                                 </div>
                                                 <MonitoringBadge types={monitorTypes} />

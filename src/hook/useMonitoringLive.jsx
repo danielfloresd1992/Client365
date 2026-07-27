@@ -7,7 +7,8 @@ import { getMonitoringStatus } from '@/libs/ajaxClient/monitoring.fecth';
  * Estado del monitoreo EN VIVO por establecimiento:
  *   · liveByLocal   { idLocal → [tipos activos] } — sembrado de
  *     /monitoring/status y mantenido por 'monitoring-start'/'monitoring-end'
- *   · silentByLocal { idLocal → true } — señalados por el corte de silencio;
+ *   · silentByLocal { idLocal → { lastSentAt } } — señalados por el corte de
+ *     silencio (objeto truthy; lastSentAt = último envío al grupo, o null);
  *     cada 'monitoring-silence' REEMPLAZA la lista (una vacía limpia todo),
  *     'monitoring-silence-clear' apaga un local al instante cuando envía, y
  *     el FIN del monitoreo analítico de un local también lo apaga (fuera de
@@ -42,7 +43,10 @@ export default function useMonitoringLive() {
                     const silent = {};
                     docs.forEach(doc => {
                         map[doc.idLocal] = doc.activeTypes ?? [];
-                        if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = true;
+                        // silentByLocal[id] = { lastSentAt } — objeto truthy: los
+                        // Boolean(silentByLocal[id]) existentes siguen valiendo, y
+                        // el front puede leer cuándo fue el último envío al grupo.
+                        if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = { lastSentAt: doc.noveltyCheck?.lastSentAt ?? null };
                     });
                     setLiveByLocal(map);
                     setSilentByLocal(silent);
@@ -80,7 +84,7 @@ export default function useMonitoringLive() {
 
         const handleSilence = (msm) => {
             const silent = {};
-            (msm?.flagged ?? []).forEach(f => { silent[f.idLocal] = true; });
+            (msm?.flagged ?? []).forEach(f => { silent[f.idLocal] = { lastSentAt: f.lastSentAt ?? null }; });
             setSilentByLocal(silent);
         };
 
