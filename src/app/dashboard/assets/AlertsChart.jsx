@@ -16,6 +16,13 @@ const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false })
  * Con degradado del verde de marca, total al final de la pila y animación
  * dinámica: cuando el conteo cambia por socket, la barra CRECE en vez de
  * saltar. Recibe los datos del padre (dayCounts + clients del store).
+ *
+ * MONITOREO EN VIVO: recibe además liveByLocal/silentByLocal (los mantiene
+ * useMonitoringLive en el padre con 'monitoring-start'/'monitoring-end'/
+ * 'monitoring-silence(-clear)') y decora cada fila: etiqueta verde ● si su
+ * monitoreo analítico está en ventana, azul ● si es perimetral, roja ⚠ si el
+ * corte de silencio lo señaló sin reportar. En la cabecera, chips con el
+ * total en monitoreo y sin reportar. Todo se actualiza al llegar el evento.
  */
 
 const COLOR_APROBADAS = '#29c50c';
@@ -23,33 +30,57 @@ const COLOR_RECHAZADAS = '#fb7185';
 const COLOR_IGNORADAS = '#cbd5e1';
 const COLOR_ENVIADAS = '#f59e0b';
 
-export default function AlertsChart({ dayCounts, clients }) {
+// Colores de la etiqueta del local según su estado de monitoreo AHORA
+const LABEL_SILENT = '#dc2626';      // ⚠ señalado sin reportar (red-600)
+const LABEL_ANALYTICAL = '#047857';  // ● analítico en ventana (emerald-700)
+const LABEL_PERIMETER = '#0369a1';   // ● perimetral en ventana (sky-700)
+const LABEL_OUT = '#475569';         // fuera de horario (slate-600)
+
+export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByLocal }) {
 
     const chartData = useMemo(() => {
         if (!dayCounts?.byId || !Array.isArray(clients)) return null;
         const nameById = new Map(clients.map(c => [String(c._id), c.name]));
         const rows = Object.entries(dayCounts.byId)
-            .map(([id, c]) => ({
-                id,
-                name: nameById.get(id) ?? c.name ?? id,
-                positivas: c.positivas ?? 0,
-                negativas: c.negativas ?? 0,
-                ignoradas: c.ignoradas ?? 0,
-                enviadas: c.enviadas ?? 0,
-                total: c.total ?? 0,
-            }))
+            .map(([id, c]) => {
+                // Estado de monitoreo del local en este instante (viene del hook
+                // del padre). El aviso de silencio solo aplica en ventana analítica.
+                const monitorTypes = liveByLocal?.[id] ?? [];
+                const inAnalytical = monitorTypes.includes('analytical');
+                const inPerimeter = monitorTypes.includes('perimeter');
+                return {
+                    id,
+                    name: nameById.get(id) ?? c.name ?? id,
+                    positivas: c.positivas ?? 0,
+                    negativas: c.negativas ?? 0,
+                    ignoradas: c.ignoradas ?? 0,
+                    enviadas: c.enviadas ?? 0,
+                    total: c.total ?? 0,
+                    inAnalytical,
+                    inPerimeter,
+                    isSilent: Boolean(silentByLocal?.[id]) && inAnalytical,
+                };
+            })
             .filter(l => l.total > 0)
             .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, 'es'));
         if (rows.length === 0) return null;
         return {
-            names: rows.map(l => l.name.length > 20 ? `${l.name.slice(0, 19)}…` : l.name),
+            names: rows.map(l => {
+                const short = l.name.length > 20 ? `${l.name.slice(0, 19)}…` : l.name;
+                return l.isSilent ? `⚠ ${short}` : (l.inAnalytical || l.inPerimeter) ? `● ${short}` : short;
+            }),
+            labelColors: rows.map(l =>
+                l.isSilent ? LABEL_SILENT
+                    : l.inAnalytical ? LABEL_ANALYTICAL
+                        : l.inPerimeter ? LABEL_PERIMETER
+                            : LABEL_OUT),
             positivas: rows.map(l => l.positivas),
             negativas: rows.map(l => l.negativas),
             ignoradas: rows.map(l => l.ignoradas),
             enviadas: rows.map(l => l.enviadas),
             count: rows.length,
         };
-    }, [dayCounts, clients]);
+    }, [dayCounts, clients, liveByLocal, silentByLocal]);
 
     const series = useMemo(() => chartData ? [
         { name: '✓ Aprobadas', group: 'dia', data: chartData.positivas },
@@ -103,7 +134,9 @@ export default function AlertsChart({ dayCounts, clients }) {
             axisTicks: { show: false },
         },
         yaxis: {
-            labels: { style: { fontSize: '11px', fontWeight: 600, colors: '#475569' }, maxWidth: 160 },
+            // Un color por local según su monitoreo: rojo=sin reportar,
+            // verde=analítico, azul=perimetral, gris=fuera de horario
+            labels: { style: { fontSize: '11px', fontWeight: 600, colors: chartData.labelColors }, maxWidth: 160 },
         },
         legend: {
             position: 'top',
@@ -123,11 +156,30 @@ export default function AlertsChart({ dayCounts, clients }) {
         tooltip: { shared: true, intersect: false, style: { fontSize: '11px' } },
     }) : null, [chartData]);
 
+    // Totales globales del monitoreo (no solo de los locales graficados):
+    // cuántos están en ventana ahora y cuántos señaló el corte de silencio
+    const enMonitoreo = Object.values(liveByLocal ?? {}).filter(t => (t ?? []).length > 0).length;
+    const sinReportar = Object.keys(silentByLocal ?? {}).length;
+
     return (
         <section className='shrink-0 border-b border-gray-200 px-2 pt-1' aria-label='Alertas por local hoy'>
-            <h2 className='px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-400'>
-                Alertas por local — hoy {chartData && <span className='text-gray-300'>· {chartData.count} locales con alertas</span>}
-            </h2>
+            <div className='flex items-center justify-between gap-2 px-2 pt-1 flex-wrap'>
+                <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
+                    Alertas por local — hoy {chartData && <span className='text-gray-300'>· {chartData.count} locales con alertas</span>}
+                </h2>
+                <span className='flex items-center gap-1.5'>
+                    {enMonitoreo > 0 && (
+                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums' title='Establecimientos con monitoreo en ventana ahora'>
+                            ● <b className='font-black'>{enMonitoreo}</b> en monitoreo
+                        </span>
+                    )}
+                    {sinReportar > 0 && (
+                        <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-red-300 text-red-600 tabular-nums animate-pulse' title='Señalados por el corte de silencio: sin novedades validadas y enviadas en la última hora'>
+                            ⚠ <b className='font-black'>{sinReportar}</b> sin reportar
+                        </span>
+                    )}
+                </span>
+            </div>
             {chartData ? (
                 <ReactApexChart
                     type='bar'

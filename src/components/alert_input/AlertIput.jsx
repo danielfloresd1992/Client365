@@ -114,6 +114,7 @@ export default function AlertInputLive({ openAside }) {
                                 </span>
                             )}
                         </div>
+                        <MonitoringLegend />
                         {/* Encabezados de columna: misma grilla fija que los contadores de
                             cada fila, así cada etiqueta queda EXACTAMENTE sobre su columna */}
                         <div className='px-[.5rem] pb-[.35rem] flex justify-end'>
@@ -142,23 +143,28 @@ export default function AlertInputLive({ openAside }) {
                             <div className="grid gap-[.5rem] grid-cols-1">
                                 {franchiseRestaurants.map(restaurant => {
                                     if (filterAlert.isActivated && filterAlert?.clientList?.length > 0 && filterAlert?.clientList.indexOf(restaurant._id) < 0) return null;
+                                    // Monitoreo EN VIVO del local (verdad del horario): tipos activos
+                                    // ahora mismo. Diferencia analítico/perimetral y dentro/fuera de rango.
+                                    const monitorTypes = liveByLocal[restaurant._id] ?? [];
+                                    const inAnalytical = monitorTypes.includes('analytical');
+                                    const inPerimeter = monitorTypes.includes('perimeter');
+                                    const inWindow = inAnalytical || inPerimeter;
                                     // Aviso de silencio SOLO con el monitoreo analítico en ventana:
                                     // fuera de su rango del día no hay nada que reclamarle al local.
-                                    const isSilent = Boolean(silentByLocal[restaurant._id])
-                                        && (liveByLocal[restaurant._id] ?? []).includes('analytical');
+                                    const isSilent = Boolean(silentByLocal[restaurant._id]) && inAnalytical;
                                     return (
-                                        <div key={restaurant._id} className={`w-full flex items-center justify-between rounded-[6px] px-[.25rem] py-[.15rem] ${isSilent ? 'bg-red-50 ring-1 ring-red-300 animate-pulse' : ''}`}>
+                                        <div key={restaurant._id} className={`w-full flex items-center justify-between rounded-[6px] px-[.25rem] py-[.15rem] transition-colors ${isSilent ? 'bg-red-50 ring-1 ring-red-300 animate-pulse' : inAnalytical ? 'bg-emerald-50/60' : inPerimeter ? 'bg-sky-50/60' : ''}`}>
                                             <div className='flex justify-center items-center gap-[.5rem] min-w-0'>
                                                 <div className='w-[30px] h-[30px] overflow-hidden bg-[#dddddd] flex justify-center items-center'>
                                                     <img src={restaurant?.image ?? '/food-restaurant-logo-design-with-spoon-fork-and-plate-symbol-with-circle-shape-vector.jpg'} alt='ico-restaurastnr' />
                                                 </div>
                                                 <div className='flex flex-col min-w-0 leading-tight'>
-                                                    <label className={`text-[0.8rem] font-normal cursor-pointer truncate ${isSilent ? 'text-red-600 font-semibold' : 'text-[rgb(51_48_48)]'}`} htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
+                                                    <label className={`text-[0.8rem] cursor-pointer truncate ${isSilent ? 'text-red-600 font-semibold' : inWindow ? 'text-slate-800 font-medium' : 'text-slate-500 font-normal'}`} htmlFor={`input-${restaurant.name}-alert`} >{restaurant.name}</label>
                                                     {isSilent && (
                                                         <span className='text-[0.6rem] text-red-600 font-bold'>⚠ Local sin actualización de alerta en el grupo</span>
                                                     )}
                                                 </div>
-                                                <LiveDot types={liveByLocal[restaurant._id]} />
+                                                <MonitoringBadge types={monitorTypes} />
                                             </div>
 
                                             <LocalDayCounts counts={dayCounts?.byId?.[restaurant._id]} loaded={Boolean(dayCounts)} />
@@ -227,16 +233,55 @@ function Odometer({ value, className = '', color = '#f1f5f9', background = '#4b5
 
 
 /**
- * Punto pulsante cuando el local está DENTRO de su ventana de monitoreo.
- * El tooltip indica el/los tipos activos (analítico / perimetral).
+ * Metadatos por tipo de monitoreo. El color diferencia de un vistazo:
+ *   · Analítico  → verde (IA vigilando/analizando cámaras)
+ *   · Perimetral → azul  (vigilancia de perímetro)
+ * Se explican una sola vez en la leyenda del encabezado (MonitoringLegend).
  */
-function LiveDot({ types }) {
-    if (!Array.isArray(types) || types.length === 0) return null;
-    const label = types.map(t => (t === 'perimeter' ? 'perimetral' : 'analítico')).join(' + ');
+const MONITOR_TYPES = {
+    analytical: { label: 'Analítico', dot: 'bg-emerald-500', ping: 'bg-emerald-400' },
+    perimeter:  { label: 'Perimetral', dot: 'bg-sky-500', ping: 'bg-sky-400' },
+};
+const MONITOR_ORDER = ['analytical', 'perimeter'];
+
+/**
+ * Indicador de monitoreo EN VIVO del local:
+ *   · Dentro de ventana → un punto PULSANTE por tipo activo, con su color
+ *     (verde analítico / azul perimetral); el tooltip da el nombre.
+ *   · Fuera de ventana → un punto HUECO apagado ("Fuera de horario").
+ */
+function MonitoringBadge({ types }) {
+    const active = MONITOR_ORDER.filter(t => Array.isArray(types) && types.includes(t));
+    if (active.length === 0) {
+        return <span title='Fuera de horario de monitoreo' className='shrink-0 h-[9px] w-[9px] rounded-full border border-slate-300' />;
+    }
     return (
-        <span title={`Monitoreo activo: ${label}`} className='relative flex h-[8px] w-[8px] shrink-0'>
-            <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'></span>
-            <span className='relative inline-flex rounded-full h-[8px] w-[8px] bg-emerald-500'></span>
+        <span className='shrink-0 flex items-center gap-[.25rem]'>
+            {active.map(t => {
+                const m = MONITOR_TYPES[t];
+                return (
+                    <span key={t} title={`Monitoreo ${m.label.toLowerCase()} activo`} className='relative flex h-[8px] w-[8px]'>
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${m.ping} opacity-75`}></span>
+                        <span className={`relative inline-flex rounded-full h-[8px] w-[8px] ${m.dot}`}></span>
+                    </span>
+                );
+            })}
         </span>
+    );
+}
+
+/**
+ * Leyenda compacta de los indicadores de monitoreo (una sola vez, en el
+ * encabezado sticky): explica el color de cada punto para que las filas
+ * puedan quedarse en una sola línea sin etiquetas de texto.
+ */
+function MonitoringLegend() {
+    return (
+        <div className='px-[.5rem] pb-[.35rem] flex flex-wrap items-center gap-x-[.7rem] gap-y-[.15rem] text-[0.58rem] font-semibold'>
+            <span className='text-slate-400 uppercase tracking-wide'>Monitoreo</span>
+            <span className='flex items-center gap-[.25rem] text-emerald-600'><span className='h-[7px] w-[7px] rounded-full bg-emerald-500'></span>Analítico</span>
+            <span className='flex items-center gap-[.25rem] text-sky-600'><span className='h-[7px] w-[7px] rounded-full bg-sky-500'></span>Perimetral</span>
+            <span className='flex items-center gap-[.25rem] text-slate-400'><span className='h-[7px] w-[7px] rounded-full border border-slate-300'></span>Fuera de horario</span>
+        </div>
     );
 }

@@ -271,7 +271,7 @@ export default function Aside_Eyelash({ position, title, urlIco, eyelash, open, 
 
     return (
         <aside
-            className='fixed w-[400px] max-w-[90vw] z-[100] shadow-[1px_10px_20px_7px_#00000094] bg-white flex justify-center items-center transition duration-300 ease-in-out hover:scale-105'
+            className='fixed w-[450px] max-w-[90vw] z-[100] shadow-[1px_10px_20px_7px_#00000094] bg-white flex justify-center items-center transition duration-300 ease-in-out hover:scale-105'
             style={{
                 ...styleInit,
                 top: `${headerHeight}px`,

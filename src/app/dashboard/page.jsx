@@ -158,7 +158,7 @@ export default function Dashboard() {
 
                         {/* Gráfica: composición del día por local (assets/AlertsChart) */}
                         {centralTab === 'grafica' && (
-                        <AlertsChart dayCounts={dayCounts} clients={clients} />
+                        <AlertsChart dayCounts={dayCounts} clients={clients} liveByLocal={liveByLocal} silentByLocal={silentByLocal} />
                         )}
 
                         {/* Panorama unificado: horario + barra comparativa

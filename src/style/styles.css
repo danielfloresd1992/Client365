@@ -8211,3 +8211,35 @@ tfoot {
     gap: 4px;
     margin: 0 !important;
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   Consola de voz (SectionConfigVoice) — slider verde + ecualizador animado
+   ══════════════════════════════════════════════════════════════════════ */
+.voice-console .voice-range { accent-color: #29c50c; cursor: pointer; }
+/* El popup nativo del <select> hereda mal en algunos navegadores: color fijo */
+.voice-console select option { color: #1e293b; background: #ffffff; }
+
+/* Ecualizador del botón "Probar voz": barras que cobran vida al hablar */
+.voice-eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 22px; }
+.voice-eq > i {
+    display: block; width: 3px; height: 100%;
+    background: #29c50c; border-radius: 2px;
+    transform-origin: bottom; transform: scaleY(.28); opacity: .8;
+}
+.voice-eq.is-speaking > i { animation: voiceEqBar .95s ease-in-out infinite; opacity: 1; }
+.voice-eq.is-speaking > i:nth-child(1) { animation-delay: 0s;   }
+.voice-eq.is-speaking > i:nth-child(2) { animation-delay: .18s; }
+.voice-eq.is-speaking > i:nth-child(3) { animation-delay: .36s; }
+.voice-eq.is-speaking > i:nth-child(4) { animation-delay: .12s; }
+.voice-eq.is-speaking > i:nth-child(5) { animation-delay: .28s; }
+
+@keyframes voiceEqBar {
+    0%, 100% { transform: scaleY(.28); }
+    50%      { transform: scaleY(1); }
+}
+
+/* Sin movimiento para quien lo prefiere: barras estáticas de media altura */
+@media (prefers-reduced-motion: reduce) {
+    .voice-eq.is-speaking > i { animation: none; transform: scaleY(.6); }
+}

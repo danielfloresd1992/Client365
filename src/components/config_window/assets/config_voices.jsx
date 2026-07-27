@@ -1,98 +1,225 @@
 'use client';
 
-
-import InputBorderBlue from '@/components/inpust/InputBorderBlue';
+import { useEffect, useRef, useState } from 'react';
 import useSpeckAlert from '@/hook/useSpeckAlert';
 
 
+// Bandera por idioma de la voz. Piper trae es-ES/es-MX/en-US/pt-BR; las
+// nativas o del dispositivo a veces solo 'es'/'en'/'pt'.
+const LANG_FLAG = { 'es-ES': '🇪🇸', 'es-MX': '🇲🇽', 'en-US': '🇺🇸', 'pt-BR': '🇧🇷' };
+const flagOf = (lang = '') =>
+    LANG_FLAG[lang]
+    ?? (lang.startsWith('es') ? '🌎' : lang.startsWith('en') ? '🇺🇸' : lang.startsWith('pt') ? '🇧🇷' : '🔊');
 
+// Calidad del modelo → etiqueta + color del chip (tintes claros, en armonía
+// con el resto del sistema: verde/azul/ámbar/gris suaves).
+const QUALITY = {
+    high:   { label: 'Alta',   cls: 'text-emerald-700 bg-emerald-50 ring-emerald-200' },
+    medium: { label: 'Media',  cls: 'text-sky-700 bg-sky-50 ring-sky-200' },
+    low:    { label: 'Baja',   cls: 'text-amber-700 bg-amber-50 ring-amber-200' },
+    x_low:  { label: 'Ligera', cls: 'text-slate-600 bg-slate-100 ring-slate-200' },
+};
+
+// Motor de síntesis → etiqueta legible
+const ENGINE_LABEL = {
+    piper: 'Piper · IA local',
+    native: 'Voz nativa',
+    cordova: 'Dispositivo',
+    'audio-fallback': 'Google',
+};
+
+const TEST_PHRASE = 'Hola, esta es una prueba de voz de Jarvis 365.';
+
+
+// Ícono de bocina con 0–3 ondas según el nivel (SVG nítido, escalable y
+// teñible con currentColor — reemplaza los PNG base64 borrosos anteriores).
+function VolumeIcon({ level }) {
+    const waves = level <= 0 ? 0 : level < 0.4 ? 1 : level < 0.75 ? 2 : 3;
+    return (
+        <svg width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.7' strokeLinecap='round' strokeLinejoin='round' aria-hidden='true'>
+            <path d='M4 9v6h4l5 4V5L8 9H4z' fill='currentColor' stroke='none' />
+            {level <= 0 && <path d='M16 9.5l5 5M21 9.5l-5 5' />}
+            {waves >= 1 && <path d='M15.5 8.8a4 4 0 0 1 0 6.4' />}
+            {waves >= 2 && <path d='M17.7 6.5a7 7 0 0 1 0 11' />}
+            {waves >= 3 && <path d='M19.8 4.4a10 10 0 0 1 0 15.2' />}
+        </svg>
+    );
+}
+
+
+/*
+ * Consola de voz de las alertas habladas (drawer "Parlante" del Lobby y
+ * ventana de configuración). Tarjeta CLARA en armonía con el resto del
+ * sistema (blanco/slate + verde de marca #29c50c):
+ *   · readout de la voz activa (bandera + idioma + calidad + motor),
+ *   · selector nativo enriquecido (no se recorta dentro del drawer),
+ *   · botón de prueba con ecualizador animado mientras habla,
+ *   · volumen con medidor de bocina SVG y lectura en %.
+ * Toda la lógica sigue en useSpeckAlert; aquí solo cambia la presentación.
+ */
 export default function SectionConfigVoice() {
 
+    const {
+        listVoicesState, voice_definitive, changeVoice, changueVolume,
+        volumeState, speak, stop, currentEngine, downloadProgress, isLoading, isSupported,
+    } = useSpeckAlert();
 
-    const { listVoicesState, voice_definitive, changeVoice, changueVolume, volumeState, speak, currentEngine, downloadProgress, isLoading } = useSpeckAlert();
+    // Feedback visual de "hablando": el hook no expone evento de fin, así que
+    // se estima por la frase de prueba (o se corta con Detener).
+    const [testing, setTesting] = useState(false);
+    const timerRef = useRef(null);
+    useEffect(() => () => clearTimeout(timerRef.current), []);
 
+    const selected = listVoicesState.find(v => v.name === voice_definitive) || null;
+    const level = Number(volumeState) || 0;
+    const volPct = Math.round(level * 100);
+    const downloading = downloadProgress > 0 && downloadProgress < 100;
 
-
-
-    const renderImg = number => {
-        if (Number(number) < 0.1) {
-            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAFdElEQVR4nN2aa4gcRRCAq3yQxKBo4sXXSXzs3Xbt6W7wwCiip4KJKIlGWc1t1dx5+RHjjwM1RIggKqiIqAiCouCDSCToLwO+oh4ql0QTTaJGT84YJcSIGnyhkZDDSM/0zt7u9OzM7M6ungX7Y7e6q/ubrq6q7llAkhEk3gS54iyYyoIko0hyGEk+ntowhcHjUckWF0bJdlDObJiykivO0iuS2sr0Lj8GlTyGxHuRZB+Q3AFTDiYz1IGKdxg7/geIb4ApA5MZ6kCST42bvgfU3wU5vtl8fxnaKrkGYbr7T0TiT8yk39bu5f6u+DzfVlzJDHVAjxSg7TAaouxOkyFcW6V5fiCJKaj4CW9sXg/dcmZ7YJQzuwLBb0FncUa1neQgQHItkhwwYx8Acla0NjRrPfFW8/Q2BCAaBdGS4U5UvMYPGIrXWO03DVMFIW+GDtIoSFlywpXV4Q2QGZ4G6bmZZFDxtkiINEC05PrPR5KfzMq8BFA8ElKBUXLIPKE3YO7g9Pr9YoBklx2rbSHxo5Dh46xtVKkXSX41tu5vHKQWRm/C7NJTo/vEAOkZOBuVHDQPZy8QX2xtly1dhiQT+gPK6WsMIi9zAO4+InFojutarvtwOQ8d1HvD1gyV3GeAv0m+X85ZehIqGUeSp7WtRDBJ9sjcwelIstbYndBhONCmd/nR5eoBFN9aUeRlDipZh4p/qa2PAh/F7/h7Ii5M8s2OSPycGe8PUE530CYvNvofIC8zvV7uwSoCoAwxOWPHhWkkavX1HYVK3jcutMn1glpaE/qBHKcMohvvh9zgyfb6yZ3kbz55YKIRMDYQ6u9CJQ9BVha5+84m2cEz9Iq4k83K9QE9OSv83OKDhD2tHimY1dhh1ceBsYHkeLiy2rxV5yWbWSR+wPTdYi+N3Eg34Y5XFySJW4TB2GzoBKrkNiT52sD86Jb89iDj5izIcrZWjcQbPZ2zMD2QMJh6NjqLM1DJK/7KQNDNvESpJ1taGdC5p1A3et2VLogVRi6va8OD2eNt3NI1AT3xnab/uoAuKzcZ3Qvpg9TCKP4+ukQprTRtn7VMdlHowUzx1cb2a60BqYWJslFeNZLR4GSdC43r7Q7VKf6gdSBBmH3hSVOu9HNVrZDM90uSWlF8gZ9rWgoSM2kiyb0G5Mlw9+FtAV3WWWh0r7ceJApG5wPi/SbEXhroS7wqdLPnZMjYfL71IG5ZE1I1e9dHm417vGvrjopfNSH29oCO5BEv2vGqNrhWaR4qecYCM4ZKfjb291hLJOWu1l+RCVHxgvog3QP5WCVKFIj3xB+3RjOSEZ3BrX2VrDZ9N4bUgROo+E+3UvCLRsWnBCfhDqr1v3sHqyZAqmqtGFVzXh8vvKMFKF4S0JPcYua23v2uQ16sMp74s4ZgwtyzPgzqCUbsnZ0uZI4XV8hJXox5sNoZ6gZJQerAIMnD/vGhq3RWoJ9yrqvkliQ3KtWX058ngokKGDUwSPyUaX8IyLkqOJfhaah4V9WhKpG4MOXLAf7CGmUaAQnCHPYuH5yirWm54kUlH4YeyhLBkIxZA0QjIEGYMWsAULwESf52I1WPQ9CUTH59QPJl5N1WGoczLVS6pHx1CsTLIBU5t3QCknxkJjgOXQOnhbZNmlQLlrtmxQv0xjcQ90CqUv1OZFzfnqcCEjzP7Jp0RfsgtES8C4DtZsCvoOfG01tyOCOdFGU1tFQmv15Q8m3gDVMz9Vqh3a/O68E0W3gW2g3jvYIz70x4N1Bprvt7d+ki4x6b/zP/A4g1YBlGrwzJfP8WhGRt07ap3TCVV3KVPwwouSId29JGmLzM1OcPJPnOOzTxcGq2c+2GaaUU/r9/BBr9t6fTnHgwI/qC4h8jUMuP3SVsVAAAAABJRU5ErkJggg==';
+    const handleTest = () => {
+        if (testing) {
+            stop?.();
+            setTesting(false);
+            clearTimeout(timerRef.current);
+            return;
         }
-        else if (Number(number) < 0.5) {
-            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAACVElEQVR4nO3Yv4sTQRQH8PcST0/tFKyEa8S8N6fXpLAQPQV/Yb9N3ts7sAg21oKgac5SUIsDsfNn54//QUst1U69QlFQC7FQ8Aeb3ezl13q7mzPOO/KFNJlkZj/szOybBZhkEksJqsByAUnfIMkXJFmGenMKTMUFm5HkEbL+7vmQXgZbCH0cX7x8BA6PAeuBBLICJhG1xv64oVVJvvsJtqaTdCHidKYXWEbYgLguBMmHYQj/Ia4PQbov66f+Qlx+hL8QVwzhJ8QVR/gHceUQfkFcH4IXZov8fTyQ3cFWJLmGpJ8H6qOBeknew2zIRYcYCwRJr68JGAExTsin9iAkJzLaV9rtexsHS4/RD5nT7Ui6BKQL0Ywo2+/wQWYWpzPaf8UX0arAekFqjaNdd/ot1ORI2b6LQEaeFoN9tCrAcgZZXyaYH1ALTxqEdBJUkeVGWnBSuNMoJG5G1ifJOr1kGQLA4elkij23DZnTXQnk2waB6NeNMbVYnxlf7PI0WewXDW+/ejPdfl2ww94DkbSJrK+StfEdSI/bLlFYXgPLobJ9DxaNTk/9tWjkxmFYL0j76KBLwKKw59yWsv32pH0WyVPGZ7yz8udgNbM4jaRXO3fmX2DGA8l/1H1YFuMPJEq9OYWsD8pg/IKMgPEPsnqGuF8E4ykkfSLfy4vxGJJi7ubBeA6JElSR5M5aGAOQfBgjkA5Gb2dhDEEAYH5+09DdrN7clla4dhL07mZRVbv6YuEF2EoQrZlb/XUakJ4Hg0Hg8Gx0F5D1HbJeiabe/76oSSaB4vkDv7LvzyJLv10AAAAASUVORK5CYII=';
-        }
-        else if (Number(number) < 0.9) {
-            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAADR0lEQVR4nO2ZTWxMURTHz22VIjYkFrS6Ke+eV7rpQkIo4qNsxOKl8s6ZNmliYoEFESGhm3bVSrCQiB3KimBtQcKSlSBCaImvoElFpKjKfXNnTPv6Zu5rZ/TdZP7JbOa88+795Zx77rn3AVRUkU3yqgHphJD8WkgaFpLOQ0u6BqyS680Vkm4K5PEJP8m9YBcE38pMnj4BprYC8loNMgRWQjj+moyhu0r/NwZ2pRPlQWSUTS+wGcIOEDcPQtLHqSCSD+JOgpC8OurR5IK45hDJBXHzqpPkD+CSW8ylKEjmnXcE0jVoaq8v9ZRLAmEE4nQtEkifdcEYAfTbIWkQxqnlplYIpNv62T8g+Xgppl0Agt5DUwrjuMdaI0hH1eYZPC/5gPkodd58IemskPw11B+F+qX4ELFBlKS/T0VFIP8Gh9eBiYTkc0UBZgAx3aolJPXpcV9A48F5JiBfMmGk7RH2ocC+yl8fZyIFQZp5oZDcA5I7VEYUKPGPAz/kQ+aDNHTWRthViMdV81cyEMffnBfpQXBo05SO6O/WxeVN0fENQGa8mYXf0V0FSF0C+amG+QlOasdUrgL5ZeDr8pYEgmTlVQukC7mGU6aWhHwl92r//gSDZMwC+b5ep6dCVpfbdHrdSzoIAKZ26RR7FLI1Up2O2NvkgzTzUg3yPWRr6KzVID8sAuFvIVtLekEkZGJTC/lhyNbUXm9LagmB9EAv9pMhK/o7NcjdhJdfvpgrv663OLL8SupLIEh3FUhOC+Rnem2MguRtBTfEqN0/MS0K0itA2lC4RaHB4i1Ktml0ua1g04j+xpKBBEcH7gEkjuxs3bym0eRcEpxFTNr4iDuraYGY+fTrtHtu1MYHG47kM9nIlANm2gcryb/U3TGU/163DCCOf0SdDHVKpWE2rkZnBLKyY3ne+8dA0mEomxQM8o24MMVBvGp1MyMyFWoYJO2BsqslXSOQrseBMYmIkHRFIA+As3cZ/D8FO/JVU5hSbKrlhhkwgUk4SDa3g5QoCGMBiBmMJSC5qnM5CsYiEABobZ2jPguEYHInPB4Fe+RNrGaqq/13sfAE7JKn1sylyX0aSD4GFkoApvarKAjkdwL5tEq92Z5URRVBfP0F3A5fBJMg1IYAAAAASUVORK5CYII=';
-        }
-        else {
-            return 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAYAAAAeP4ixAAAACXBIWXMAAAsTAAALEwEAmpwYAAAEc0lEQVR4nO2Za4gcRRCAq3NG4xMfoKCJMXC5qdq9iz8OERSTKD6ioOKP5ZKp2jsIuIivH4qIiheUBIVE0CCCCP6IjyhqiCJigj8MJAR/JIqKLxSTKGoeGlBJjDFGeqZ2duP07M3s7OMWtuB+3FR3TX9T1dXVtQB96UsvSWkAiB82KLsM8kGD/ByMVmZCT0mhdLJB3mhIjp/wh7IKegtC3g4Xz/uAytcCyeUKsgd6EsLzR0LFihn67Fgme97EJdBVCOS9gDJcr66GV2p7KHcp/GYYWoYwHSCaAinyZdaW2vwbkCetZ6EjG9tCROGUE8TKpRNnG+RnDMpR3WPvwYh/DrTdEzReTBraFEhVyF9Y551PoFA6F9oDIb80gsgNYmWQZxuST/V9H8EgnwUthyhwYaopU4KENj8wxOuhODbHOWZ46QWG5Cv1zEZrtqMQqUC85Wca4gOaqX4H8sec44pjcwzJ/sAWyt0dhUgFEtgvX2yI39Gx/wLKQ85xntxs9Yb4MAzJvBwQ/DMUy5RleqY9QvyAPTwbfXWD/KJ+0JdqT2eXTtU091usPorVS9khMoNYQf/28KvLP+DJFeDe/IeCaqGa8g3K2ikBckA0m7UM8mp977cweM8pcb08rXvq2eqDX0M38vVug7In0A/5VzYD4QRZIKcblJWAMm4josFh+3kwj+TemB5lWEEO2LG1l8ydmJWwCOvi43lKhBiI519d5+nd4PFi50Tyb9W98IPr/YZkR2C3IEvSgOQ7zJw2VswA4uWG5MuonvLKN7imGpLvdLHXOOw+obYf7xJIVUoDhvj5qPTH8nmxuSirdP6a2HTk21S3qcsgodqQbNV9OhnTFmSJhteWmG5I5kXhOQ1AAKh8ky5oZ0KqtR77MaYrlM5QyD+mB8gCOV9B/ozp7DkXzj/kts1/Bbb7IO0ILZIdCYViT4SWMcTbdLM/GtOSf6OCfJi82WXXNEi/8kKUfgvx21+UfpFXJ6dffr97ByJKpXZRkiOAcl3DA9Fx+hviJ9X2Y90vUYi/B+KrGpcovNtZoiDvrJUo1aLR/tOoaCR/YctAgquDrARicVW2saLRdS/x/BG1uz8sGu1dJE0Zf0L3sANlPMkaDbtv3GW8rhtlbfhk7sSsoLZXz7QDpumLFcpR2zt2p2Q+HFysHA3BJvq6bQDx/PvtzVBDqtL4qsvrIN/PBdlgUoHMH7+ozv4xQL7PvQ6+JWo+NN3otjAkG7LCTA1SGrCdGRN+5YP2fEjutFTbQXwn5JLRykxD/FYWmDQeMcgvG5JXwFt6YXKDjr9WWxugJRLCvJkWJvehWgw292dqZ7tt6EHLxMKgvJEGJheIx4trTWz5uD0d+SC2g5BoCNOSnxVI3rXPoG2yaNFJBuX1RjCZQaj+pwQ5AsSP5GtaZ4N5LQkm+4HIkzpnE3jsQUfFwhCvj8GMVk6LvmwGW0DL5kP3JLhfvBrB2Kq21lj4AnpLSjYBrPt/nQYoD0IPigEq32G9YEh+MiRPBeHSl75Az8l/qiP/bH79PEgAAAAASUVORK5CYII='
-        }
+        speak(TEST_PHRASE);
+        setTesting(true);
+        clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => setTesting(false), 3200);
     };
 
-
-
-
     return (
-        <div className='w-full h-full p-[1rem]'>
-            <div className='w-full h-full'>
-                {isLoading && (
-                    <div className='w-full flex items-center justify-center gap-2 py-2'>
-                        <div className='animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent'></div>
-                        <p className='text-sm' style={{ color: '#7b8494' }}>Cargando motor de voz...</p>
-                    </div>
-                )}
-                <div className='w-full h-full flex flex-col justify-around overflow-hidden'>
-                    <InputBorderBlue
-                        type='select'
-                        important={false}
-                        value={voice_definitive || ''}
-                        textLabel='Listas de voces disponibles'
-                        childSelect={
-                            listVoicesState.map(voice => ({
-                                value: voice.name, text: voice.name,
-                            }))
-                        }
-                        eventChengue={text => {
-                            changeVoice(text);
-                        }}
-                    />
+        <div className='w-full h-full p-3'>
+            <div className='voice-console w-full h-full overflow-y-auto rounded-2xl bg-white text-slate-800 ring-1 ring-slate-200 shadow-[0_8px_28px_-14px_rgba(15,23,42,.22)] flex flex-col gap-4 p-4'>
 
-
-                    <div className='flex items-center justify-center gap-2'>
-                        <p className='text-center'>Voz: {voice_definitive || 'ninguna'} ({currentEngine})</p>
-                        <button
-                            className='btnPublic __btn-blue'
-                            style={{ padding: '4px 12px', fontSize: '0.85rem', opacity: isLoading ? 0.5 : 1 }}
-                            disabled={isLoading}
-                            onClick={() => speak('Hola, esta es una prueba de voz.')}
-                        >
-                            {isLoading ? 'Cargando...' : 'Probar'}
-                        </button>
+                {/* Encabezado: identidad + motor activo */}
+                <div className='flex items-center justify-between gap-2'>
+                    <div className='flex items-center gap-2 min-w-0'>
+                        <span className='grid place-items-center h-8 w-8 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 text-emerald-600 shrink-0'>
+                            <svg width='17' height='17' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' strokeLinecap='round' strokeLinejoin='round'><path d='M4 9v6h4l5 4V5L8 9H4z' fill='currentColor' stroke='none' /><path d='M15.5 8.8a4 4 0 0 1 0 6.4' /><path d='M17.9 6.4a7.5 7.5 0 0 1 0 11.2' /></svg>
+                        </span>
+                        <div className='leading-tight min-w-0'>
+                            <h2 className='text-[0.95rem] font-semibold tracking-tight truncate text-slate-800'>Consola de voz</h2>
+                            <p className='text-[0.6rem] uppercase tracking-[0.18em] text-slate-500'>Alertas habladas</p>
+                        </div>
                     </div>
-                    {downloadProgress > 0 && downloadProgress < 100 && (
-                        <p className='text-center text-sm' style={{ color: '#7b8494' }}>
-                            Descargando modelo: {downloadProgress}%
-                        </p>
+                    <span className='shrink-0 text-[0.6rem] font-semibold px-2 py-1 rounded-full bg-slate-100 ring-1 ring-slate-200 text-slate-600 whitespace-nowrap'>
+                        {ENGINE_LABEL[currentEngine] ?? currentEngine}
+                    </span>
+                </div>
+
+                {/* Readout de la voz seleccionada */}
+                <div className='rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-3'>
+                    <p className='text-[0.58rem] uppercase tracking-[0.18em] text-slate-500 mb-1'>Voz activa</p>
+                    {selected ? (
+                        <div className='flex items-center gap-2 min-w-0'>
+                            <span className='text-2xl leading-none shrink-0'>{flagOf(selected.lang)}</span>
+                            <div className='min-w-0 flex-1'>
+                                <p className='font-mono text-[0.9rem] text-emerald-700 truncate'>{selected.name}</p>
+                                <p className='text-[0.62rem] text-slate-500'>{selected.lang}</p>
+                            </div>
+                            {selected.quality && QUALITY[selected.quality] && (
+                                <span className={`shrink-0 text-[0.56rem] font-bold px-2 py-[3px] rounded-full ring-1 ${QUALITY[selected.quality].cls}`}>
+                                    {QUALITY[selected.quality].label}
+                                </span>
+                            )}
+                        </div>
+                    ) : (
+                        <p className='font-mono text-[0.85rem] text-slate-400'>— sin voz seleccionada —</p>
                     )}
+                </div>
 
-                    <div className='__center_center __oneGap __width-complete'>
-                        <InputBorderBlue
+                {/* Selector de voz (nativo: nunca se recorta dentro del drawer) */}
+                <label className='block'>
+                    <span className='text-[0.58rem] uppercase tracking-[0.18em] text-slate-500'>Cambiar voz</span>
+                    <div className='relative mt-1'>
+                        <select
+                            aria-label='Voz para las alertas'
+                            value={voice_definitive || ''}
+                            disabled={isLoading || listVoicesState.length === 0}
+                            onChange={e => changeVoice(e.target.value)}
+                            className='w-full appearance-none rounded-xl bg-white text-slate-800 text-[0.82rem] pl-3 pr-9 py-2.5 ring-1 ring-slate-300 outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50'
+                        >
+                            {listVoicesState.length === 0 && (
+                                <option value='' style={{ color: '#1e293b', background: '#fff' }}>{isLoading ? 'Cargando voces…' : 'Sin voces disponibles'}</option>
+                            )}
+                            {listVoicesState.map(v => (
+                                <option key={v.name} value={v.name} style={{ color: '#1e293b', background: '#fff' }}>
+                                    {flagOf(v.lang)} {v.name}{v.quality ? ` · ${QUALITY[v.quality]?.label ?? v.quality}` : ''}
+                                </option>
+                            ))}
+                        </select>
+                        <span className='pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400'>
+                            <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round'><path d='M6 9l6 6 6-6' /></svg>
+                        </span>
+                    </div>
+                </label>
+
+                {/* Prueba de voz con ecualizador */}
+                <button
+                    type='button'
+                    onClick={handleTest}
+                    disabled={isLoading || !selected}
+                    aria-label={testing ? 'Detener prueba de voz' : 'Probar voz'}
+                    className={`group flex items-center gap-3 rounded-xl px-3 py-3 ring-1 transition disabled:opacity-40 disabled:cursor-not-allowed ${testing ? 'bg-emerald-50 ring-emerald-300' : 'bg-slate-50 ring-slate-200 hover:bg-slate-100'}`}
+                >
+                    <span className='grid place-items-center h-9 w-9 rounded-full shrink-0 bg-[#29c50c] text-slate-900 transition group-hover:brightness-110'>
+                        {testing ? (
+                            <svg width='14' height='14' viewBox='0 0 24 24' fill='currentColor'><rect x='6' y='5' width='4' height='14' rx='1' /><rect x='14' y='5' width='4' height='14' rx='1' /></svg>
+                        ) : (
+                            <svg width='15' height='15' viewBox='0 0 24 24' fill='currentColor'><path d='M8 5v14l11-7z' /></svg>
+                        )}
+                    </span>
+                    <span className={`voice-eq ${testing ? 'is-speaking' : ''}`} aria-hidden='true'>
+                        <i /><i /><i /><i /><i />
+                    </span>
+                    <span className='ml-auto text-[0.8rem] font-semibold text-slate-700'>{testing ? 'Detener' : 'Probar voz'}</span>
+                </button>
+
+                {/* Volumen */}
+                <div className='rounded-xl bg-slate-50 ring-1 ring-slate-200 px-3 py-3'>
+                    <div className='flex items-center justify-between mb-2'>
+                        <span className='text-[0.58rem] uppercase tracking-[0.18em] text-slate-500'>Volumen</span>
+                        <span className='font-mono text-[0.9rem] font-bold text-emerald-700 tabular-nums'>{volPct}%</span>
+                    </div>
+                    <div className='flex items-center gap-3'>
+                        <span className={level <= 0 ? 'text-slate-400 shrink-0' : 'text-emerald-600 shrink-0'}>
+                            <VolumeIcon level={level} />
+                        </span>
+                        <input
                             type='range'
-                            important={false}
-                            textLabel='Volumen'
-                            value={volumeState}
                             min={0}
                             max={1}
                             step={0.05}
-                            eventChengue={value => {
-
-                                changueVolume(Number(value));
-                            }}
+                            value={volumeState}
+                            onChange={e => changueVolume(Number(e.target.value))}
+                            aria-label='Volumen de las alertas'
+                            className='voice-range flex-1'
                         />
-                        <img style={{ width: '30px', paddingTop: '2rem' }} src={renderImg(volumeState)} alt='Indicador de volumen' />
                     </div>
                 </div>
 
+                {/* Estados: descarga del modelo / carga del motor / no soportado */}
+                {downloading && (
+                    <div>
+                        <div className='flex items-center justify-between text-[0.62rem] text-slate-500 mb-1'>
+                            <span>Descargando modelo de voz…</span>
+                            <span className='font-mono'>{downloadProgress}%</span>
+                        </div>
+                        <div className='h-1.5 rounded-full bg-slate-200 overflow-hidden'>
+                            <div className='h-full bg-emerald-500 transition-[width] duration-300' style={{ width: `${downloadProgress}%` }} />
+                        </div>
+                    </div>
+                )}
+                {isLoading && !downloading && (
+                    <div className='flex items-center gap-2 text-[0.7rem] text-slate-500'>
+                        <span className='h-4 w-4 rounded-full border-2 border-emerald-500/70 border-t-transparent animate-spin' />
+                        Cargando motor de voz…
+                    </div>
+                )}
+                {!isLoading && !isSupported && listVoicesState.length === 0 && (
+                    <p className='text-[0.7rem] text-amber-600'>Este dispositivo no soporta síntesis de voz.</p>
+                )}
             </div>
         </div>
     );

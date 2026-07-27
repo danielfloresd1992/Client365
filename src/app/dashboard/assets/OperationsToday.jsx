@@ -1,5 +1,6 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import socket from '@/libs/socket/socketIo';
 import { getTodayRoster } from '@/libs/ajaxClient/user.fecth';
 import { toMinutes, fmtHour } from '@/libs/time/operationalDay';
 
@@ -14,11 +15,26 @@ import { toMinutes, fmtHour } from '@/libs/time/operationalDay';
  * 🌙 nocturno). En cada tarjeta: estado contra el reloj vivo (en turno con
  * progreso, por llegar, salió) y "⏰ llegó tarde" en rosa cuando aplica.
  *
- * Se refresca solo: cada 5 minutos y al volver a la pestaña. Recibe `now`
- * del reloj del panel.
+ * EN VIVO: cuando un empleado marca entrada/salida (o el admin le cambia el
+ * horario o un rol del día), la api emite { finalRecord, user } por un canal
+ * por-usuario-y-fecha cuyo nombre lleva el email. No reconstruimos ese nombre:
+ * escuchamos con socket.onAny y filtramos por la FORMA del payload, luego
+ * parcheamos la fila en sitio. Así la llegada, la salida y EL CONTEO (stats,
+ * derivados del roster) se actualizan al instante, sin recargar todo.
+ *
+ * Fuera de eso se refresca solo: cada 5 minutos y al volver a la pestaña.
+ * Recibe `now` del reloj del panel.
  */
 
 const REFRESH_MS = 5 * 60 * 1000;
+
+// Tipos de jornada con los que el empleado NO viene hoy (igual que el backend)
+const NO_WORK_TYPES = ['descanso', 'vacaciones', 'permiso', 'falta'];
+
+// Dos fechas de asistencia son "el mismo día" si comparten el YYYY-MM-DD:
+// attendance guarda `date` a medianoche UTC del día civil, así que el prefijo
+// de 10 caracteres basta y evita depender de la hora exacta serializada.
+const sameCivilDate = (a, b) => String(a).slice(0, 10) === String(b).slice(0, 10);
 
 // Campanita de rol del día (misma iconografía que la grilla de /user)
 function RoleBell({ label, className }) {
@@ -118,6 +134,10 @@ export default function OperationsToday({ now }) {
     const [roster, setRoster] = useState(null);      // null = cargando
     // Acordeones de turno abiertos: { `${dept}|${shift}` → true }. Cerrados por defecto.
     const [openShifts, setOpenShifts] = useState({});
+    // Día civil que se está mostrando (lo devuelve el roster). Se usa para
+    // descartar eventos de asistencia de OTRAS fechas (p. ej. el admin edita
+    // el horario de un día futuro) sin recalcular el reloj del cliente.
+    const rosterDateRef = useRef(null);
 
     const toggleShift = (key) => setOpenShifts(prev => ({ ...prev, [key]: !prev[key] }));
 
@@ -125,18 +145,70 @@ export default function OperationsToday({ now }) {
         let alive = true;
         const load = () => {
             getTodayRoster()
-                .then(data => { if (alive) setRoster(Array.isArray(data?.roster) ? data.roster : []); })
+                .then(data => {
+                    if (!alive) return;
+                    rosterDateRef.current = data?.date ?? null;
+                    setRoster(Array.isArray(data?.roster) ? data.roster : []);
+                })
                 .catch(err => {
                     console.error('Roster del día:', err?.message ?? err);
                     if (alive) setRoster(prev => prev ?? []);
                 });
         };
         load();
+
+        // Marcaje en vivo. El payload de asistencia tiene forma { finalRecord,
+        // user }; cualquier otro evento del socket (monitoreo, alertas, chat…)
+        // no la cumple y se ignora. finalRecord es el doc de Attendance ⇒ trae
+        // checkIn/checkOut/isLate/onDuty/auxiliary y, si hubo cambio de horario,
+        // scheduleOverride. Parcheamos la fila del usuario y el useMemo recalcula
+        // estado y conteos.
+        const onAttendance = (_event, payload) => {
+            const rec = payload?.finalRecord;
+            const usr = payload?.user;
+            if (!alive || !rec?._id || !usr?._id) return;
+            // Solo el día que se muestra (ignora ediciones de otras fechas)
+            if (rec.date && rosterDateRef.current && !sameCivilDate(rec.date, rosterDateRef.current)) return;
+
+            const uid = String(rec.userId ?? usr._id);
+            setRoster(prev => {
+                if (!Array.isArray(prev)) return prev;
+                const idx = prev.findIndex(p => String(p.userId) === uid);
+                if (idx === -1) {
+                    // Marcó alguien que no estaba en la ficha (p. ej. franco-
+                    // trabajado sin regla del día): re-sincroniza para no perder
+                    // su fila ni el conteo.
+                    if (rec.checkIn) load();
+                    return prev;
+                }
+                const next = prev.slice();
+                const row = { ...next[idx] };
+                row.checkIn = rec.checkIn ?? null;
+                row.checkOut = rec.checkOut ?? null;
+                row.late = Boolean(rec.isLate);
+                row.onDuty = Boolean(rec.onDuty);
+                row.auxiliary = Boolean(rec.auxiliary);
+                // Cambio puntual de horario (override): actualiza jornada efectiva
+                const ov = rec.scheduleOverride?.workType ? rec.scheduleOverride : null;
+                if (ov) {
+                    row.workType = ov.workType || row.workType;
+                    row.shift = ov.shift || row.shift;
+                    row.startTime = ov.startTime ?? row.startTime;
+                    row.endTime = ov.endTime ?? row.endTime;
+                    row.comes = !NO_WORK_TYPES.includes(row.workType);
+                }
+                next[idx] = row;
+                return next;
+            });
+        };
+        socket.onAny(onAttendance);
+
         const timer = setInterval(load, REFRESH_MS);
         const onVisible = () => { if (document.visibilityState === 'visible') load(); };
         document.addEventListener('visibilitychange', onVisible);
         return () => {
             alive = false;
+            socket.offAny(onAttendance);
             clearInterval(timer);
             document.removeEventListener('visibilitychange', onVisible);
         };
