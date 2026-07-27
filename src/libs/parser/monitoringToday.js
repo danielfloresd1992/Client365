@@ -52,6 +52,12 @@ export function buildScheduleGroups({
         if (todays.length === 0) continue;
         todays.sort((a, b) => a.sAxis - b.sAxis);
 
+        // ¿Su monitoreo ANALÍTICO está dentro del rango (start–end) AHORA?
+        // El aviso de silencio solo tiene sentido dentro de esa ventana: un
+        // flag viejo de un local que ya cerró (o que aún no abre) se ignora.
+        const inAnalyticalWindow = minuteNowAxis !== null
+            && todays.some(r => r.type === 'analytical' && minuteNowAxis >= r.sAxis && minuteNowAxis < r.eAxis);
+
         // Estado: el watcher manda (punto en vivo); el horario da el contexto
         const watcherLive = (liveByLocal?.[id] ?? []).length > 0;
         let state = 'done';
@@ -76,7 +82,8 @@ export function buildScheduleGroups({
         groups[state].push({
             id, name, state, stateLabel,
             ranges: todays,
-            silent: Boolean(silentByLocal?.[id]),
+            silent: Boolean(silentByLocal?.[id])
+                && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical')),
             counts: dayCounts?.byId?.[id] ?? null,
             sortKey: state === 'live'
                 ? Math.min(...todays.filter(r => minuteNowAxis >= r.sAxis && minuteNowAxis < r.eAxis).map(r => r.eAxis), Infinity)

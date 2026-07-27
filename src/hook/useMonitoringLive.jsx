@@ -8,10 +8,21 @@ import { getMonitoringStatus } from '@/libs/ajaxClient/monitoring.fecth';
  *   · liveByLocal   { idLocal → [tipos activos] } — sembrado de
  *     /monitoring/status y mantenido por 'monitoring-start'/'monitoring-end'
  *   · silentByLocal { idLocal → true } — señalados por el corte de silencio;
- *     cada 'monitoring-silence' REEMPLAZA la lista (una vacía limpia todo) y
- *     'monitoring-silence-clear' apaga un local al instante cuando envía
+ *     cada 'monitoring-silence' REEMPLAZA la lista (una vacía limpia todo),
+ *     'monitoring-silence-clear' apaga un local al instante cuando envía, y
+ *     el FIN del monitoreo analítico de un local también lo apaga (fuera de
+ *     su ventana no hay nada que reclamarle)
  *   · lastEvent     último inicio/fin recibido (para la cinta del panel)
+ *
+ * /monitoring/status calcula la verdad EN TIEMPO REAL desde el horario
+ * (Schedules/MonitoringRange: dayMonitoring + start/end del día). Además de
+ * la siembra al montar, se RE-SIEMBRA cada minuto y al volver a la pestaña:
+ * si un evento de socket se perdió (red, watcher caído), el estado converge
+ * solo con el horario y ningún aviso viejo sobrevive fuera de su ventana.
  */
+
+const RESEED_MS = 60 * 1000;
+
 export default function useMonitoringLive() {
 
     const [liveByLocal, setLiveByLocal] = useState({});
@@ -19,18 +30,26 @@ export default function useMonitoringLive() {
     const [lastEvent, setLastEvent] = useState(null);
 
     useEffect(() => {
-        getMonitoringStatus()
-            .then(docs => {
-                const map = {};
-                const silent = {};
-                docs.forEach(doc => {
-                    map[doc.idLocal] = doc.activeTypes ?? [];
-                    if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = true;
-                });
-                setLiveByLocal(map);
-                setSilentByLocal(silent);
-            })
-            .catch(err => console.error('Estado de monitoreo:', err?.message ?? err));
+        let alive = true;
+
+        // Siembra / re-siembra: REEMPLAZA ambos mapas con la verdad del
+        // horario calculada por la api en este instante.
+        const load = () => {
+            getMonitoringStatus()
+                .then(docs => {
+                    if (!alive) return;
+                    const map = {};
+                    const silent = {};
+                    docs.forEach(doc => {
+                        map[doc.idLocal] = doc.activeTypes ?? [];
+                        if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = true;
+                    });
+                    setLiveByLocal(map);
+                    setSilentByLocal(silent);
+                })
+                .catch(err => console.error('Estado de monitoreo:', err?.message ?? err));
+        };
+        load();
 
         const handleStart = (msm) => {
             setLiveByLocal(prev => {
@@ -38,7 +57,7 @@ export default function useMonitoringLive() {
                 types.add(msm.type);
                 return { ...prev, [msm.idLocal]: [...types] };
             });
-            setLastEvent({ kind: 'start', name: msm.name, typeLabel: msm.typeLabel ?? msm.type });
+            setLastEvent({ kind: 'start', name: msm.name, typeLabel: msm.typeLabel ?? msm.type, at: msm.at });
         };
 
         const handleEnd = (msm) => {
@@ -46,7 +65,17 @@ export default function useMonitoringLive() {
                 const types = (prev[msm.idLocal] ?? []).filter(t => t !== msm.type);
                 return { ...prev, [msm.idLocal]: types };
             });
-            setLastEvent({ kind: 'end', name: msm.name, typeLabel: msm.typeLabel ?? msm.type });
+            // Terminó el monitoreo ANALÍTICO del local → su aviso de silencio
+            // deja de tener sentido: se apaga al instante, sin esperar corte.
+            if (msm.type === 'analytical') {
+                setSilentByLocal(prev => {
+                    if (!prev[msm.idLocal]) return prev;
+                    const next = { ...prev };
+                    delete next[msm.idLocal];
+                    return next;
+                });
+            }
+            setLastEvent({ kind: 'end', name: msm.name, typeLabel: msm.typeLabel ?? msm.type, at: msm.at });
         };
 
         const handleSilence = (msm) => {
@@ -69,7 +98,14 @@ export default function useMonitoringLive() {
         socket.on('monitoring-silence', handleSilence);
         socket.on('monitoring-silence-clear', handleSilenceClear);
 
+        const timer = setInterval(load, RESEED_MS);
+        const onVisible = () => { if (document.visibilityState === 'visible') load(); };
+        document.addEventListener('visibilitychange', onVisible);
+
         return () => {
+            alive = false;
+            clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
             socket.off('monitoring-start', handleStart);
             socket.off('monitoring-end', handleEnd);
             socket.off('monitoring-silence', handleSilence);

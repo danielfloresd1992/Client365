@@ -7,6 +7,7 @@ import Image from 'next/image';
 import { groupByFranchiseComprehensive } from '@/libs/parser/estableshment';
 import axiosStand from '@/libs/ajaxClient/axios.fetch';
 import socket from '@/libs/socket/socketIo';
+import useMonitoringLive from '@/hook/useMonitoringLive';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
 
 
@@ -28,16 +29,12 @@ export default function AlertInputLive({ openAside }) {
     // Último total de "enviadas al grupo": el aside solo se abre cuando SUBE
     const prevEnviadasRef = useRef(null);
 
-    // Monitoreo EN VIVO por local: { idLocal → ['analytical'|'perimeter', …] }.
-    // Se siembra desde /monitoring/status (estado durable del watcher) y se
-    // actualiza con los eventos 'monitoring-start' / 'monitoring-end'.
-    const [liveByLocal, setLiveByLocal] = useState({});
-    // Último inicio/fin recibido (se muestra en la barra superior)
-    const [lastEvent, setLastEvent] = useState(null);
-    // Locales señalados por el corte de silencio: { idLocal → true }.
-    // Se siembra desde /monitoring/status (noveltyCheck.flagged) y se REEMPLAZA
-    // completo con cada evento 'monitoring-silence' (una lista por corte).
-    const [silentByLocal, setSilentByLocal] = useState({});
+    // Monitoreo EN VIVO + avisos de silencio + último inicio/fin: hook
+    // compartido con el dashboard. La verdad sale del HORARIO
+    // (Schedules/MonitoringRange vía /monitoring/status, re-sembrado cada
+    // minuto) y se mantiene con los eventos 'monitoring-*' del watcher: un
+    // local fuera de su rango (start–end) de hoy nunca queda señalado.
+    const { liveByLocal, silentByLocal, lastEvent } = useMonitoringLive();
 
     const loadDayCounts = () => {
         axiosStand.get('/noveltyReport/today')
@@ -73,77 +70,17 @@ export default function AlertInputLive({ openAside }) {
     useEffect(() => {
         loadDayCounts();
 
-        // Siembra del estado en vivo (qué locales están dentro de su ventana ahora)
-        axiosStand.get('/monitoring/status')
-            .then(response => {
-                const map = {};
-                const silent = {};
-                (response.data ?? []).forEach(doc => {
-                    map[doc.idLocal] = doc.activeTypes ?? [];
-                    if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = true;
-                });
-                setLiveByLocal(map);
-                setSilentByLocal(silent);
-            })
-            .catch(err => console.error('Estado de monitoreo:', err?.message ?? err));
-
         const scheduleRefresh = () => {
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
             refreshTimerRef.current = setTimeout(loadDayCounts, 2000);
         };
 
-        // Inicio/fin de monitoreo por local (watcher de jarvis_api)
-        const handleMonitoringStart = (msm) => {
-            setLiveByLocal(prev => {
-                const types = new Set(prev[msm.idLocal] ?? []);
-                types.add(msm.type);
-                return { ...prev, [msm.idLocal]: [...types] };
-            });
-            setLastEvent({ kind: 'start', name: msm.name, typeLabel: msm.typeLabel ?? msm.type, at: msm.at });
-        };
-
-        const handleMonitoringEnd = (msm) => {
-            setLiveByLocal(prev => {
-                const types = (prev[msm.idLocal] ?? []).filter(t => t !== msm.type);
-                return { ...prev, [msm.idLocal]: types };
-            });
-            setLastEvent({ kind: 'end', name: msm.name, typeLabel: msm.typeLabel ?? msm.type, at: msm.at });
-        };
-
-        // Corte de silencio (cada hora): la lista REEMPLAZA a la anterior,
-        // así una lista vacía limpia los parpadeos del corte previo.
-        const handleMonitoringSilence = (msm) => {
-            const silent = {};
-            (msm?.flagged ?? []).forEach(f => { silent[f.idLocal] = true; });
-            setSilentByLocal(silent);
-        };
-
-        // El local señalado envió al grupo (novedad validada + enviada): el
-        // backend lo emite en el momento y el aviso rojo se apaga sin esperar
-        // al próximo corte.
-        const handleSilenceClear = (msm) => {
-            setSilentByLocal(prev => {
-                if (!msm?.idLocal || !prev[msm.idLocal]) return prev;
-                const next = { ...prev };
-                delete next[msm.idLocal];
-                return next;
-            });
-        };
-
         socket.on('created_Alert', scheduleRefresh);
         socket.on('document_updated', scheduleRefresh);
-        socket.on('monitoring-start', handleMonitoringStart);
-        socket.on('monitoring-end', handleMonitoringEnd);
-        socket.on('monitoring-silence', handleMonitoringSilence);
-        socket.on('monitoring-silence-clear', handleSilenceClear);
 
         return () => {
             socket.off('created_Alert', scheduleRefresh);
             socket.off('document_updated', scheduleRefresh);
-            socket.off('monitoring-start', handleMonitoringStart);
-            socket.off('monitoring-end', handleMonitoringEnd);
-            socket.off('monitoring-silence', handleMonitoringSilence);
-            socket.off('monitoring-silence-clear', handleSilenceClear);
             if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
         };
     }, []);
@@ -205,7 +142,10 @@ export default function AlertInputLive({ openAside }) {
                             <div className="grid gap-[.5rem] grid-cols-1">
                                 {franchiseRestaurants.map(restaurant => {
                                     if (filterAlert.isActivated && filterAlert?.clientList?.length > 0 && filterAlert?.clientList.indexOf(restaurant._id) < 0) return null;
-                                    const isSilent = Boolean(silentByLocal[restaurant._id]);
+                                    // Aviso de silencio SOLO con el monitoreo analítico en ventana:
+                                    // fuera de su rango del día no hay nada que reclamarle al local.
+                                    const isSilent = Boolean(silentByLocal[restaurant._id])
+                                        && (liveByLocal[restaurant._id] ?? []).includes('analytical');
                                     return (
                                         <div key={restaurant._id} className={`w-full flex items-center justify-between rounded-[6px] px-[.25rem] py-[.15rem] ${isSilent ? 'bg-red-50 ring-1 ring-red-300 animate-pulse' : ''}`}>
                                             <div className='flex justify-center items-center gap-[.5rem] min-w-0'>
