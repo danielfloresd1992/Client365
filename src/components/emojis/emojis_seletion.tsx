@@ -1,12 +1,7 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
 import emojis from '@/libs/data/emojis';
-
-type Tprops = {
-    getEmoji: (emoji: string) => void;
-    buttonRef: HTMLButtonElement | null;
-    elementTexttHtml: HTMLInputElement | HTMLTextAreaElement | null;
-};
+import type { Tprops } from '@/types/emojiSelection';
 
 const RECENT_EMOJIS_KEY: string = 'recentEmojis';
 const MAX_RECENT_EMOJIS: number = 10;

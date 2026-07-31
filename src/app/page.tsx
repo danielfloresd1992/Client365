@@ -5,7 +5,7 @@ import Image from 'next/image';
 import RayTracingFX from '../components/fx/RayTracingFX';
 import NewsWallMini from '../components/fx/NewsWallMini';
 import Jarvis365Logo from '../components/fx/Jarvis365Logo';
-import type { ReactNode } from 'react';
+import type { RevealBlockProps } from '@/types/homePage';
 import { useInView } from 'react-intersection-observer';
 import { useEffect, useState, useRef } from 'react';
 import { BarChart, LineChart, PieChart } from '@mui/x-charts';
@@ -151,11 +151,6 @@ const chartAxisSx = {
     '& .MuiChartsLegend-mark': { rx: '3px' },
 };
 
-type RevealBlockProps = {
-    children: ReactNode;
-    className?: string;
-    delay?: number;
-};
 
 
 

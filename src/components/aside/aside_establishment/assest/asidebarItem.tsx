@@ -2,15 +2,10 @@
 import { memo } from 'react';
 import Image from 'next/image';
 import { Switch } from '@mui/material';
+import type { PropsItem } from '@/types/asidebarItem';
 
 
 
-type PropsItem = {
-    ico: string, 
-    title: string, 
-    valueText: string, 
-    checked: boolean
-}
 
 
 function ItemInfo({ ico, title, valueText, checked }: PropsItem): React.ReactNode{

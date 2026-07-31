@@ -1,13 +1,7 @@
 'use client';
 
 
-interface IFormLayautProps{
-    setSubmit: (e: any) => void,
-    style?: React.CSSProperties | null | undefined,
-    children: React.ReactNode,
-    control?: any,
-    maxWidth: any
-}
+import type { IFormLayautProps } from "@/interfaces/IFormLayaut";
 
 
 export default function FormLayaut({ setSubmit, style = null, children, maxWidth=false}: IFormLayautProps){

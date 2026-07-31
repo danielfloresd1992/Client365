@@ -2,6 +2,7 @@
 import { useState, useRef, ReactNode, useCallback, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid';
 import Image from 'next/image';
+import type { Prop } from '@/types/asideEyelash';
 
 
 
@@ -14,16 +15,6 @@ type T_Alert = {
 
 
 
-type Prop = {
-    position: 'l' | 'r' | undefined
-    title: string,
-    urlIco: string | undefined | null
-    eyelash: 0 | 1 | 2 | 3
-    open: true | undefined
-    children: ReactNode | ((addAlert: any) => ReactNode);
-    scrollY: Boolean,
-    isDrag: boolean,
-}
 
 
 

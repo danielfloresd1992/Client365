@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "gen:nav": "node scripts/generate-nav.mjs",
+    "predev": "npm run gen:nav",
     "dev": "next dev",
+    "prebuild": "npm run gen:nav",
     "build": "next build",
     "start": "node server_start",
     "lint": "next lint"

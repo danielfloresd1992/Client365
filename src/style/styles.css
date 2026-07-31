@@ -507,7 +507,7 @@ label {
 }
 
 
-.invert {
+.centered-contrast {
   display: block;
   filter: contrast(0.5);
   left: 50%;
@@ -1183,7 +1183,7 @@ p {
 }
 
 
-.invert {
+.centered-contrast {
     display: block;
     filter: contrast(0.5);
     left: 50%;

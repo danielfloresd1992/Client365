@@ -23,6 +23,7 @@ import {
     getAttendanceReport,
     getGlobalAttendanceReport
 } from '@/libs/ajaxClient/user.fecth';
+import { UserIcon, UsersIcon } from '@/components/icons';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTES
@@ -637,7 +638,7 @@ function PageBtn({ children, onClick, disabled, active }) {
     return (
         <button onClick={onClick} disabled={disabled}
             className={`w-7 h-7 rounded text-xs font-semibold transition-colors
-                ${active   ? 'bg-emerald-600 text-white' : ''}
+                ${active   ? 'bg-[#29c50c] text-white' : ''}
                 ${!active && !disabled ? 'text-gray-600 hover:bg-gray-100' : ''}
                 ${disabled ? 'text-gray-300 cursor-not-allowed' : ''}`}>
             {children}
@@ -800,13 +801,13 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                                 value={searchQuery}
                                 onChange={e => { setSearchQuery(e.target.value); setShowDropdown(true); }}
                                 onFocus={() => setShowDropdown(true)}
-                                className='w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400'
+                                className='w-full h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#29c50c]'
                                 disabled={loadingUsers} autoComplete='off' />
                             {showDropdown && filteredUsers.length > 0 && (
                                 <div className='absolute z-50 top-full mt-1 w-[290px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden'>
                                     {filteredUsers.map(u => (
                                         <button key={u._id} onMouseDown={() => handleSelectUser(u)}
-                                            className='w-full flex items-center gap-3 px-3 py-2.5 hover:bg-emerald-50 text-left transition-colors border-b border-gray-50 last:border-b-0'>
+                                            className='w-full flex items-center gap-3 px-3 py-2.5 hover:bg-[#29c50c]/10 text-left transition-colors border-b border-gray-50 last:border-b-0'>
                                             <div className='w-8 h-8 rounded-full bg-slate-200 flex-shrink-0 overflow-hidden flex items-center justify-center'>
                                                 {u.img ? <img src={u.img} className='w-full h-full object-cover' alt='' />
                                                        : <span className='text-[11px] font-bold text-slate-600'>{u.name?.[0]}{u.surName?.[0]}</span>}
@@ -827,21 +828,21 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                 <div className='flex flex-col gap-1'>
                     <label className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Desde</label>
                     <input type='date' value={fromDate} onChange={e => setFromDate(e.target.value)}
-                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400' />
+                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#29c50c]' />
                 </div>
 
                 {/* Fecha fin */}
                 <div className='flex flex-col gap-1'>
                     <label className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Hasta</label>
                     <input type='date' value={toDate} onChange={e => setToDate(e.target.value)}
-                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400' />
+                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#29c50c]' />
                 </div>
 
                 <div className='flex gap-2 items-end'>
                     <button onClick={handleConsultar} disabled={!selectedUser || !fromDate || !toDate || isLoading}
                         className={`flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-semibold transition-all
                             ${selectedUser && fromDate && toDate && !isLoading
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm'
+                                ? 'bg-[#29c50c] text-white hover:bg-[#1f9a08] active:scale-95 shadow-sm'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                             <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
@@ -851,7 +852,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                     <button onClick={handleLimpiar} className='h-9 px-4 rounded-lg text-sm font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors'>Limpiar</button>
                     <button onClick={handleExportPDF} disabled={!reportData}
                         className={`flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-semibold transition-all
-                            ${reportData ? 'bg-gray-800 text-white hover:bg-gray-700 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                            ${reportData ? 'border border-[#1f9a08] text-[#1f9a08] hover:bg-[#29c50c]/10 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -1071,18 +1072,18 @@ function GlobalReportSection() {
                 <div className='flex flex-col gap-1'>
                     <label className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Desde</label>
                     <input type='date' value={fromDate} onChange={e => setFromDate(e.target.value)}
-                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400' />
+                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#29c50c]' />
                 </div>
                 <div className='flex flex-col gap-1'>
                     <label className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Hasta</label>
                     <input type='date' value={toDate} onChange={e => setToDate(e.target.value)}
-                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400' />
+                        className='h-9 border border-gray-300 rounded-lg px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#29c50c]' />
                 </div>
                 <div className='flex gap-2 items-end'>
                     <button onClick={handleConsultar} disabled={!fromDate || !toDate || isLoading}
                         className={`flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-semibold transition-all
                             ${fromDate && toDate && !isLoading
-                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-sm'
+                                ? 'bg-[#29c50c] text-white hover:bg-[#1f9a08] active:scale-95 shadow-sm'
                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
                             <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
@@ -1092,7 +1093,7 @@ function GlobalReportSection() {
                     <button onClick={handleLimpiar} className='h-9 px-4 rounded-lg text-sm font-semibold border border-gray-300 text-gray-600 hover:bg-gray-50 transition-colors'>Limpiar</button>
                     <button onClick={handleExportPDF} disabled={!globalData}
                         className={`flex items-center gap-1.5 h-9 px-4 rounded-lg text-sm font-semibold transition-all
-                            ${globalData ? 'bg-gray-800 text-white hover:bg-gray-700 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
+                            ${globalData ? 'border border-[#1f9a08] text-[#1f9a08] hover:bg-[#29c50c]/10 active:scale-95' : 'bg-gray-100 text-gray-400 cursor-not-allowed'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                         </svg>
@@ -1168,7 +1169,7 @@ function GlobalReportSection() {
                                 placeholder='Filtrar por nombre, cédula o depto...'
                                 value={searchFilter}
                                 onChange={e => setSearchFilter(e.target.value)}
-                                className='h-8 w-64 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-400'
+                                className='h-8 w-64 border border-gray-200 rounded-lg px-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#29c50c]'
                             />
                         </div>
 
@@ -1351,8 +1352,8 @@ export default function AsistenciaPage() {
     }, []);
 
     const tabs = [
-        { id: 'individual', label: 'Reporte Individual', icon: '👤' },
-        { id: 'global',     label: 'Reporte Global',     icon: '👥' },
+        { id: 'individual', label: 'Reporte Individual', Icon: UserIcon },
+        { id: 'global',     label: 'Reporte Global',     Icon: UsersIcon },
     ];
 
     return (
@@ -1377,19 +1378,25 @@ export default function AsistenciaPage() {
 
             {/* BARRA DE TABS */}
             <div className='flex gap-1 bg-white rounded-xl border shadow-sm p-1.5'>
-                {tabs.map(tab => (
-                    <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all flex-1 sm:flex-none justify-center sm:justify-start
-                            ${activeTab === tab.id
-                                ? 'bg-emerald-600 text-white shadow-sm'
-                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
-                    >
-                        <span>{tab.icon}</span>
-                        <span>{tab.label}</span>
-                    </button>
-                ))}
+                {tabs.map(({ id, label, Icon }) => {
+                    const active = activeTab === id;
+                    return (
+                        <button
+                            key={id}
+                            type='button'
+                            onClick={() => setActiveTab(id)}
+                            aria-pressed={active}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 flex-1 sm:flex-none justify-center sm:justify-start
+                                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#29c50c]/60
+                                ${active
+                                    ? 'bg-[#29c50c] text-white shadow-sm hover:bg-[#1f9a08]'
+                                    : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+                        >
+                            <Icon size={16} />
+                            <span className={active ? '!text-white' : ''}>{label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {/* CONTENIDO DEL TAB ACTIVO */}

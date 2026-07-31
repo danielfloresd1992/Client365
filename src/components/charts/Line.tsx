@@ -16,24 +16,13 @@ import { ChartContainer } from '@mui/x-charts/ChartContainer';
 //types
 
 import { DateNovelty, DateNoveltyArr, DocumentCount, shift } from '@/types/novelty';
+import type { DataForLine } from '@/types/lineChart';
+import type { ILineChartProps } from '@/interfaces/ILineChart';
 
 
 
-type DataForLine = {
-    label?: string | undefined,
-    data: []
-};
 
 
-interface ILineChartProps {
-    title: {
-        glogal: string,
-        chart: string
-    },
-    count: number,
-    data: any,
-    isDouble: true | false
-};
 
 
 

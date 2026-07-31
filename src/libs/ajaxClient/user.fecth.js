@@ -188,4 +188,20 @@ export const getMyDayRole = async () => {
 }
 
 
+/**
+ * Directorio de usuarios: lista paginada y buscable por name/surName (SIN password).
+ * @param {{ page?: number, limit?: number, search?: string }} params
+ * @returns {{ status, page, limit, search, totalUsers, totalPages, users[] }}
+ */
+export const getUsersList = async ({ page = 1, limit = 12, search = '' } = {}) => {
+    try {
+        const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+        if (search) params.set('search', search);
+        const response = await axiosInstance.get(`/user/list?${params.toString()}`);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+};
 

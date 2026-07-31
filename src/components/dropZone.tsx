@@ -1,49 +1,7 @@
 'use client';
 import { useState, useRef, useEffect, DragEvent, ChangeEvent } from 'react';
-
-
-/**
- * ImageFile — par de archivo + su representación base64 (para previsualizar).
- * (Antes se llamaba `File`, pero ese nombre sombreaba al `File` global del DOM
- *  y se auto-referenciaba; renombrado para que `file: File` sea el File real.)
- */
-export type ImageFile = {
-    file: File;
-    base64: string;
-};
-
-
-/**
- * DropResult — resultado dual del componente:
- *   • files → imágenes NUEVAS subidas por el usuario (binarios a enviar).
- *   • urls  → URLs EXISTENTES (modo edición) que se conservan tras las eliminaciones.
- */
-export type DropResult = {
-    files: ImageFile[];
-    urls: string[];
-};
-
-
-/** Item interno de la galería: nuevo (File) o existente (URL del backend). */
-type GalleryItem =
-    | { kind: 'new'; file: File; base64: string }
-    | { kind: 'existing'; url: string };
-
-
-interface Props {
-    /** Se llama en cada cambio con el resultado dual y un error ('' si todo ok). */
-    getImageCallback: (result: DropResult, error: string) => void;
-    /** Máximo de imágenes permitidas (cuenta existentes + nuevas). */
-    filesLimit?: number;
-    /** Peso máximo por imagen en MB (por defecto 10). */
-    maxSizeMB?: number;
-    /** Tipos MIME aceptados (por defecto jpeg/png/webp/gif). */
-    accept?: string[];
-    /** Texto de ayuda opcional bajo el título. */
-    hint?: string;
-    /** URLs ya guardadas en el documento (modo edición). */
-    initialImages?: string[];
-}
+import type { ImageFile, GalleryItem } from "@/types/dropZone";
+import type { Props } from "@/interfaces/IDropZone";
 
 
 const DEFAULT_ACCEPT = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];

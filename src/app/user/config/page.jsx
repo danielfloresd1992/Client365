@@ -1,13 +1,24 @@
+import UsersDirectory from './assets/UsersDirectory';
+import { UsersIcon } from '@/components/icons';
 
-
-
-
-export default function ConfigPage({ params }) {
-  
-
+// Página /user/config - Gestión de perfiles: directorio de usuarios de la
+// plataforma (lista paginada + buscador). El grueso vive en assets/UsersDirectory.
+export default function ConfigPage() {
     return (
-        <div>
-            <h1>Configuración de usuarios</h1>
+        <div className='w-full h-full p-4 sm:p-6 bg-gray-50 flex flex-col gap-4 overflow-hidden'>
+
+            {/* Encabezado */}
+            <div className='shrink-0 bg-white rounded-xl shadow-sm border p-4 flex items-center gap-3'>
+                <span className='shrink-0 grid place-items-center w-10 h-10 rounded-xl bg-[#29c50c]/10 text-[#1f9a08]'>
+                    <UsersIcon size={20} />
+                </span>
+                <div>
+                    <h1 className='text-lg font-bold text-gray-800'>Gestión de perfiles</h1>
+                    <p className='text-xs text-gray-500'>Directorio de usuarios de la plataforma</p>
+                </div>
+            </div>
+
+            <UsersDirectory />
         </div>
     );
 }

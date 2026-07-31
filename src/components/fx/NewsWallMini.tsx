@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import type { Post } from '@/types/newsWall';
 
 /**
  * NewsWallMini — Representación pequeña y "en vivo" del muro de novedades
@@ -7,7 +8,6 @@ import { useEffect, useState } from 'react';
  * imagen y reacciones, en scroll continuo. Pensado como fondo difuminado.
  * Real-time: las marcas de tiempo avanzan vía estado de React.
  */
-type Post = { user: string; initials: string; color: string; tag: string; text: string; img: boolean; up: number; down: number; min: number };
 
 const POSTS: Post[] = [
     { user: 'Sucursal Centro', initials: 'SC', color: '#29c50c', tag: 'Operación', text: 'Reporte de turno cerrado sin incidencias.', img: true, up: 12, down: 0, min: 2 },

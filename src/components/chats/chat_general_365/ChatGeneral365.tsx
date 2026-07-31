@@ -11,35 +11,7 @@ import BoxMsm from './assets/box_msm';
 
 
 
-type T_User = {
-    name: string;
-    userId: string;
-}
-
-
-
-type T_SharedAlert = {
-    title?: string,
-    menu?: string,
-    validation?: string | null,
-    localName?: string,
-    image?: string
-}
-
-type T_ReplyTo = {
-    messageId?: string,
-    message?: string,
-    name?: string
-}
-
-type Tmsm = {
-    _id: string,
-    message: string,
-    submittedByUser: T_User,
-    date: string,
-    sharedAlert?: T_SharedAlert,
-    replyTo?: T_ReplyTo
-}
+import type { Tmsm } from '@/types/chatGeneral365';
 
 
 type T_Props = {

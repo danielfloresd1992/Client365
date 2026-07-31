@@ -1,28 +1,5 @@
 import React from 'react'
-
-interface AttendanceRecord {
-    _id: string
-    date: string | Date
-    checkIn?: string | Date
-    checkOut?: string | Date
-    status: string // 'presente' | 'ausente' | 'pendiente' | 'franco-trabajado'
-    isLate?: boolean
-    isJustified?: boolean
-    lateJustification?: string
-    isExtraDay?: boolean
-    scheduleOverride?: {
-        workType?: string
-        shift?: string
-        startTime?: string
-        endTime?: string
-    }
-}
-
-interface AttendanceTableProps {
-    rows: AttendanceRecord[]
-    loading?: boolean
-    onExportPDF?: () => void
-}
+import type { AttendanceRecord, AttendanceTableProps } from "@/interfaces/IAttendance"
 
 export default function AttendanceTable({ rows, loading, onExportPDF }: AttendanceTableProps) {
     // Estado de carga

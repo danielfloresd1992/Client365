@@ -14,10 +14,7 @@
  * componente es solo presentación.
  */
 
-type ServerConnectionErrorProps = {
-    /** Acción del botón "Reintentar". Por defecto recarga la página. */
-    onRetry?: () => void;
-};
+import type { ServerConnectionErrorProps } from "@/types/serverConnectionError";
 
 export default function ServerConnectionError({ onRetry }: ServerConnectionErrorProps) {
     const handleRetry = onRetry ?? (() => window.location.reload());

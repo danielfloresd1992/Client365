@@ -1,22 +1,5 @@
 import { FaTrashAlt, FaMoon } from 'react-icons/fa';
-
-interface Hour {
-    start: string;
-    end: string;
-}
-
-interface Item {
-    key: string;
-    hours: Hour;
-    type?: 'analytical' | 'perimeter';
-}
-
-interface BoxHoursProps {
-    arr: Item[];
-    deleteHour: (key: string) => void;
-    /** Si viene, la tarjeta del rango es clickeable y abre el formulario de edición. */
-    onEdit?: (item: Item) => void;
-}
+import type { BoxHoursProps } from '@/interfaces/IBoxHours';
 
 // Paleta por tipo de monitoreo
 const TYPE_META = {

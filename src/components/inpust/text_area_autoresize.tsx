@@ -3,16 +3,9 @@ import Image from 'next/image';
 import { useDispatch } from 'react-redux';
 import EmojiContainer from '@/components/emojis/emojis_seletion';
 import { setConfigModal } from '@/store/slices/globalModal';
+import type { Props } from '@/types/textAreaAutoresize';
 
 
-type Props = {
-    value: string,
-    changeEvent: (value: string) => void,
-    disabled: boolean,
-    invalidText: boolean,
-    editedBy: string | null,
-    lockFirstTwoLines?: boolean
-}
 
 
 // Cantidad de líneas iniciales que quedan bloqueadas cuando lockFirstTwoLines está activo
