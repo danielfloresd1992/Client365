@@ -10,6 +10,17 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-02
+- **Unidades de descuento visibles para RRHH (horario /user):** el
+  `DetailPopover` de la grilla muestra un chip "−N unidades" junto al estado y
+  la duración cuando el documento del día trae la nueva propiedad
+  `discountUnits` de Attendance (se calcula en api_jarvis365 al marcar la
+  entrada con retardo: 1 unidad por bloque de 20 min pasada la tolerancia de
+  8). Visible **solo** si el usuario de la sesión tiene departamento "Recursos
+  Humanos" (`dataSession.jobInformation.department`); para el resto el popover
+  no cambia. Documentos sin la propiedad o con 0 unidades no muestran nada.
+  _(Claude Code)_
+
 ## 2026-07-26
 - **Muro de novedades (Lobby) tipo chat + video:** PublicationsBox absorbió la
   lógica de Publications (que se eliminó). El muro va de abajo hacia arriba, las

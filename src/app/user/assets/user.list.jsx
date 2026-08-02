@@ -296,6 +296,14 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
 
     const hasOverrideInfo = Boolean(attendanceData?.scheduleOverride?.workType);
     const hasComments = attendanceData?.comments?.length > 0;
+
+    // Unidades a descontar por retardo (discountUnits, calculadas al marcar
+    // la entrada): visibles SOLO para Recursos Humanos. Los documentos
+    // anteriores a la propiedad no la traen → el bloque no se muestra.
+    const isHumanResources = dataSessionState?.dataSession?.jobInformation?.department === 'Recursos Humanos';
+    const discountUnits = Number(attendanceData?.discountUnits) || 0;
+    const showDiscountUnits = isHumanResources && discountUnits > 0;
+
     if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return null;
 
     const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
@@ -385,6 +393,14 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                         {workDuration && (
                             <div className='px-2.5 py-1.5 rounded border border-purple-200 bg-purple-50 text-xs font-semibold text-purple-700 whitespace-nowrap'>
                                 {workDuration}
+                            </div>
+                        )}
+                        {showDiscountUnits && (
+                            <div
+                                className='px-2.5 py-1.5 rounded border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700 whitespace-nowrap'
+                                title='Unidades a descontar por retardo — visible solo para Recursos Humanos'
+                            >
+                                −{discountUnits} {discountUnits === 1 ? 'unidad' : 'unidades'}
                             </div>
                         )}
                     </div>
