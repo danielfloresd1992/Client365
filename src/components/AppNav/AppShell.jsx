@@ -1,6 +1,9 @@
 'use client';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { isLoginRoute } from '@/libs/auth/routes.config';
+import useAuthOnServer from '@/hook/auth';
+import socket from '@/libs/socket/socketIo';
 import AppDock from './AppDock';
 
 /*
@@ -17,6 +20,24 @@ import AppDock from './AppDock';
 export default function AppShell({ children }) {
 
     const pathname = usePathname();
+    const { logOut, dataSessionState } = useAuthOnServer();
+    const sessionUserId = dataSessionState?.dataSession?._id;
+
+    // Cierre de sesión remoto: cuando el usuario marca su SALIDA laboral en
+    // bioJarvis, la API emite 'close-session-user' con su _id. Si es el
+    // usuario de ESTA sesión, se reutiliza el logOut del hook de auth.
+    useEffect(() => {
+        if (!sessionUserId) return;
+
+        const closeIfCurrentUser = (payload) => {
+            if (String(payload?.userId) === String(sessionUserId)) logOut('/');
+        };
+
+        socket.on('close-session-user', closeIfCurrentUser);
+        return () => {
+            socket.off('close-session-user', closeIfCurrentUser);
+        };
+    }, [sessionUserId, logOut]);
 
     // Portada y login: sin dock, pantalla completa
     if (isLoginRoute(pathname)) return children;
