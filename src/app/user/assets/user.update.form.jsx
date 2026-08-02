@@ -72,6 +72,18 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
         setValue,
         formState: { errors, dirtyFields }
     } = useForm({ defaultValues: initialData });
+
+    // La foto no es un input controlado (FileInput sube el archivo y guarda la
+    // URL con setValue), así que se registra "virtual" para que react-hook-form
+    // la valide igual que al resto: obligatoria SOLO si el documento del
+    // usuario todavía no tiene imagen.
+    register('img', {
+        validate: (value) => {
+            if (initialData?.img) return true;
+            return Boolean(value)
+                || 'La foto es obligatoria: este usuario no tiene imagen registrada.';
+        }
+    });
  
     
     // 💡 IMPORTANTE: Resetear el formulario cuando cambie initialData
@@ -156,7 +168,8 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
             const response = await fetchFileData(file);
             const newImageUrl = response.url;
             setDataUser({...dataUser, img: newImageUrl});
-            setValue('img', newImageUrl, { shouldDirty: true });
+            // shouldValidate: al subir la foto se limpia el error de "obligatoria"
+            setValue('img', newImageUrl, { shouldDirty: true, shouldValidate: true });
         }
     };
 
@@ -191,8 +204,13 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                 color={errors.dni ? 'failure' : 'gray'}
                                 sizing='sm'
                                 placeholder='Ej: 12345678'
-                                // Conexión con useForm y Yup
-                                {...register('dni')}
+                                // Obligatoria: si el documento no la tiene hay que
+                                // cargarla, y si ya la tiene no se puede vaciar.
+                                {...register('dni', {
+                                    validate: (value) =>
+                                        String(value ?? '').trim() !== ''
+                                        || 'La cédula es obligatoria: este usuario no la tiene registrada.'
+                                })}
                             />
                             {/* Muestra el error de validación si existe */}
                             {errors.dni?.message && (
@@ -449,10 +467,18 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                 <div className='w-full'>
 
                     <Label className="mb-2 block" htmlFor="file-upload-helper-text">
-                       {"Subir foto '(Operacional)'"}
+                       {"Subir foto '(Operacional)'"}{!initialData?.img && <span className='text-red-500'> *</span>}
                     </Label>
-                    <FileInput id="file-upload-helper-text" onChange={handleFileChange} />
-                    <HelperText className="mt-1">SVG, PNG, JPG or GIF (MAX. 800x400px).</HelperText>
+                    <FileInput
+                        id="file-upload-helper-text"
+                        color={errors.img ? 'failure' : undefined}
+                        onChange={handleFileChange}
+                    />
+                    {errors.img?.message ? (
+                        <HelperText color='failure'>{errors.img.message}</HelperText>
+                    ) : (
+                        <HelperText className="mt-1">SVG, PNG, JPG or GIF (MAX. 800x400px).</HelperText>
+                    )}
                 </div>
                 
 

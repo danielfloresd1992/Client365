@@ -11,6 +11,16 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-08-02
+- **Reglas de validación en /user:** (1) el botón "Cambiar horario del mes
+  siguiente" del context menu exige que el usuario tenga cargo, departamento y
+  horario por defecto definidos ('Sin definir' cuenta como faltante) — si algo
+  falta, modal de error global (`setConfigModal`) listando exactamente qué
+  establecer, sin abrir el formulario. (2) En "Editar usuario": la cédula es
+  obligatoria (no se puede guardar vacía ni vaciar una existente) y la foto es
+  obligatoria cuando el documento no tiene `img` — el FileInput se registra
+  como campo virtual de react-hook-form, con estilo failure y HelperText igual
+  que el resto de los campos; subir la foto limpia el error. Primeras
+  validaciones reales del form (no había resolver activo). _(Claude Code)_
 - **Unidades de descuento visibles para RRHH (horario /user):** el
   `DetailPopover` de la grilla muestra un chip "−N unidades" junto al estado y
   la duración cuando el documento del día trae la nueva propiedad

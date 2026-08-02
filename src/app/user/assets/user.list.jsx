@@ -955,6 +955,34 @@ export default forwardRef(function UserList({
                             className='w-full flex items-center gap-2.5 text-left px-3 py-2 rounded-md text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors'
                             onClick={() => {
                                 closeContextMenu();
+
+                                // Regla: sin cargo, departamento y horario por
+                                // defecto no se puede proyectar el mes siguiente.
+                                // 'Sin definir' cuenta como no establecido.
+                                const position = userState?.jobInformation?.position;
+                                const department = userState?.jobInformation?.department;
+                                const scheduleByDay = userState?.workSchedule?.scheduleByDay || {};
+                                const hasDefaultSchedule = Object.values(scheduleByDay)
+                                    .some(rule => rule && (rule.workType || rule.startTime));
+
+                                const missingValues = [];
+                                if (!position || position === 'Sin definir') missingValues.push('el cargo');
+                                if (!department || department === 'Sin definir') missingValues.push('el departamento');
+                                if (!hasDefaultSchedule) missingValues.push('el horario por defecto');
+
+                                if (missingValues.length > 0) {
+                                    const listado = missingValues.length > 1
+                                        ? `${missingValues.slice(0, -1).join(', ')} y ${missingValues.at(-1)}`
+                                        : missingValues[0];
+                                    dispatch(setConfigModal({
+                                        type: 'error',
+                                        title: 'Faltan datos del usuario',
+                                        description: `Antes de modificar el mes siguiente debes establecer ${listado} de ${userState?.name} ${userState?.surName} desde "Editar usuario".`,
+                                        modalOpen: true,
+                                    }));
+                                    return;
+                                }
+
                                 setShowNextMonthForm(true);
                             }}
                         >
