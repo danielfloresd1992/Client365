@@ -69,11 +69,12 @@ export default function AppDock() {
     };
     // Rol del día según el horario (encargado de turno / auxiliar): se resalta
     // sobre el avatar (colapsado) y como chip al expandir la barra.
-    const { onDuty, auxiliary, hasDayRole, roleLabel } = useDayRole() as {
+    const { onDuty, auxiliary, hasDayRole, roleLabel, roleWindow } = useDayRole() as {
         onDuty: boolean;
         auxiliary: boolean;
         hasDayRole: boolean;
         roleLabel: string | null;
+        roleWindow: string | null;
     };
 
     // Notificaciones — placeholder estético (igual que en el Header)
@@ -167,7 +168,7 @@ export default function AppDock() {
                         <span className={`${ICON_BOX} relative`}>
                             <img src={user?.img || userAvatarPlaceholder} alt={userName || 'avatar'} className={`w-8 h-8 rounded-full object-cover border-2 ${onDuty ? 'border-blue-700' : auxiliary ? 'border-red-600' : 'border-gray-200'}`} />
                             {hasDayRole && (
-                                <span className={`absolute -top-1 right-0.5 flex items-center justify-center w-4 h-4 rounded-full ring-2 ring-white text-white ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`} title={roleLabel ?? undefined}>
+                                <span className={`absolute -top-1 right-0.5 flex items-center justify-center w-4 h-4 rounded-full ring-2 ring-white text-white ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`} title={roleWindow ? `${roleLabel} · ${roleWindow}` : (roleLabel ?? undefined)}>
                                     <BellOffIcon size={10} strokeWidth={2.5} />
                                 </span>
                             )}
@@ -180,7 +181,16 @@ export default function AppDock() {
                             {roleLabel && (
                                 <span className={`inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider text-white px-1.5 py-[2px] rounded ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`}>
                                     <BellOffIcon size={10} strokeWidth={2.5} />
-                                    {roleLabel}
+                                    <span className='leading-tight'>
+                                        {roleLabel}
+                                        {/* Ventana del rol: el día operativo respeta el turno
+                                            (nocturno cruza la medianoche hasta las 07:00) */}
+                                        {roleWindow && (
+                                            <span className='block text-[8px] font-bold tracking-widest opacity-90 normal-case'>
+                                                {roleWindow}
+                                            </span>
+                                        )}
+                                    </span>
                                 </span>
                             )}
                         </span>

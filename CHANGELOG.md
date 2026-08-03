@@ -10,6 +10,16 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-03
+- **Roles de guardia por día operativo (con api_jarvis365):** el rol del día
+  (encargado de turno / auxiliar) ya no muere a la medianoche — el backend
+  resuelve "hoy" con el día operativo (08:00 → 07:59:59 del día siguiente),
+  el mismo criterio del middleware de noveltie, así que la guardia nocturna
+  conserva sus botones toda la jornada. `/user/day-role/today` ahora devuelve
+  también turno y horas efectivas; el slice `dayRole` las guarda y el AppDock
+  muestra la ventana del rol bajo el chip (ej. "18:00 → 07:00") y en el
+  tooltip del badge. _(Claude Code)_
+
 ## 2026-08-02
 - **Reglas de validación en /user:** (1) el botón "Cambiar horario del mes
   siguiente" del context menu exige que el usuario tenga cargo, departamento y

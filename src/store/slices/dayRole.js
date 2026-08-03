@@ -8,11 +8,16 @@ import { createSlice } from '@reduxjs/toolkit';
  */
 const dayRole = createSlice({
     name: 'dayRole',
-    initialState: { onDuty: false, auxiliary: false },
+    initialState: { onDuty: false, auxiliary: false, shift: null, startTime: null, endTime: null },
     reducers: {
         setDayRole: (state, action) => ({
             onDuty: Boolean(action.payload?.onDuty),
             auxiliary: Boolean(action.payload?.auxiliary),
+            // Jornada efectiva del día operativo (para mostrar la ventana del
+            // rol en la navegación): turno + hora de inicio y culminación.
+            shift: action.payload?.shift ?? null,
+            startTime: action.payload?.startTime ?? null,
+            endTime: action.payload?.endTime ?? null,
         }),
     },
 });

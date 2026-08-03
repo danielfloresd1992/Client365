@@ -21,14 +21,21 @@ import { setDayRole } from '@/store/slices/dayRole';
 
 const REFRESH_MS = 5 * 60 * 1000;
 
-// Lectura: rol del día desde el store + derivados (hasDayRole, roleLabel).
+// Lectura: rol del día desde el store + derivados (hasDayRole, roleLabel,
+// ventana horaria del rol). El backend resuelve el día OPERATIVO (08:00 →
+// 07:00), así que el rol del personal nocturno sobrevive la medianoche.
 export const useDayRole = () => {
-    const { onDuty, auxiliary } = useSelector(state => state.dayRole);
+    const { onDuty, auxiliary, shift, startTime, endTime } = useSelector(state => state.dayRole);
     return {
         onDuty,
         auxiliary,
+        shift,
+        startTime,
+        endTime,
         hasDayRole: onDuty || auxiliary,
         roleLabel: onDuty ? 'Encargado de turno' : auxiliary ? 'Auxiliar del día' : null,
+        // "18:00 → 07:00" — listo para pintar junto al rol
+        roleWindow: (onDuty || auxiliary) && startTime && endTime ? `${startTime} → ${endTime}` : null,
     };
 };
 
@@ -52,7 +59,13 @@ export function DayRoleProvider({ children }) {
             getMyDayRole()
                 .then(role => {
                     if (!alive) return;
-                    dispatch(setDayRole({ onDuty: Boolean(role?.onDuty), auxiliary: Boolean(role?.auxiliary) }));
+                    dispatch(setDayRole({
+                        onDuty: Boolean(role?.onDuty),
+                        auxiliary: Boolean(role?.auxiliary),
+                        shift: role?.shift ?? null,
+                        startTime: role?.startTime ?? null,
+                        endTime: role?.endTime ?? null,
+                    }));
                 })
                 .catch(err => console.error('Rol del día:', err?.message ?? err));
         };
