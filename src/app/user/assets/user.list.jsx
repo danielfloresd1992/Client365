@@ -287,6 +287,7 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
 
     // Scroll de comentarios siempre anclado abajo (últimos visibles), tanto al
     // abrir como cuando llega un comentario nuevo por socket
+
     const commentsListRef = useRef(null);
     const commentCount = attendanceData?.comments?.length || 0;
     useEffect(() => {
@@ -294,15 +295,16 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
         if (list) list.scrollTop = list.scrollHeight;
     }, [commentCount]);
 
+
     const hasOverrideInfo = Boolean(attendanceData?.scheduleOverride?.workType);
     const hasComments = attendanceData?.comments?.length > 0;
 
     // Unidades a descontar por retardo (discountUnits, calculadas al marcar
     // la entrada): visibles SOLO para Recursos Humanos. Los documentos
     // anteriores a la propiedad no la traen → el bloque no se muestra.
-    const isHumanResources = dataSessionState?.dataSession?.jobInformation?.department === 'Recursos Humanos';
+    const isHumanResources = dataSessionState?.dataSession?.jobInformation?.department === 'Recursos Humanos'; // futuras implementaciones
     const discountUnits = Number(attendanceData?.discountUnits) || 0;
-    const showDiscountUnits = isHumanResources && discountUnits > 0;
+    const showDiscountUnits =  discountUnits > 0;
 
     if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return null;
 
@@ -341,6 +343,7 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
         chain.push(...editors.slice(0, 3).reverse());
         return chain;
     })();
+
 
     const content = (
         <div
