@@ -97,6 +97,22 @@ const deleteMenu = (id, callback) => {
 
 
 
+// Bloquea o desbloquea una alerta (solo administradores). Con isLocked en
+// true, el backend rechaza la edición y el borrado del documento con 423.
+const lockMenu = (id, isLocked, callback) => {
+    axiosStand.patch(`/menu/lock/id=${id}`, { isLocked })
+        .then(response => {
+            callback(null, response);
+        })
+        .catch(err => {
+            console.log(err);
+            callback(err, null);
+        });
+};
+
+
+
+
 const getLocalLigth = async callback => {
     try {
         const listLocal = await axiosStand.get(`/localLigth`);
@@ -110,4 +126,4 @@ const getLocalLigth = async callback => {
 
 
 
-export { getMenuAll, getMenuById, sendMenu, putMenu, deleteMenu, getLocalLigth };
+export { getMenuAll, getMenuById, sendMenu, putMenu, deleteMenu, lockMenu, getLocalLigth };

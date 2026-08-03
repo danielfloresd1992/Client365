@@ -1,9 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useDispatch } from 'react-redux';
 import { FaBell, FaPlus } from 'react-icons/fa';
 
-import { getMenuAll, deleteMenu } from '../model/menu.model.js';
+import { getMenuAll, deleteMenu, lockMenu } from '../model/menu.model.js';
+import { myUserContext } from '@/contexts/userContext';
 import { setConfigModal } from '@/store/slices/globalModal.js';
 import categoryArr from '../model/category.js';
 import { norm } from '../lib/format.js';
@@ -68,6 +69,10 @@ function ListMenu({
     const [loading, setLoading]           = useState(true);
     const dispatch                        = useDispatch();
 
+    // Solo los administradores (admin === true) ven el botón de bloqueo
+    const { dataSessionState } = useContext(myUserContext);
+    const isAdmin = dataSessionState?.dataSession?.admin === true;
+
     // Recarga la lista al cambiar de categoría, al crear una alerta o al guardar
     useEffect(() => {
         setLoading(true);
@@ -89,6 +94,21 @@ function ListMenu({
     const deleteMenuAllArray = id => {
         setArrayMenuAll(prev => prev.filter(menu => id !== menu._id));
         resetNoveltie();
+    };
+
+    // Bloquea o desbloquea la alerta (solo admins): con el bloqueo activo el
+    // backend rechaza editarla y borrarla (423). El cambio se refleja al
+    // instante en el estado local; en error se muestra el mensaje de la API.
+    const toggleLock = (id, nextLocked) => {
+        lockMenu(id, nextLocked, (err) => {
+            if (err) {
+                const text = err.response?.data?.message
+                    || (err.response?.status === 403 ? 'Solo un administrador puede bloquear alertas.' : 'Ha ocurrido un error.');
+                dispatch(setConfigModal({ modalOpen: true, title: 'Error', description: text, isCallback: null, type: 'error' }));
+                return;
+            }
+            setArrayMenuAll(prev => prev.map(menu => (menu._id === id ? { ...menu, isLocked: nextLocked } : menu)));
+        });
     };
 
     // Pide confirmación y elimina la alerta en el servidor
@@ -241,6 +261,8 @@ function ListMenu({
                                 isSelected={Boolean(item._id) && item._id === selectedId}
                                 onSelect={setMenu}
                                 onDelete={askDelete}
+                                isAdmin={isAdmin}
+                                onToggleLock={toggleLock}
                             />
                         ))}
                     </CategoryGroup>

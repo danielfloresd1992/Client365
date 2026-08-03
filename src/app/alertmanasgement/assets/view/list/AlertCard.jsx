@@ -1,5 +1,5 @@
 'use client';
-import { FaTrash, FaFileAlt, FaBroadcastTower } from 'react-icons/fa';
+import { FaTrash, FaFileAlt, FaBroadcastTower, FaLock, FaLockOpen } from 'react-icons/fa';
 import { metaOf, BONUS_BADGE } from '../../lib/categoryMeta.js';
 import PersonRow from './PersonRow.jsx';
 import FlagChip from './FlagChip.jsx';
@@ -8,20 +8,25 @@ import FlagChip from './FlagChip.jsx';
  * Tarjeta de una alerta dentro de la lista.
  *
  * Estructura: fila superior (ícono de categoría, títulos ES/EN, indicadores de
- * reporte, badge de bono y botón eliminar) y, debajo, la autoría (creador +
- * últimas ediciones).
+ * reporte, badge de bono, bloqueo y botón eliminar) y, debajo, la autoría
+ * (creador + últimas ediciones).
  *
- * @param item       - documento de menú/alerta
- * @param isSelected - true si es la alerta abierta en el formulario
- * @param onSelect   - abre la alerta en el formulario
- * @param onDelete   - pide confirmación y elimina
+ * @param item         - documento de menú/alerta
+ * @param isSelected   - true si es la alerta abierta en el formulario
+ * @param onSelect     - abre la alerta en el formulario
+ * @param onDelete     - pide confirmación y elimina
+ * @param isAdmin      - true → puede bloquear/desbloquear (admin de la sesión)
+ * @param onToggleLock - (id, nextLocked) cambia el bloqueo en el servidor
  */
-export default function AlertCard({ item, isSelected, onSelect, onDelete }) {
+export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmin = false, onToggleLock = () => {} }) {
     const { Icon, bg, color } = metaOf(item.category);
 
     const bonusActive = Boolean(item.bonusCalculationRules?.activate);
     const bonusWorth  = item.bonusCalculationRules?.defaultRule?.worth ?? 1;
     const badge       = BONUS_BADGE[bonusWorth] ?? BONUS_BADGE[1];
+
+    // Bloqueo administrativo: con true el backend rechaza editar y borrar (423)
+    const isLocked = Boolean(item.isLocked);
 
     // Autoría: creador + últimas 3 ediciones que devuelve el backend
     const editors       = Array.isArray(item.lastEditors) ? item.lastEditors : [];
@@ -108,25 +113,72 @@ export default function AlertCard({ item, isSelected, onSelect, onDelete }) {
                     </span>
                 )}
 
-                {/* Eliminar: detiene la propagación para no abrir el formulario */}
+                {/* Bloqueada: candado visible para TODOS (solo informativo) */}
+                {isLocked && !isAdmin && (
+                    <span
+                        title='Alerta bloqueada por administración: no se puede editar ni eliminar'
+                        style={{
+                            flexShrink:     0,
+                            padding:        '7px',
+                            borderRadius:   '8px',
+                            border:         '1px solid #fde68a',
+                            background:     '#fffbeb',
+                            color:          '#b45309',
+                            display:        'flex',
+                            alignItems:     'center',
+                            justifyContent: 'center',
+                        }}
+                    >
+                        <FaLock size={13} />
+                    </span>
+                )}
+
+                {/* Bloquear/desbloquear: SOLO administradores (admin === true) */}
+                {isAdmin && (
+                    <button
+                        type='button'
+                        title={isLocked ? 'Desbloquear alerta (permitir editar y borrar)' : 'Bloquear alerta (impedir editar y borrar)'}
+                        style={{
+                            flexShrink:     0,
+                            padding:        '7px',
+                            borderRadius:   '8px',
+                            border:         isLocked ? '1px solid #fde68a' : '1px solid #e5e7eb',
+                            background:     isLocked ? '#fffbeb' : '#f9fafb',
+                            color:          isLocked ? '#b45309' : '#9ca3af',
+                            cursor:         'pointer',
+                            display:        'flex',
+                            alignItems:     'center',
+                            justifyContent: 'center',
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.background = isLocked ? '#fde68a' : '#f3f4f6'}
+                        onMouseLeave={e => e.currentTarget.style.background = isLocked ? '#fffbeb' : '#f9fafb'}
+                        onClick={e => { e.stopPropagation(); onToggleLock(item._id, !isLocked); }}
+                    >
+                        {isLocked ? <FaLock size={13} /> : <FaLockOpen size={13} />}
+                    </button>
+                )}
+
+                {/* Eliminar: deshabilitado si la alerta está bloqueada.
+                    Detiene la propagación para no abrir el formulario. */}
                 <button
                     type='button'
-                    title='Eliminar alerta'
+                    title={isLocked ? 'Bloqueada por administración: no se puede eliminar' : 'Eliminar alerta'}
+                    disabled={isLocked}
                     style={{
                         flexShrink:     0,
                         padding:        '7px',
                         borderRadius:   '8px',
-                        border:         '1px solid #fee2e2',
-                        background:     '#fff5f5',
-                        color:          '#dc2626',
-                        cursor:         'pointer',
+                        border:         isLocked ? '1px solid #e5e7eb' : '1px solid #fee2e2',
+                        background:     isLocked ? '#f9fafb' : '#fff5f5',
+                        color:          isLocked ? '#d1d5db' : '#dc2626',
+                        cursor:         isLocked ? 'not-allowed' : 'pointer',
                         display:        'flex',
                         alignItems:     'center',
                         justifyContent: 'center',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background = '#fee2e2'}
-                    onMouseLeave={e => e.currentTarget.style.background = '#fff5f5'}
-                    onClick={e => { e.stopPropagation(); onDelete(item._id); }}
+                    onMouseEnter={e => { if (!isLocked) e.currentTarget.style.background = '#fee2e2'; }}
+                    onMouseLeave={e => { if (!isLocked) e.currentTarget.style.background = '#fff5f5'; }}
+                    onClick={e => { e.stopPropagation(); if (!isLocked) onDelete(item._id); }}
                 >
                     <FaTrash size={13} />
                 </button>
