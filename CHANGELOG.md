@@ -11,6 +11,15 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-08-03
+- **Reportes de asistencia al día con el modelo (con api_jarvis365):** el
+  reporte individual de /user/asistencia suma columnas Turno, Desc. (unidades
+  a descontar del día) y Rol (badge Guardia/Auxiliar con los colores de la
+  grilla), más card y total de "Unid. descuento" — en pantalla y en el PDF.
+  El global calcula por empleado (dentro de la agregación de Mongo) descuentos
+  acumulados, permisos, vacaciones, días de guardia/auxiliar y turno, con sus
+  columnas, card y total; en el PDF apaisado guardias y auxiliar comparten
+  columna ("3 / 1"). Compatible hacia atrás: documentos sin `discountUnits`
+  muestran 0. _(Claude Code)_
 - **Roles de guardia por día operativo (con api_jarvis365):** el rol del día
   (encargado de turno / auxiliar) ya no muere a la medianoche — el backend
   resuelve "hoy" con el día operativo (08:00 → 07:59:59 del día siguiente),

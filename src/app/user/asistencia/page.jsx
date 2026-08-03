@@ -236,7 +236,19 @@ function buildDayList(reportData) {
                 ? calcLateMinutes(record?.checkIn, startTime)
                 : 0;
 
-            days.push({ date: new Date(cur), record: record || null, startTime, endTime, effectiveWorkType, status, workedMin, extraMin, lateMin, tipo, noteText });
+            // Turno efectivo del día (override > regla semanal > turno global)
+            const shift = override?.shift || dayRule?.shift || user.workSchedule?.shiftType || '—';
+
+            days.push({
+                date: new Date(cur), record: record || null, startTime, endTime,
+                effectiveWorkType, status, workedMin, extraMin, lateMin, tipo, noteText,
+                shift,
+                // Unidades a descontar persistidas al marcar la entrada con retardo
+                discountUnits: record?.discountUnits || 0,
+                // Roles de guardia del día (encargado de turno / auxiliar)
+                onDuty: Boolean(record?.onDuty),
+                auxiliary: Boolean(record?.auxiliary),
+            });
         }
         cur.setUTCDate(cur.getUTCDate() + 1);
     }
@@ -271,6 +283,9 @@ function buildIndividualPrintHTML(reportData, dayList, logoUrl) {
         'Ausente': '#b71c1c', 'Franco tr.': '#1565c0'
     }[s] || '#999');
 
+    // Total de unidades a descontar del período (discountUnits por día)
+    const totalDiscount = dayList.reduce((a, d) => a + (d.discountUnits || 0), 0);
+
     // Filas de la tabla de detalle
     const rows = dayList.map(d => {
         const dateStr = d.date.toLocaleDateString('es-VE', { timeZone: 'UTC', day: '2-digit', month: '2-digit' })
@@ -279,16 +294,22 @@ function buildIndividualPrintHTML(reportData, dayList, logoUrl) {
         const worked  = formatWorked(d.record?.checkIn, d.record?.checkOut) || '0h 00m';
         const extras  = d.extraMin > 0 ? `+${formatMinutes(d.extraMin)}` : '—';
         const retardo = d.lateMin  > 0 ? `+${d.lateMin}m` : '—';
+        const desc    = d.discountUnits > 0 ? `-${d.discountUnits}` : '—';
+        const rol     = d.onDuty ? 'Guardia' : d.auxiliary ? 'Auxiliar' : '—';
+        const rolColor = d.onDuty ? '#1565c0' : d.auxiliary ? '#c62828' : '#bbb';
         return `<tr>
           <td>${dateStr}</td>
           <td style="color:${sColor(d.status)};font-weight:700">${d.status}</td>
           <td>${d.record?.checkIn  ? formatTimeVE(d.record.checkIn)  : '—'}</td>
           <td>${d.record?.checkOut ? formatTimeVE(d.record.checkOut) : '—'}</td>
           <td>${horario}</td>
+          <td>${d.shift || '—'}</td>
           <td>${d.record?.checkIn ? worked : '0h 00m'}</td>
           <td style="color:${d.extraMin > 0 ? '#2e7d32' : '#bbb'};font-weight:${d.extraMin > 0 ? 700 : 400}">${extras}</td>
           <td style="color:${d.lateMin  > 0 ? '#e65100' : '#bbb'};font-weight:${d.lateMin  > 0 ? 700 : 400}">${retardo}</td>
+          <td style="color:${d.discountUnits > 0 ? '#c62828' : '#bbb'};font-weight:${d.discountUnits > 0 ? 700 : 400}">${desc}</td>
           <td>${d.tipo}</td>
+          <td style="color:${rolColor};font-weight:${rol !== '—' ? 700 : 400}">${rol}</td>
           <td style="color:#777">${d.noteText || '—'}</td>
         </tr>`;
     }).join('');
@@ -345,19 +366,21 @@ tr:nth-child(even) td{background:#fafafa}
     <div class="card"><div class="cv a">${summary.lateDays}</div><div class="cl">Retardos</div><div class="cs">${summary.justifiedLateDays} justificado${summary.justifiedLateDays !== 1 ? 's' : ''}</div></div>
     <div class="card"><div class="cv g">${formatMinutes(summary.extraMinutes) || '0min'}</div><div class="cl">Horas extras</div><div class="cs">${dayList.filter(d => d.extraMin > 0).length} días con extra</div></div>
     <div class="card"><div class="cv r">${summary.absentDays}</div><div class="cl">Ausencias</div><div class="cs">sin justificar</div></div>
+    <div class="card"><div class="cv r">${totalDiscount}</div><div class="cl">Unid. descuento</div><div class="cs">${dayList.filter(d => d.discountUnits > 0).length} día(s) con descuento</div></div>
   </div>
 </div>
 <div class="sec">
   <div class="sec-title">Detalle de Asistencia</div>
   <table><thead><tr>
     <th>Fecha</th><th>Estado</th><th>Entrada</th><th>Salida</th>
-    <th>Horario</th><th>Trabajadas</th><th>Extras</th><th>Retardo</th><th>Tipo</th><th>Nota</th>
+    <th>Horario</th><th>Turno</th><th>Trabajadas</th><th>Extras</th><th>Retardo</th><th>Desc.</th><th>Tipo</th><th>Rol</th><th>Nota</th>
   </tr></thead><tbody>${rows}</tbody></table>
 </div>
 <div class="tot">
   <div class="ti"><div class="tl">Total horas trabajadas</div><div class="tv" style="color:#2e7d32">${Math.floor(totalMin/60)}h ${String(totalMin%60).padStart(2,'0')}m</div></div>
   <div class="ti"><div class="tl">Total horas extras</div><div class="tv" style="color:#2e7d32">${formatMinutes(summary.extraMinutes) || '0min'}</div></div>
   <div class="ti"><div class="tl">Total retardos</div><div class="tv" style="color:#e65100">${formatMinutes(summary.lateMinutes) || '0min'}</div></div>
+  <div class="ti"><div class="tl">Unidades a descontar</div><div class="tv" style="color:#c62828">${totalDiscount}</div></div>
   <div class="ti"><div class="tl">Horas esperadas</div><div class="tv">${Math.floor(summary.expectedMinutes/60)}h ${String(summary.expectedMinutes%60).padStart(2,'0')}m</div></div>
 </div>
 <div class="foot">Amazonas 365 · Gestión de Recursos Humanos · Documento confidencial</div>
@@ -394,6 +417,14 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     const lateColor  = n => n > 0 ? 'color:#b71c1c;font-weight:700' : 'color:#bbb';
     const extraColor = n => n > 0 ? 'color:#1565c0;font-weight:700' : 'color:#bbb';
     const faltaColor = n => n > 0 ? 'color:#c62828;font-weight:700' : 'color:#bbb';
+    const descColor  = n => n > 0 ? 'color:#c62828;font-weight:700' : 'color:#bbb';
+    const permColor  = n => n > 0 ? 'color:#6a1b9a;font-weight:700' : 'color:#bbb';
+    const vacColor   = n => n > 0 ? 'color:#00838f;font-weight:700' : 'color:#bbb';
+    const guardColor = n => n > 0 ? 'color:#1565c0;font-weight:700' : 'color:#bbb';
+    const auxColor   = n => n > 0 ? 'color:#c62828;font-weight:700' : 'color:#bbb';
+
+    // Total de unidades a descontar del conjunto que va al PDF
+    const totalDiscount = filtered.reduce((a, e) => a + (e.discountUnits || 0), 0);
 
     // Agrupar por departamento para separar secciones en el PDF
     const byDept = {};
@@ -409,24 +440,34 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     let rowIndex = 0;
     Object.entries(byDept).forEach(([dept, emps]) => {
         // Fila separadora de departamento (agrupa visualmente en el PDF)
-        rows += `<tr><td colspan="9" style="background:#e8f5e9;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d32;padding:4px 6px;border-bottom:1px solid #c8e6c9">${dept}</td></tr>`;
+        rows += `<tr><td colspan="14" style="background:#e8f5e9;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d32;padding:4px 6px;border-bottom:1px solid #c8e6c9">${dept}</td></tr>`;
         emps.forEach(e => {
             rowIndex++;
             // Filas alternas para facilitar lectura horizontal
             const bg       = rowIndex % 2 === 0 ? 'background:#fafafa' : 'background:#fff';
             const inactTag = e.inabilited ? ' <span style="color:#e53935;font-size:7.5px;font-weight:700">(Inactivo)</span>' : '';
             const falta    = e.faltaCount || 0;
-            // Las 4 columnas numéricas van centradas
+            const desc     = e.discountUnits || 0;
+            const perm     = e.permisoCount || 0;
+            const vac      = e.vacacionesCount || 0;
+            const guard    = e.onDutyDays || 0;
+            const aux      = e.auxiliaryDays || 0;
+            // Las columnas numéricas van centradas
             rows += `<tr style="${bg}">
               <td style="text-align:center;color:#999;font-size:9px">${rowIndex}</td>
               <td style="font-weight:600">${e.surName}, ${e.name}${inactTag}</td>
               <td style="color:#555">${e.dni || '—'}</td>
               <td style="color:#555">${dept}</td>
               <td style="color:#555">${e.jobInformation?.position || '—'}</td>
+              <td style="color:#555;text-align:center">${e.shiftType || '—'}</td>
               <td style="text-align:center;${lateColor(e.lateWeekday)}">${e.lateWeekday}</td>
               <td style="text-align:center;${lateColor(e.lateWeekend)}">${e.lateWeekend}</td>
+              <td style="text-align:center;${descColor(desc)}">${desc > 0 ? `-${desc}` : 0}</td>
               <td style="text-align:center;${extraColor(e.extraDays)}">${e.extraDays}</td>
+              <td style="text-align:center;${permColor(perm)}">${perm}</td>
+              <td style="text-align:center;${vacColor(vac)}">${vac}</td>
               <td style="text-align:center;${faltaColor(falta)}">${falta}</td>
+              <td style="text-align:center;${guardColor(guard)}">${guard}${aux > 0 ? ` <span style="${auxColor(aux)}">/ ${aux}</span>` : ''}</td>
             </tr>`;
         });
     });
@@ -559,6 +600,7 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
   <div class="card"><div class="cv b">${totals.totalExtraDays}</div><div class="cl">Días extra</div></div>
   <div class="card"><div class="cv g">${totals.totalPresent}</div><div class="cl">Presencias</div></div>
   <div class="card"><div class="cv r">${totals.totalFalta}</div><div class="cl">Total faltas</div></div>
+  <div class="card"><div class="cv r">${totalDiscount}</div><div class="cl">Unid. descuento</div></div>
 </div>
 
 <!-- Tabla con recuadro completo (div.wrap controla el borde exterior) -->
@@ -567,15 +609,20 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     <thead>
       <tr>
         <!-- Anchos fijos que suman ~100% del área útil landscape A4 (~267mm) -->
-        <th style="width:4%">#</th>
-        <th style="width:22%">Apellido, Nombre</th>
-        <th style="width:11%">Cédula</th>
-        <th style="width:22%">Departamento</th>
-        <th style="width:18%">Cargo</th>
-        <th style="width:7%;text-align:center;color:#b71c1c">Ret. Sem.</th>
-        <th style="width:7%;text-align:center;color:#e65100">Ret. Finde</th>
+        <th style="width:3%">#</th>
+        <th style="width:17%">Apellido, Nombre</th>
+        <th style="width:8%">Cédula</th>
+        <th style="width:13%">Departamento</th>
+        <th style="width:12%">Cargo</th>
+        <th style="width:7%;text-align:center">Turno</th>
+        <th style="width:6%;text-align:center;color:#b71c1c">Ret. Sem.</th>
+        <th style="width:6%;text-align:center;color:#e65100">Ret. Finde</th>
+        <th style="width:5%;text-align:center;color:#c62828">Desc.</th>
         <th style="width:5%;text-align:center;color:#1565c0">Extra</th>
+        <th style="width:5%;text-align:center;color:#6a1b9a">Perm.</th>
+        <th style="width:5%;text-align:center;color:#00838f">Vac.</th>
         <th style="width:4%;text-align:center;color:#c62828">Faltas</th>
+        <th style="width:4%;text-align:center;color:#1565c0">Guard.</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -679,10 +726,25 @@ function AttendanceRow({ day }) {
             <td className='px-3 py-2 text-[12px] font-bold text-gray-700 whitespace-nowrap'>{day.record?.checkIn  ? formatTimeVE(day.record.checkIn)  : '—'}</td>
             <td className='px-3 py-2 text-[12px] font-bold text-gray-700 whitespace-nowrap'>{day.record?.checkOut ? formatTimeVE(day.record.checkOut) : '—'}</td>
             <td className='px-3 py-2 text-[11px] text-gray-500 whitespace-nowrap'>{horario}</td>
+            <td className='px-3 py-2 text-[11px] text-gray-500 whitespace-nowrap'>{day.shift}</td>
             <td className='px-3 py-2 text-[12px] text-gray-700 whitespace-nowrap'>{worked}</td>
             <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.extraMin > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{extraTx}</td>
             <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.lateMin  > 0 ? 'text-amber-600'   : 'text-gray-300'}`}>{retardoTx}</td>
+            {/* Unidades a descontar por el retardo del día */}
+            <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.discountUnits > 0 ? 'text-rose-600' : 'text-gray-300'}`}>
+                {day.discountUnits > 0 ? `−${day.discountUnits}` : '—'}
+            </td>
             <td className='px-3 py-2 text-[11px] text-gray-500 whitespace-nowrap'>{day.tipo}</td>
+            {/* Rol de guardia del día — mismos colores que la grilla del horario */}
+            <td className='px-3 py-2 whitespace-nowrap'>
+                {day.onDuty ? (
+                    <span className='text-[9px] font-black uppercase tracking-wider text-white bg-blue-700 rounded px-1.5 py-0.5'>Guardia</span>
+                ) : day.auxiliary ? (
+                    <span className='text-[9px] font-black uppercase tracking-wider text-white bg-red-600 rounded px-1.5 py-0.5'>Auxiliar</span>
+                ) : (
+                    <span className='text-[11px] text-gray-300'>—</span>
+                )}
+            </td>
             <td className='px-3 py-2 text-[11px] text-gray-400 max-w-[130px] truncate'>{day.noteText || '—'}</td>
         </tr>
     );
@@ -737,6 +799,9 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
 
     // Suma total de minutos trabajados para el footer
     const totalWorkedMin = useMemo(() => dayList.reduce((a, d) => a + d.workedMin, 0), [dayList]);
+
+    // Total de unidades a descontar del período (discountUnits por día)
+    const totalDiscountUnits = useMemo(() => dayList.reduce((a, d) => a + d.discountUnits, 0), [dayList]);
 
     const handleSelectUser = u => { setSelectedUser(u); setSearchQuery(''); setShowDropdown(false); setReportData(null); setCurrentPage(1); };
 
@@ -909,12 +974,14 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                     </div>
 
                     {/* Cards de resumen */}
-                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3'>
+                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3'>
                         <SummaryCard value={summary.totalWorkingDays} label='Días laborables'  sub='en el período'                                                           color='gray'  />
                         <SummaryCard value={summary.presentDays}      label='Días presentes'   sub={`${summary.attendanceRate}% asistencia`}                               color='green' />
                         <SummaryCard value={summary.lateDays}         label='Retardos'         sub={`${summary.justifiedLateDays} justificado${summary.justifiedLateDays !== 1 ? 's' : ''}`} color='amber' />
                         <SummaryCard value={formatMinutes(summary.extraMinutes) || '0min'} label='Horas extras' sub={`${dayList.filter(d => d.extraMin > 0).length} días con extra`} color='green' />
                         <SummaryCard value={summary.absentDays}       label='Ausencias'        sub='sin justificar'                                                        color='red'   />
+                        {/* Unidades a descontar acumuladas (discountUnits del modelo) */}
+                        <SummaryCard value={totalDiscountUnits}       label='Unid. descuento'  sub={`${dayList.filter(d => d.discountUnits > 0).length} día${dayList.filter(d => d.discountUnits > 0).length !== 1 ? 's' : ''} con descuento`} color='red' />
                     </div>
 
                     {/* Tabla de detalle */}
@@ -928,7 +995,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                             <table className='min-w-full text-sm'>
                                 <thead className='sticky top-0 bg-gray-50 z-10 border-b border-gray-200'>
                                     <tr>
-                                        {['Fecha','Estado','Entrada','Salida','Horario','Trabajadas','Extras','Retardo','Tipo','Nota adm.'].map(h => (
+                                        {['Fecha','Estado','Entrada','Salida','Horario','Turno','Trabajadas','Extras','Retardo','Desc.','Tipo','Rol','Nota adm.'].map(h => (
                                             <th key={h} className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap'>{h}</th>
                                         ))}
                                     </tr>
@@ -936,7 +1003,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                                 <tbody className='divide-y divide-gray-100'>
                                     {paginatedDays.map((day, i) => <AttendanceRow key={i} day={day} />)}
                                     {paginatedDays.length === 0 && (
-                                        <tr><td colSpan={10} className='text-center py-10 text-gray-400 text-sm'>No hay registros en este período</td></tr>
+                                        <tr><td colSpan={13} className='text-center py-10 text-gray-400 text-sm'>No hay registros en este período</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -961,10 +1028,11 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                             </div>
                         )}
                         {/* Totales footer */}
-                        <div className='border-t grid grid-cols-2 sm:grid-cols-4 bg-gray-50 rounded-b-xl'>
+                        <div className='border-t grid grid-cols-2 sm:grid-cols-5 bg-gray-50 rounded-b-xl'>
                             <FooterCell label='Total horas trabajadas' value={`${Math.floor(totalWorkedMin/60)}h ${String(totalWorkedMin%60).padStart(2,'0')}m`} green />
                             <FooterCell label='Total horas extras'     value={formatMinutes(summary.extraMinutes) || '0min'} green />
                             <FooterCell label='Minutos de retardo'     value={formatMinutes(summary.lateMinutes)  || '0min'} amber />
+                            <FooterCell label='Unidades a descontar'   value={String(totalDiscountUnits)} amber />
                             <FooterCell label='Horas esperadas'        value={`${Math.floor(summary.expectedMinutes/60)}h ${String(summary.expectedMinutes%60).padStart(2,'0')}m`} />
                         </div>
                     </div>
@@ -1054,6 +1122,12 @@ function GlobalReportSection() {
         present:     filteredEmployees.reduce((a, e) => a + e.totalPresent, 0),
         // faltaCount: faltas pre-registradas acumuladas del conjunto visible
         faltaCount:  filteredEmployees.reduce((a, e) => a + (e.faltaCount || 0), 0),
+        // Campos nuevos del modelo (|| 0 tolera respuestas de la API anterior)
+        discountUnits: filteredEmployees.reduce((a, e) => a + (e.discountUnits || 0), 0),
+        permiso:       filteredEmployees.reduce((a, e) => a + (e.permisoCount || 0), 0),
+        vacaciones:    filteredEmployees.reduce((a, e) => a + (e.vacacionesCount || 0), 0),
+        onDuty:        filteredEmployees.reduce((a, e) => a + (e.onDutyDays || 0), 0),
+        auxiliary:     filteredEmployees.reduce((a, e) => a + (e.auxiliaryDays || 0), 0),
     }), [filteredEmployees]);
 
     const periodLabel = useMemo(() => {
@@ -1132,8 +1206,8 @@ function GlobalReportSection() {
             {/* Resultado global */}
             {!isLoading && globalData && (
                 <>
-                    {/* Cards de resumen globales — 6 métricas */}
-                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3'>
+                    {/* Cards de resumen globales — 7 métricas */}
+                    <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3'>
                         {/* Total empleados con desglose activos/inactivos */}
                         <SummaryCard
                             value={globalData.totals.totalEmployees}
@@ -1147,6 +1221,8 @@ function GlobalReportSection() {
                         <SummaryCard value={filteredTotals.present}     label='Presencias'   sub='total checkIns'     color='green' />
                         {/* Card de faltas totales: pre-registradas + ausentes orgánicos */}
                         <SummaryCard value={filteredTotals.faltaCount}  label='Faltas'       sub='ausencias totales'  color='red'   />
+                        {/* Unidades a descontar acumuladas (discountUnits del modelo) */}
+                        <SummaryCard value={filteredTotals.discountUnits} label='Unid. descuento' sub='por retardos' color='red' />
                     </div>
 
                     {/*
@@ -1183,13 +1259,21 @@ function GlobalReportSection() {
                                         <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[110px]'>Cédula</th>
                                         <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[160px]'>Departamento</th>
                                         <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider min-w-[160px]'>Cargo</th>
+                                        <th className='px-3 py-2.5 text-left text-[10px] font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap min-w-[80px]'>Turno</th>
                                         {/* Columnas de métricas con colores de alerta visual */}
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-red-400 uppercase tracking-wider whitespace-nowrap min-w-[110px]'>Ret. Semana</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-amber-400 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Ret. Finde</th>
+                                        {/* Unidades a descontar por retardos (discountUnits) */}
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-rose-400 uppercase tracking-wider whitespace-nowrap min-w-[80px]'>Desc.</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Días Extra</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-purple-400 uppercase tracking-wider whitespace-nowrap min-w-[90px]'>Permisos</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-cyan-500 uppercase tracking-wider whitespace-nowrap min-w-[80px]'>Vacac.</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Presencias</th>
                                         {/* Columna Faltas: workType='falta' pre-registrado O status='ausente' */}
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-rose-500 uppercase tracking-wider whitespace-nowrap min-w-[90px]'>Faltas</th>
+                                        {/* Días con rol de guardia (encargado de turno / auxiliar) */}
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-blue-500 uppercase tracking-wider whitespace-nowrap min-w-[90px]'>Guardias</th>
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-red-500 uppercase tracking-wider whitespace-nowrap min-w-[70px]'>Aux.</th>
                                     </tr>
                                 </thead>
                                 <tbody className='divide-y divide-gray-100'>
@@ -1201,7 +1285,7 @@ function GlobalReportSection() {
                                         />
                                     ))}
                                     {paginatedEmps.length === 0 && (
-                                        <tr><td colSpan={10} className='text-center py-10 text-gray-400 text-sm'>
+                                        <tr><td colSpan={16} className='text-center py-10 text-gray-400 text-sm'>
                                             {searchFilter ? 'No hay empleados que coincidan con el filtro' : 'No hay datos para este período'}
                                         </td></tr>
                                     )}
@@ -1229,14 +1313,15 @@ function GlobalReportSection() {
                             </div>
                         )}
 
-                        {/* Footer totales globales — incluye faltas */}
-                        <div className='border-t grid grid-cols-3 sm:grid-cols-5 bg-gray-50 rounded-b-xl'>
+                        {/* Footer totales globales — incluye faltas y descuentos */}
+                        <div className='border-t grid grid-cols-3 sm:grid-cols-6 bg-gray-50 rounded-b-xl'>
                             <FooterCell label='Total empleados'   value={`${filteredEmployees.length}`} />
                             <FooterCell label='Ret. semana'       value={String(filteredTotals.lateWeekday)} amber />
                             <FooterCell label='Ret. finde'        value={String(filteredTotals.lateWeekend)} amber />
                             <FooterCell label='Días extra'        value={String(filteredTotals.extraDays)} green />
                             {/* Total de faltas pre-registradas del conjunto visible */}
                             <FooterCell label='Total faltas'      value={String(filteredTotals.faltaCount)} />
+                            <FooterCell label='Unid. descuento'   value={String(filteredTotals.discountUnits)} amber />
                         </div>
                     </div>
                 </>
@@ -1290,6 +1375,8 @@ function GlobalEmployeeRow({ emp, index }) {
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{emp.dni || '—'}</td>
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{dept}</td>
             <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{pos}</td>
+            {/* Turno del empleado (shiftType plano desde la agregación) */}
+            <td className='px-3 py-2.5 text-[11px] text-gray-500 whitespace-nowrap'>{emp.shiftType || '—'}</td>
 
             {/* Retardos entre semana — rojo si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.lateWeekday > 0 ? 'text-red-500' : 'text-gray-300'}`}>
@@ -1299,9 +1386,21 @@ function GlobalEmployeeRow({ emp, index }) {
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.lateWeekend > 0 ? 'text-amber-500' : 'text-gray-300'}`}>
                 {emp.lateWeekend}
             </td>
+            {/* Unidades a descontar por retardos — rosa si > 0 */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.discountUnits || 0) > 0 ? 'text-rose-500' : 'text-gray-300'}`}>
+                {(emp.discountUnits || 0) > 0 ? `−${emp.discountUnits}` : 0}
+            </td>
             {/* Días extra — azul si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.extraDays > 0 ? 'text-blue-500' : 'text-gray-300'}`}>
                 {emp.extraDays}
+            </td>
+            {/* Permisos — púrpura si > 0 */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.permisoCount || 0) > 0 ? 'text-purple-500' : 'text-gray-300'}`}>
+                {emp.permisoCount || 0}
+            </td>
+            {/* Vacaciones — cian si > 0 */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.vacacionesCount || 0) > 0 ? 'text-cyan-600' : 'text-gray-300'}`}>
+                {emp.vacacionesCount || 0}
             </td>
             {/* Presencias — verde si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.totalPresent > 0 ? 'text-emerald-500' : 'text-gray-300'}`}>
@@ -1310,6 +1409,14 @@ function GlobalEmployeeRow({ emp, index }) {
             {/* Faltas totales (pre-registradas + ausencias orgánicas) — rosa si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${falta > 0 ? 'text-rose-500' : 'text-gray-300'}`}>
                 {falta}
+            </td>
+            {/* Días como encargado de turno — azul (mismo color que la grilla) */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.onDutyDays || 0) > 0 ? 'text-blue-700' : 'text-gray-300'}`}>
+                {emp.onDutyDays || 0}
+            </td>
+            {/* Días como auxiliar — rojo (mismo color que la grilla) */}
+            <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.auxiliaryDays || 0) > 0 ? 'text-red-600' : 'text-gray-300'}`}>
+                {emp.auxiliaryDays || 0}
             </td>
         </tr>
     );
