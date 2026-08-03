@@ -281,8 +281,14 @@ export default memo(function MemoizedSlide({ imageShare, video, imageGroup, isDr
     }
 
 
+    const handleContextMenu = (e) => {
+        e.preventDefault();
+        // Aquí puedes agregar lógica para mostrar un menú contextual personalizado si lo deseas
+    };
+
+
     return (
-        <div className={`${SLIDE_HEIGHT} relative bg-black`} ref={ref}>
+        <div className={`${SLIDE_HEIGHT} relative bg-black`} ref={ref} onContextMenu={handleContextMenu}>
             <DynamicSlider {...setting}>
                 {slides}
             </DynamicSlider>
