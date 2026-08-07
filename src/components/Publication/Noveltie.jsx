@@ -54,6 +54,11 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const [isSharing, setIsSharing] = useState(false);
     // Envío automático a WhatsApp falló → habilita descargar imagen/video
     const [autoSendFailed, setAutoSendFailed] = useState(false);
+    // El último envío al grupo se hizo SOLO con la imagen: el video se quedó
+    // sin publicar. Vive en el estado local porque putValidateNoveltie no
+    // refresca noveltyState (eso llega por el socket document_updated) y el
+    // botón de descarga tiene que aparecer en el mismo momento del envío.
+    const [sentAsImageOnly, setSentAsImageOnly] = useState(false);
 
 
     const dataDeleteForUserRef = useRef();
@@ -275,6 +280,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                     givenToTheGroup: true
                 });
 
+                // Qué se acaba de mandar al grupo. Si fue solo la imagen, el
+                // video quedó sin publicar y hay que ofrecer su descarga.
+                setSentAsImageOnly(Boolean(imageOnly));
+
                 dispatch(setConfigModal(
                     {
                         modalOpen: true,
@@ -405,6 +414,22 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const isInvalid = validationValue === false;
     const canManageState = !isReadOnly;
     const canShare = isValidated && canManageState && noveltyState?.shift !== null;
+
+    // ── Descarga del video ──────────────────────────────────────────────
+    // shareJarvis manda el video SIEMPRE que exista; el único caso en que el
+    // grupo recibe la imagen es cuando se pulsa "Enviar imagen", que elimina
+    // videoUrl de la copia enviada. En ese caso el video se queda sin publicar
+    // y hay que poder bajarlo para subirlo a mano.
+    //
+    // El envío no deja registrado con qué medio se hizo (imagen y video
+    // guardan el mismo givenToTheGroup), así que para una novedad ya enviada
+    // en una sesión anterior no se puede distinguir: si tiene video E imagen y
+    // está validada y enviada, se ofrece la descarga. Es preferible ofrecerla
+    // de más que dejar sin publicar un video que nadie puede recuperar.
+    const hasImageToShare = !!noveltyState?.imageToShare;
+    const sentToGroup = noveltyState?.givenToTheGroup === true;
+    const canDownloadVideo = hasVideo
+        && (autoSendFailed || sentAsImageOnly || (hasImageToShare && isValidated && sentToGroup));
 
 
 
@@ -741,7 +766,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                             {
                                                 hasVideo ?
                                                     <>
-                                                        {autoSendFailed && (
+                                                        {canDownloadVideo && (
                                                             <button
                                                                 className={isValidated ? 'btnPublic __btn-download' : 'btnPublic'}
                                                                 type='button'
@@ -749,7 +774,9 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                     e.preventDefault();
                                                                     downloadBlob(noveltyState.videoUrl, noveltyState.title);
                                                                 }}
-                                                                title='Descargar video de la alerta'
+                                                                title={autoSendFailed
+                                                                    ? 'El envío automático falló: descarga el video para subirlo al grupo'
+                                                                    : 'Al grupo se envió la imagen: descarga el video para subirlo a mano'}
                                                             >
                                                                 <FiDownload className='btnPublic-img' />
                                                                 <p className='__textGrayForList'>Descargar video</p>
