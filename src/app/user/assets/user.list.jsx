@@ -322,6 +322,21 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
     const isAdmin = dataSessionState?.dataSession?.admin === true;
     const overtimeDecider = attendanceData?.overtime?.decidedBy;
 
+    // APROBACIÓN PARCIAL: de las horas que generó el día, cuántas autoriza el
+    // administrador. Arranca en el total (aprobar todo es el caso normal) y el
+    // servidor rechaza cualquier cantidad mayor a la que el día generó.
+    const [minutesToApprove, setMinutesToApprove] = useState(null);
+    // Si ya se aprobó una parte, el control arranca en esa cantidad para poder
+    // corregirla; si no, en el total.
+    const chosenMinutes = minutesToApprove ?? (overtime.isPartial ? overtime.approvedMinutes : overtime.minutes);
+    const chosenHours = Math.floor(chosenMinutes / 60);
+    const chosenRest = chosenMinutes % 60;
+
+    // Ajusta la cantidad manteniéndola entre 1 minuto y el excedente del día
+    const clampMinutes = (value) => Math.max(1, Math.min(overtime.minutes, Math.round(value) || 0));
+    const setHoursPart = (h) => setMinutesToApprove(clampMinutes((Number(h) || 0) * 60 + chosenRest));
+    const setRestPart = (m) => setMinutesToApprove(clampMinutes(chosenHours * 60 + (Number(m) || 0)));
+
     if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return null;
 
     const checkInTime = attendanceData?.checkIn ? new Date(attendanceData.checkIn).toLocaleString('es-VE', {
@@ -442,12 +457,16 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                         }`}>
                             <div className='flex items-center gap-2 mb-1.5'>
                                 <p className='text-xs font-black uppercase tracking-wider text-gray-600'>Horas extras</p>
+                                {/* Aprobada en parte: se muestra "1h de 3h" para que
+                                    no se confunda lo autorizado con lo que generó el día */}
                                 <span className={`ml-auto text-[15px] font-black ${
                                     overtime.status === 'approved' ? 'text-emerald-700'
                                     : overtime.status === 'rejected' ? 'text-red-600 line-through'
                                     : 'text-blue-700'
                                 }`}>
-                                    {formatOvertime(overtime.minutes)}
+                                    {overtime.isPartial
+                                        ? <>{formatOvertime(overtime.approvedMinutes)}<span className='text-[11px] font-bold text-gray-500'>{` de ${formatOvertime(overtime.minutes)}`}</span></>
+                                        : formatOvertime(overtime.minutes)}
                                 </span>
                             </div>
 
@@ -459,6 +478,13 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                                 }`}>
                                     {OVERTIME_LABEL[overtime.status]}
                                 </span>
+
+                                {/* Aviso de que no se autorizó el excedente completo */}
+                                {overtime.isPartial && (
+                                    <span className='text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 border border-amber-300'>
+                                        Parcial
+                                    </span>
+                                )}
 
                                 {/* Quién decidió: automática por configuración, o el admin */}
                                 {overtime.auto ? (
@@ -482,28 +508,83 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                                 forma automática) sobra el botón de aprobar, y
                                 si está rechazada sobra el de rechazar. */}
                             {isAdmin && (
-                                <div className='flex gap-2 mt-2.5'>
-                                    {overtime.status !== 'approved' && (
-                                        <button
-                                            type='button'
-                                            disabled={decidingOvertime}
-                                            onClick={() => onDecideOvertime?.('approved')}
-                                            className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors disabled:opacity-60'
-                                        >
-                                            {decidingOvertime ? 'Guardando…' : 'Aprobar'}
-                                        </button>
+                                <>
+                                    {/* Cuánto autorizar. Aparece si el día generó más de
+                                        un minuto y queda algo que decidir: o no está
+                                        aprobado, o lo está en parte y se puede corregir
+                                        la cantidad sin tener que rechazarlo antes. */}
+                                    {overtime.minutes > 1 && (overtime.status !== 'approved' || overtime.isPartial) && (
+                                        <div className='flex items-center gap-1.5 mt-2.5 flex-wrap'>
+                                            <span className='text-[10px] font-black uppercase tracking-wider text-gray-500'>Aprobar</span>
+
+                                            <input
+                                                type='number'
+                                                min={0}
+                                                max={Math.floor(overtime.minutes / 60)}
+                                                value={chosenHours}
+                                                disabled={decidingOvertime}
+                                                onChange={e => setHoursPart(e.target.value)}
+                                                className='w-11 h-6 px-1 text-center text-[12px] font-bold border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#29c50c] disabled:opacity-60'
+                                                aria-label='Horas a aprobar'
+                                            />
+                                            <span className='text-[11px] font-bold text-gray-500'>h</span>
+
+                                            <input
+                                                type='number'
+                                                min={0}
+                                                max={59}
+                                                value={chosenRest}
+                                                disabled={decidingOvertime}
+                                                onChange={e => setRestPart(e.target.value)}
+                                                className='w-11 h-6 px-1 text-center text-[12px] font-bold border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#29c50c] disabled:opacity-60'
+                                                aria-label='Minutos a aprobar'
+                                            />
+                                            <span className='text-[11px] font-bold text-gray-500'>m</span>
+
+                                            {/* Vuelve al excedente completo */}
+                                            {chosenMinutes !== overtime.minutes && (
+                                                <button
+                                                    type='button'
+                                                    disabled={decidingOvertime}
+                                                    onClick={() => setMinutesToApprove(null)}
+                                                    className='text-[10px] font-bold text-[#1f9a08] underline underline-offset-2 hover:text-[#29c50c] disabled:opacity-60'
+                                                >
+                                                    todo ({formatOvertime(overtime.minutes)})
+                                                </button>
+                                            )}
+                                        </div>
                                     )}
-                                    {overtime.status !== 'rejected' && (
-                                        <button
-                                            type='button'
-                                            disabled={decidingOvertime}
-                                            onClick={() => onDecideOvertime?.('rejected')}
-                                            className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-60'
-                                        >
-                                            {decidingOvertime ? 'Guardando…' : (overtime.auto ? 'Rechazar de todos modos' : 'Rechazar')}
-                                        </button>
-                                    )}
-                                </div>
+
+                                    <div className='flex gap-2 mt-2'>
+                                        {/* Sobre un día ya aprobado solo se ofrece si la
+                                            cantidad elegida cambia algo */}
+                                        {(overtime.status !== 'approved' || chosenMinutes !== overtime.approvedMinutes) && (
+                                            <button
+                                                type='button'
+                                                disabled={decidingOvertime}
+                                                // Solo se manda la cantidad cuando NO es el total:
+                                                // así el registro no queda atado a un excedente
+                                                // que puede recalcularse si se corrige el marcaje.
+                                                onClick={() => onDecideOvertime?.('approved', chosenMinutes === overtime.minutes ? null : chosenMinutes)}
+                                                className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors disabled:opacity-60'
+                                            >
+                                                {decidingOvertime
+                                                    ? 'Guardando…'
+                                                    : `${overtime.status === 'approved' ? 'Cambiar a' : 'Aprobar'} ${formatOvertime(chosenMinutes) || ''}`.trim()}
+                                            </button>
+                                        )}
+                                        {overtime.status !== 'rejected' && (
+                                            <button
+                                                type='button'
+                                                disabled={decidingOvertime}
+                                                onClick={() => onDecideOvertime?.('rejected')}
+                                                className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-60'
+                                            >
+                                                {decidingOvertime ? 'Guardando…' : (overtime.auto ? 'Rechazar de todos modos' : 'Rechazar')}
+                                            </button>
+                                        )}
+                                    </div>
+                                </>
                             )}
                         </div>
                     )}
@@ -1551,12 +1632,22 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
     // Aprobar o rechazar las horas extras del día. Solo lo ve un admin; el
-    // backend vuelve a exigirlo y deriva los minutos por su cuenta, así que
-    // desde acá nunca se envía la cantidad.
-    const handleDecideOvertime = async (decision) => {
+    // backend vuelve a exigirlo y deriva los minutos por su cuenta.
+    //
+    // `approvedMinutes` es la aprobación PARCIAL: de las horas que generó el
+    // día, cuántas se autorizan. Va en null para aprobar el total. El servidor
+    // valida la cantidad contra su propio cálculo, así que desde acá no se
+    // puede aprobar más de lo que el día generó.
+    const handleDecideOvertime = async (decision, approvedMinutes = null) => {
         setIsDecidingOvertime(true);
         try {
-            await decideOvertime({ userId: user._id, dni, date: requestDateISO, status: decision });
+            await decideOvertime({
+                userId: user._id,
+                dni,
+                date: requestDateISO,
+                status: decision,
+                ...(approvedMinutes !== null && { approvedMinutes })
+            });
             // El backend emite el evento socket: la celda y el popover se
             // refrescan solos en todos los clientes.
             return true;
@@ -1968,7 +2059,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     <div
                         className='absolute bottom-0 left-0 right-0 z-[2] flex items-center justify-center gap-1'
                         style={{ pointerEvents: 'none' }}
-                        title={`Horas extras: ${formatOvertime(cellOvertime.minutes)} · ${OVERTIME_LABEL[cellOvertime.status]}`}
+                        title={cellOvertime.isPartial
+                            ? `Horas extras: ${formatOvertime(cellOvertime.approvedMinutes)} aprobadas de ${formatOvertime(cellOvertime.minutes)} generadas`
+                            : `Horas extras: ${formatOvertime(cellOvertime.minutes)} · ${OVERTIME_LABEL[cellOvertime.status]}`}
                     >
                         <svg
                             xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'

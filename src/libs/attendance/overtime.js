@@ -41,11 +41,35 @@ export const baseMinutesOf = (shift) => BASE_MINUTES_BY_SHIFT[shift] ?? BASE_MIN
 
 
 /**
+ * Minutos que quedaron APROBADOS de un excedente ya decidido.
+ *
+ * `overtime.approvedMinutes` es la aprobación parcial: si el día generó 3 h y
+ * el administrador autorizó 1 h, ahí va 60. Cuando vale null la decisión cubre
+ * TODO el excedente — es el caso de lo aprobado antes de existir esta función
+ * y de las aprobaciones automáticas del checkout.
+ *
+ * Se recorta al excedente derivado: si más tarde se corrige el marcaje y el día
+ * pasa a generar menos, nunca se muestra más de lo que el día realmente dio.
+ */
+const approvedMinutesOf = (record, derivedMinutes) => {
+    const stored = record?.overtime?.approvedMinutes;
+    if (stored === null || stored === undefined) return derivedMinutes;
+
+    const parsed = Number(stored);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.min(Math.floor(parsed), derivedMinutes);
+};
+
+
+/**
  * Horas extras de UN día.
  * @param {object} record  documento de asistencia (necesita checkIn y checkOut)
  * @param {string} shift   turno efectivo del día ('Diurno' | 'Nocturno')
- * @returns {{ minutes, status, decidedBy, decidedAt, auto, note }}
- *          status: 'none' (sin excedente) | 'pending' | 'approved' | 'rejected'
+ * @returns {{ minutes, approvedMinutes, unapprovedMinutes, isPartial, status, decidedBy, decidedAt, auto, note }}
+ *   minutes           → excedente que GENERÓ el día
+ *   approvedMinutes   → cuánto de ese excedente quedó autorizado
+ *   unapprovedMinutes → el resto, que no se paga
+ *   status: 'none' (sin excedente) | 'pending' | 'approved' | 'rejected'
  */
 export function overtimeOfDay(record, shift = DEFAULT_SHIFT) {
     const worked = workedMinutesOf(record);
@@ -58,9 +82,18 @@ export function overtimeOfDay(record, shift = DEFAULT_SHIFT) {
     // que la pantalla mostrara "aprobada" sobre un registro que en la base
     // sigue pendiente, y que al desactivar la opción esos días cambiaran solos.
     // Sin decisión del backend, el día se muestra POR APROBAR.
+    const status = minutes === 0 ? 'none' : (record?.overtime?.status || 'pending');
+
+    // Solo un día APROBADO aporta minutos; pendiente y rechazado aportan cero.
+    const approvedMinutes = status === 'approved' ? approvedMinutesOf(record, minutes) : 0;
+
     return {
         minutes,
-        status: minutes === 0 ? 'none' : (record?.overtime?.status || 'pending'),
+        approvedMinutes,
+        unapprovedMinutes: Math.max(0, minutes - approvedMinutes),
+        // true cuando se autorizó una PARTE del excedente, no el total
+        isPartial: status === 'approved' && approvedMinutes > 0 && approvedMinutes < minutes,
+        status,
         decidedBy: record?.overtime?.decidedBy ?? null,
         decidedAt: record?.overtime?.decidedAt ?? null,
         auto: Boolean(record?.overtime?.auto),
@@ -71,20 +104,32 @@ export function overtimeOfDay(record, shift = DEFAULT_SHIFT) {
 
 /**
  * Acumulado por rango, desglosado por estado.
+ *
+ * Se mantiene la invariante  aprobadas + por aprobar + rechazadas = generadas.
+ * Con aprobación parcial, el tramo que el administrador NO autorizó suma a
+ * rechazadas: son minutos que el día generó y que no se van a pagar.
+ *
  * @param {Array<{record:object, shift:string}>} days
  */
 export function accumulateOvertime(days = []) {
     const totals = {
         approvedMinutes: 0, pendingMinutes: 0, rejectedMinutes: 0, totalMinutes: 0,
-        approvedDays: 0, pendingDays: 0, rejectedDays: 0,
+        approvedDays: 0, pendingDays: 0, rejectedDays: 0, partialDays: 0,
     };
 
     days.forEach(({ record, shift }) => {
-        const { minutes, status } = overtimeOfDay(record, shift);
+        const { minutes, status, approvedMinutes, unapprovedMinutes, isPartial } = overtimeOfDay(record, shift);
         if (minutes === 0) return;
 
         totals.totalMinutes += minutes;
-        if (status === 'approved') { totals.approvedMinutes += minutes; totals.approvedDays++; }
+
+        if (status === 'approved') {
+            totals.approvedMinutes += approvedMinutes;
+            // El tramo no autorizado de un día aprobado parcialmente
+            totals.rejectedMinutes += unapprovedMinutes;
+            totals.approvedDays++;
+            if (isPartial) totals.partialDays++;
+        }
         else if (status === 'rejected') { totals.rejectedMinutes += minutes; totals.rejectedDays++; }
         else { totals.pendingMinutes += minutes; totals.pendingDays++; }
     });

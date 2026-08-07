@@ -280,9 +280,16 @@ function buildDayList(reportData) {
             // Horas extras del día, con la MISMA función que usa la celda del
             // horario: excedente sobre la jornada base (9h diurno / 12h nocturno).
             // El estado (aprobada / por aprobar / rechazada) viene del backend.
+            // Con aprobación parcial, un día aprobado aporta SOLO los minutos
+            // autorizados; el resto suma a rechazadas, porque son minutos que
+            // el día generó y no se van a pagar. Así se mantiene la invariante
+            // aprobadas + por aprobar + rechazadas = generadas.
             const overtime = overtimeOfDay(record, shift);
             if (overtime.minutes > 0) {
-                if (overtime.status === 'approved') totals.overtimeApproved += overtime.minutes;
+                if (overtime.status === 'approved') {
+                    totals.overtimeApproved += overtime.approvedMinutes;
+                    totals.overtimeRejected += overtime.unapprovedMinutes;
+                }
                 else if (overtime.status === 'rejected') totals.overtimeRejected += overtime.minutes;
                 else totals.overtimePending += overtime.minutes;
             }
@@ -350,7 +357,12 @@ function buildIndividualPrintHTML(reportData, dayList, logoUrl, rangeTotals = em
         const horario = d.startTime && d.endTime ? `${d.startTime}–${d.endTime}` : '—';
         const worked  = formatWorked(d.record?.checkIn, d.record?.checkOut) || '0h 00m';
         const overtimeMin = d.overtime?.minutes || 0;
-        const extras  = overtimeMin > 0 ? `+${formatOvertime(overtimeMin)}` : '—';
+        // Aprobada en parte: se imprime "1h de 3h" para que el número que se
+        // paga no se confunda con el que generó el día.
+        const extras  = overtimeMin === 0 ? '—'
+            : d.overtime?.isPartial
+                ? `+${formatOvertime(d.overtime.approvedMinutes)} de ${formatOvertime(overtimeMin)}`
+                : `+${formatOvertime(overtimeMin)}`;
         // Verde = aprobada · azul = por aprobar · rojo = rechazada
         const extraColor = overtimeMin === 0 ? '#bbb'
             : d.overtime?.status === 'approved' ? '#2e7d32'
@@ -437,7 +449,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sg" style="margin-top:6px">
     <div class="card"><div class="cv g">${formatOvertime(rangeTotals.overtimeApproved) || '0min'}</div><div class="cl">Extras aprobadas</div><div class="cs">cuentan para el pago</div></div>
     <div class="card"><div class="cv b">${formatOvertime(rangeTotals.overtimePending) || '0min'}</div><div class="cl">Extras por aprobar</div><div class="cs">esperan decisión</div></div>
-    <div class="card"><div class="cv r">${formatOvertime(rangeTotals.overtimeRejected) || '0min'}</div><div class="cl">Extras rechazadas</div><div class="cs">desestimadas</div></div>
+    <div class="card"><div class="cv r">${formatOvertime(rangeTotals.overtimeRejected) || '0min'}</div><div class="cl">Extras rechazadas</div><div class="cs">y no aprobadas</div></div>
   </div>
 
   <!-- Composición del período: en qué se fue cada día del rango -->
@@ -805,10 +817,14 @@ function AttendanceRow({ day }) {
     const worked   = day.record?.checkIn ? (formatWorked(day.record.checkIn, day.record.checkOut) || '—') : '—';
     // Horas extras con la jornada base del turno; el color refleja su estado
     const overtimeMin = day.overtime?.minutes || 0;
-    const extraTx  = overtimeMin > 0 ? `+${formatOvertime(overtimeMin)}` : '—';
+    // Aprobada en parte: "1h de 3h" — lo que se paga y lo que generó el día
+    const extraTx  = overtimeMin === 0 ? '—'
+        : day.overtime?.isPartial
+            ? `+${formatOvertime(day.overtime.approvedMinutes)} de ${formatOvertime(overtimeMin)}`
+            : `+${formatOvertime(overtimeMin)}`;
     const extraColor = overtimeMin === 0 ? 'text-gray-300'
         : day.overtime?.status === 'approved' ? 'text-emerald-600'
-        : day.overtime?.status === 'rejected' ? 'text-gray-400 line-through'
+        : day.overtime?.status === 'rejected' ? 'text-red-600 line-through'
         : 'text-blue-600';
     const retardoTx = day.lateMin > 0 ? `+${day.lateMin}m` : '—';
     const dateStr  = day.date.toLocaleDateString('es-VE', { timeZone: 'UTC', day: '2-digit', month: '2-digit' });
@@ -1104,7 +1120,9 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                         <SummaryCard
                             value={formatOvertime(rangeTotals.overtimeRejected) || '0min'}
                             label='Extras rechazadas'
-                            sub='desestimadas'
+                            // Incluye el tramo que quedó fuera en las aprobaciones
+                            // parciales: son minutos generados que no se pagan.
+                            sub='y no aprobadas'
                             color='red'
                         />
                     </div>

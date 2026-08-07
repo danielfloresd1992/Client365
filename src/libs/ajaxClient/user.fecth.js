@@ -159,9 +159,12 @@ export const setAuxiliaryRole = async (payload) => {
 
 /**
  * Aprueba o rechaza las horas extras de un día. Solo administradores.
- * Los minutos NO se envían: los deriva el servidor del propio registro, así
- * el cliente no puede inflar la cantidad aprobada.
- * @param {{ userId?, dni?, date: string, status: 'approved'|'rejected', note?: string }} payload
+ *
+ * El excedente del día lo deriva el SERVIDOR del propio registro. `approvedMinutes`
+ * es opcional y sirve para aprobar solo una parte (de 3 h generadas, autorizar 1 h);
+ * omitirlo aprueba el total. El servidor valida esa cantidad contra su propio
+ * cálculo, así que el cliente no puede inflar lo aprobado.
+ * @param {{ userId?, dni?, date: string, status: 'approved'|'rejected', note?: string, approvedMinutes?: number }} payload
  */
 export const decideOvertime = async (payload) => {
     try {
