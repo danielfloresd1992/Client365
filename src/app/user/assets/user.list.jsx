@@ -8,7 +8,8 @@ import UserDayAssignForm from './user.day.assign.form';
 import UserNextMonthScheduleForm from './user.nextmonth.schedule.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
-import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole } from '@/libs/ajaxClient/user.fecth';
+import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole, decideOvertime } from '@/libs/ajaxClient/user.fecth';
+import { overtimeOfDay, formatOvertime, OVERTIME_LABEL } from '@/libs/attendance/overtime';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
@@ -281,7 +282,7 @@ function getStatusLabel(attendanceData) {
  * re-renderizan la lista en su lugar — sin desmontar el popover, sin repetir
  * la animación de entrada y sin perder el foco ni el borrador del composer.
  */
-function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLeave, onAddComment, sendingComment }) {
+function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLeave, onAddComment, sendingComment, scheduleByDay, dateObj, onDecideOvertime, decidingOvertime }) {
     const { dataSessionState } = useContext(myUserContext);
     const [imageZoom, setImageZoom] = useState(null);
 
@@ -305,6 +306,21 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
     const isHumanResources = dataSessionState?.dataSession?.jobInformation?.department === 'Recursos Humanos'; // futuras implementaciones
     const discountUnits = Number(attendanceData?.discountUnits) || 0;
     const showDiscountUnits =  discountUnits > 0;
+
+    // ── Horas extras del día ──────────────────────────────────────────
+    // Turno efectivo: override del día > regla semanal > turno global.
+    // Los minutos se DERIVAN acá (no vienen del servidor), así los días
+    // anteriores a esta función también los muestran sin migrar nada.
+    const overtimeShift = attendanceData?.scheduleOverride?.shift
+        || scheduleByDay?.[String(dateObj?.getDay?.())]?.shift
+        || user?.workSchedule?.shiftType
+        || 'Diurno';
+    // El estado lo decide el backend: aprobación automática al registrar la
+    // salida, o la decisión de un administrador. Si el registro no trae
+    // ninguna, el día se muestra POR APROBAR.
+    const overtime = overtimeOfDay(attendanceData, overtimeShift);
+    const isAdmin = dataSessionState?.dataSession?.admin === true;
+    const overtimeDecider = attendanceData?.overtime?.decidedBy;
 
     if (!attendanceData?.checkIn && !hasOverrideInfo && !hasComments) return null;
 
@@ -400,13 +416,97 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                         )}
                         {showDiscountUnits && (
                             <div
-                                className='px-2.5 py-1.5 rounded border border-rose-200 bg-rose-50 text-xs font-semibold text-rose-700 whitespace-nowrap'
-                                title='Unidades a descontar por retardo — visible solo para Recursos Humanos'
+                                className='flex items-center gap-1.5 px-2.5 py-1.5 rounded border border-rose-200 bg-rose-50 whitespace-nowrap'
+                                title='Unidades a descontar por la llegada tarde de este día'
                             >
-                                −{discountUnits} {discountUnits === 1 ? 'unidad' : 'unidades'}
+                                <span className='text-[10px] font-black uppercase tracking-wider text-rose-500'>
+                                    Llegada tarde
+                                </span>
+                                <span className='text-xs font-bold text-rose-700'>
+                                    −{discountUnits} {discountUnits === 1 ? 'unidad' : 'unidades'}
+                                </span>
                             </div>
                         )}
                     </div>
+
+                    {/* ── Horas extras del día ──────────────────────────────
+                        Solo aparece si el día generó excedente sobre la jornada
+                        base (9h diurno / 12h nocturno). Los botones de decisión
+                        son exclusivos de administradores; el backend lo vuelve
+                        a exigir, así que ocultarlos es solo la guía visual. */}
+                    {overtime.minutes > 0 && (
+                        <div className={`rounded-lg border p-3 ${
+                            overtime.status === 'approved' ? 'border-emerald-300 bg-emerald-50'
+                            : overtime.status === 'rejected' ? 'border-gray-300 bg-gray-50'
+                            : 'border-blue-300 bg-blue-50'
+                        }`}>
+                            <div className='flex items-center gap-2 mb-1.5'>
+                                <p className='text-xs font-black uppercase tracking-wider text-gray-600'>Horas extras</p>
+                                <span className={`ml-auto text-[15px] font-black ${
+                                    overtime.status === 'approved' ? 'text-emerald-700'
+                                    : overtime.status === 'rejected' ? 'text-gray-400 line-through'
+                                    : 'text-blue-700'
+                                }`}>
+                                    {formatOvertime(overtime.minutes)}
+                                </span>
+                            </div>
+
+                            <div className='flex items-center gap-2 flex-wrap'>
+                                <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded text-white ${
+                                    overtime.status === 'approved' ? 'bg-emerald-600'
+                                    : overtime.status === 'rejected' ? 'bg-gray-500'
+                                    : 'bg-blue-600'
+                                }`}>
+                                    {OVERTIME_LABEL[overtime.status]}
+                                </span>
+
+                                {/* Quién decidió: automática por configuración, o el admin */}
+                                {overtime.auto ? (
+                                    <span className='text-[11px] text-gray-500'>automática por configuración</span>
+                                ) : overtimeDecider?.name ? (
+                                    <span className='flex items-center gap-1.5 text-[11px] text-gray-600'>
+                                        <MiniAvatar user={overtimeDecider} />
+                                        {`${overtimeDecider.name} ${overtimeDecider.surName || ''}`.trim()}
+                                        {overtime.decidedAt && (
+                                            <span className='text-gray-400'>
+                                                {' · '}
+                                                {new Date(overtime.decidedAt).toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' })}
+                                            </span>
+                                        )}
+                                    </span>
+                                ) : null}
+                            </div>
+
+                            {/* Acciones del administrador. Solo se ofrece lo que
+                                cambia algo: si ya está aprobada (a mano o de
+                                forma automática) sobra el botón de aprobar, y
+                                si está rechazada sobra el de rechazar. */}
+                            {isAdmin && (
+                                <div className='flex gap-2 mt-2.5'>
+                                    {overtime.status !== 'approved' && (
+                                        <button
+                                            type='button'
+                                            disabled={decidingOvertime}
+                                            onClick={() => onDecideOvertime?.('approved')}
+                                            className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors disabled:opacity-60'
+                                        >
+                                            {decidingOvertime ? 'Guardando…' : 'Aprobar'}
+                                        </button>
+                                    )}
+                                    {overtime.status !== 'rejected' && (
+                                        <button
+                                            type='button'
+                                            disabled={decidingOvertime}
+                                            onClick={() => onDecideOvertime?.('rejected')}
+                                            className='flex-1 px-2 py-1.5 rounded text-[11px] font-bold border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-60'
+                                        >
+                                            {decidingOvertime ? 'Guardando…' : (overtime.auto ? 'Rechazar de todos modos' : 'Rechazar')}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {/* ── Comentarios (destacados, a juego con la muesca dorada) ──
                         Visible con comentarios, o vacía para que un usuario super
@@ -1316,6 +1416,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const [attendanceData, setAttendanceData] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+    const [isDecidingOvertime, setIsDecidingOvertime] = useState(false);
     const closeTimeoutRef = useRef(null);
     const openTimeoutRef = useRef(null);
     const manuallyClosedRef = useRef(false);
@@ -1445,6 +1546,31 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             return false;
         } finally {
             setIsSendingComment(false);
+        }
+    };
+
+
+    // Aprobar o rechazar las horas extras del día. Solo lo ve un admin; el
+    // backend vuelve a exigirlo y deriva los minutos por su cuenta, así que
+    // desde acá nunca se envía la cantidad.
+    const handleDecideOvertime = async (decision) => {
+        setIsDecidingOvertime(true);
+        try {
+            await decideOvertime({ userId: user._id, dni, date: requestDateISO, status: decision });
+            // El backend emite el evento socket: la celda y el popover se
+            // refrescan solos en todos los clientes.
+            return true;
+        } catch (error) {
+            console.error('Error decidiendo horas extras:', error);
+            dispatch(setConfigModal({
+                type: 'error',
+                title: 'No se pudo registrar',
+                description: error?.response?.data?.message || 'Hubo un problema al decidir las horas extras. Intenta nuevamente.',
+                modalOpen: true,
+            }));
+            return false;
+        } finally {
+            setIsDecidingOvertime(false);
         }
     };
 
@@ -1605,6 +1731,16 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         (attendanceData.comments || []).forEach((comment) => pushPerson(comment.user, 'Comentó'));
         return people;
     })();
+
+
+    // Horas extras del día para el distintivo de la celda. Misma función que
+    // usan el popover y el reporte, con el turno efectivo del día y la
+    // configuración de aprobación automática del usuario.
+    const cellOvertimeShift = attendanceData?.scheduleOverride?.shift
+        || scheduleByDay?.[String(dateObj.getDay())]?.shift
+        || user?.workSchedule?.shiftType
+        || 'Diurno';
+    const cellOvertime = overtimeOfDay(attendanceData, cellOvertimeShift);
 
 
 
@@ -1825,6 +1961,33 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     {renderDaySchedule()}
                 </div>
 
+                {/* Reloj + "extra": el día generó horas extras. Verde cuando
+                    están aprobadas (o el usuario las genera automáticamente),
+                    azul mientras esperan decisión, gris si fueron rechazadas. */}
+                {cellOvertime.minutes > 0 && (
+                    <div
+                        className='absolute bottom-0 left-0 right-0 z-[2] flex items-center justify-center gap-1'
+                        style={{ pointerEvents: 'none' }}
+                        title={`Horas extras: ${formatOvertime(cellOvertime.minutes)} · ${OVERTIME_LABEL[cellOvertime.status]}`}
+                    >
+                        <svg
+                            xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'
+                            stroke={cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#9ca3af' : '#2563eb'}
+                            strokeWidth='2.6' strokeLinecap='round' strokeLinejoin='round'
+                            className='w-[11px] h-[11px] flex-shrink-0'
+                        >
+                            <circle cx='12' cy='12' r='10' />
+                            <polyline points='12 6 12 12 16 14' />
+                        </svg>
+                        <span
+                            className='text-[9px] font-black uppercase tracking-wider leading-none'
+                            style={{ color: cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#9ca3af' : '#2563eb' }}
+                        >
+                            extra
+                        </span>
+                    </div>
+                )}
+
                 {isLoadingDetails && (
                     <div
                         className='absolute top-1 right-1 z-[2] flex items-center gap-1 bg-white/90 px-1.5 py-0.5 rounded-full shadow-sm border border-blue-200'
@@ -1844,6 +2007,10 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     onMouseLeave={handleCloseDetails}
                     onAddComment={handleAddComment}
                     sendingComment={isSendingComment}
+                    scheduleByDay={scheduleByDay}
+                    dateObj={dateObj}
+                    onDecideOvertime={handleDecideOvertime}
+                    decidingOvertime={isDecidingOvertime}
                 />
             )}
         </>

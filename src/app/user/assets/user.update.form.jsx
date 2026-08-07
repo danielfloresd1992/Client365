@@ -452,6 +452,18 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                                 ¿Sacar usuario del horario?
                             </Label>
                         </div>
+                        {/* Horas extras automáticas: lo que trabaje por encima de
+                            su jornada base (9h diurno / 12h nocturno) queda
+                            aprobado sin pasar por un administrador. */}
+                        <div className='flex items-center gap-2'>
+                            <Checkbox id='autoApproveOvertime' {...register('workSchedule.autoApproveOvertime')} />
+                            <Label htmlFor='autoApproveOvertime' className='flex flex-col'>
+                                <span>¿Genera horas extras automáticamente?</span>
+                                <span className='text-[11px] font-normal text-gray-500'>
+                                    Se aprueban solas, sin revisión de un administrador
+                                </span>
+                            </Label>
+                        </div>
                     </div>
                 </div>
 

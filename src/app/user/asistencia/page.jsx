@@ -24,6 +24,7 @@ import {
     getGlobalAttendanceReport
 } from '@/libs/ajaxClient/user.fecth';
 import { UserIcon, UsersIcon } from '@/components/icons';
+import { overtimeOfDay, formatOvertime, OVERTIME_LABEL } from '@/libs/attendance/overtime';
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CONSTANTES
@@ -162,8 +163,23 @@ function getBaseScheduleLabel(scheduleByDay, shiftType) {
  * @param {{ records, user, period }|null} reportData - Respuesta del endpoint individual
  * @returns {Array<DayEntry>}
  */
+const emptyRangeTotals = () => ({
+    descanso: 0,        // días libres
+    permiso: 0,
+    falta: 0,           // faltas + ausencias
+    extra: 0,           // días extra / franco trabajado
+    sundaysWorked: 0,   // domingos con marcaje de entrada
+    lateWeekday: 0,     // retardos de lunes a viernes
+    lateWeekend: 0,     // retardos de sábado y domingo
+    // Horas extras del rango, desglosadas por estado de aprobación
+    overtimeApproved: 0,
+    overtimePending: 0,
+    overtimeRejected: 0,
+});
+
+
 function buildDayList(reportData) {
-    if (!reportData) return [];
+    if (!reportData) return { days: [], totals: emptyRangeTotals() };
     const { records, user, period } = reportData;
 
     // Mapa fecha ISO → registro de asistencia para búsqueda O(1)
@@ -175,6 +191,10 @@ function buildDayList(reportData) {
     const cur = new Date(period.from);
     const to = new Date(period.to);
     const days = [];
+    // Los contadores se llevan sobre TODO el rango, no sobre la tabla: los
+    // días de descanso sin registro no se listan (para no inflarla) pero sí
+    // tienen que contar como días libres.
+    const totals = emptyRangeTotals();
 
     while (cur <= to) {
         const key = cur.toISOString();
@@ -239,10 +259,42 @@ function buildDayList(reportData) {
             // Turno efectivo del día (override > regla semanal > turno global)
             const shift = override?.shift || dayRule?.shift || user.workSchedule?.shiftType || '—';
 
+            // ── Contadores del rango ──────────────────────────────────────
+            const isSunday = dow === 0;
+            // Trabajar en un día de descanso cuenta como día extra aunque el
+            // registro no traiga isExtraDay marcado.
+            const workedOnRestDay = effectiveWorkType === 'descanso' && Boolean(record?.checkIn);
+
+            if (status === 'Descanso') totals.descanso++;
+            else if (status === 'Permiso') totals.permiso++;
+            else if (status === 'Falta' || status === 'Ausente') totals.falta++;
+
+            if (status === 'Franco tr.' || workedOnRestDay) totals.extra++;
+            if (isSunday && record?.checkIn) totals.sundaysWorked++;
+
+            if (status === 'Retardo') {
+                if (dow === 0 || dow === 6) totals.lateWeekend++;
+                else totals.lateWeekday++;
+            }
+
+            // Horas extras del día, con la MISMA función que usa la celda del
+            // horario: excedente sobre la jornada base (9h diurno / 12h nocturno).
+            // El estado (aprobada / por aprobar / rechazada) viene del backend.
+            const overtime = overtimeOfDay(record, shift);
+            if (overtime.minutes > 0) {
+                if (overtime.status === 'approved') totals.overtimeApproved += overtime.minutes;
+                else if (overtime.status === 'rejected') totals.overtimeRejected += overtime.minutes;
+                else totals.overtimePending += overtime.minutes;
+            }
+
             days.push({
                 date: new Date(cur), record: record || null, startTime, endTime,
                 effectiveWorkType, status, workedMin, extraMin, lateMin, tipo, noteText,
-                shift,
+                shift, isSunday,
+                // Horas extras del día con la jornada base del turno (9h/12h).
+                // Reemplaza al viejo `extraMin`, que restaba el horario del día
+                // (endTime − startTime) y daba un número distinto al de la celda.
+                overtime,
                 // Unidades a descontar persistidas al marcar la entrada con retardo
                 discountUnits: record?.discountUnits || 0,
                 // Roles de guardia del día (encargado de turno / auxiliar)
@@ -250,9 +302,14 @@ function buildDayList(reportData) {
                 auxiliary: Boolean(record?.auxiliary),
             });
         }
+        else {
+            // Día de descanso SIN registro: no se lista para no inflar la
+            // tabla, pero cuenta como día libre del período.
+            totals.descanso++;
+        }
         cur.setUTCDate(cur.getUTCDate() + 1);
     }
-    return days;
+    return { days, totals };
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -269,7 +326,7 @@ function buildDayList(reportData) {
  * @param {string}          logoUrl  - URL absoluta del logo (window.location.origin + ruta)
  * @returns {string} HTML completo como string
  */
-function buildIndividualPrintHTML(reportData, dayList, logoUrl) {
+function buildIndividualPrintHTML(reportData, dayList, logoUrl, rangeTotals = emptyRangeTotals()) {
     const { user, summary, period } = reportData;
     const gen = new Date().toLocaleString('es-VE', { timeZone: 'America/Caracas', dateStyle: 'short', timeStyle: 'short' });
     const fromStr = new Date(period.from).toLocaleDateString('es-VE', { timeZone: 'UTC' });
@@ -292,20 +349,29 @@ function buildIndividualPrintHTML(reportData, dayList, logoUrl) {
             + ' ' + DAY_NAMES[d.date.getUTCDay()];
         const horario = d.startTime && d.endTime ? `${d.startTime}–${d.endTime}` : '—';
         const worked  = formatWorked(d.record?.checkIn, d.record?.checkOut) || '0h 00m';
-        const extras  = d.extraMin > 0 ? `+${formatMinutes(d.extraMin)}` : '—';
+        const overtimeMin = d.overtime?.minutes || 0;
+        const extras  = overtimeMin > 0 ? `+${formatOvertime(overtimeMin)}` : '—';
+        // Verde = aprobada · azul = por aprobar · gris = rechazada
+        const extraColor = overtimeMin === 0 ? '#bbb'
+            : d.overtime?.status === 'approved' ? '#2e7d32'
+            : d.overtime?.status === 'rejected' ? '#999'
+            : '#1565c0';
         const retardo = d.lateMin  > 0 ? `+${d.lateMin}m` : '—';
         const desc    = d.discountUnits > 0 ? `-${d.discountUnits}` : '—';
         const rol     = d.onDuty ? 'Guardia' : d.auxiliary ? 'Auxiliar' : '—';
         const rolColor = d.onDuty ? '#1565c0' : d.auxiliary ? '#c62828' : '#bbb';
-        return `<tr>
-          <td>${dateStr}</td>
+        // Domingo resaltado también en el impreso
+        const rowStyle = d.isSunday ? ' style="background:#eef2ff"' : '';
+        const dateStyle = d.isSunday ? 'color:#3730a3;font-weight:700' : '';
+        return `<tr${rowStyle}>
+          <td style="${dateStyle}">${dateStr}</td>
           <td style="color:${sColor(d.status)};font-weight:700">${d.status}</td>
           <td>${d.record?.checkIn  ? formatTimeVE(d.record.checkIn)  : '—'}</td>
           <td>${d.record?.checkOut ? formatTimeVE(d.record.checkOut) : '—'}</td>
           <td>${horario}</td>
           <td>${d.shift || '—'}</td>
           <td>${d.record?.checkIn ? worked : '0h 00m'}</td>
-          <td style="color:${d.extraMin > 0 ? '#2e7d32' : '#bbb'};font-weight:${d.extraMin > 0 ? 700 : 400}">${extras}</td>
+          <td style="color:${extraColor};font-weight:${overtimeMin > 0 ? 700 : 400}">${extras}</td>
           <td style="color:${d.lateMin  > 0 ? '#e65100' : '#bbb'};font-weight:${d.lateMin  > 0 ? 700 : 400}">${retardo}</td>
           <td style="color:${d.discountUnits > 0 ? '#c62828' : '#bbb'};font-weight:${d.discountUnits > 0 ? 700 : 400}">${desc}</td>
           <td>${d.tipo}</td>
@@ -327,7 +393,7 @@ body{font-family:Arial,Helvetica,sans-serif;font-size:10.5px;color:#222;padding:
 .er{display:flex;gap:5px;font-size:10px}.el{color:#888;min-width:105px}.ev{font-weight:700}
 .sg{display:flex;gap:6px;margin:12px 0}
 .card{flex:1;border:1px solid #ddd;border-radius:5px;padding:7px 8px;text-align:center}
-.cv{font-size:18px;font-weight:900}.cv.g{color:#2e7d32}.cv.a{color:#e65100}.cv.r{color:#b71c1c}
+.cv{font-size:18px;font-weight:900}.cv.g{color:#2e7d32}.cv.a{color:#e65100}.cv.r{color:#b71c1c}.cv.b{color:#1565c0}
 .cl{font-size:8px;color:#777;text-transform:uppercase;letter-spacing:.04em;margin-top:2px}.cs{font-size:8px;color:#aaa;margin-top:1px}
 table{width:100%;border-collapse:collapse}
 th{background:#f0f0f0;font-weight:700;padding:5px 6px;border:1px solid #ccc;font-size:9.5px;text-align:left;white-space:nowrap}
@@ -363,10 +429,24 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sg">
     <div class="card"><div class="cv">${summary.totalWorkingDays}</div><div class="cl">Días laborables</div><div class="cs">en el período</div></div>
     <div class="card"><div class="cv g">${summary.presentDays}</div><div class="cl">Días presentes</div><div class="cs">${summary.attendanceRate}% asistencia</div></div>
-    <div class="card"><div class="cv a">${summary.lateDays}</div><div class="cl">Retardos</div><div class="cs">${summary.justifiedLateDays} justificado${summary.justifiedLateDays !== 1 ? 's' : ''}</div></div>
-    <div class="card"><div class="cv g">${formatMinutes(summary.extraMinutes) || '0min'}</div><div class="cl">Horas extras</div><div class="cs">${dayList.filter(d => d.extraMin > 0).length} días con extra</div></div>
-    <div class="card"><div class="cv r">${summary.absentDays}</div><div class="cl">Ausencias</div><div class="cs">sin justificar</div></div>
-    <div class="card"><div class="cv r">${totalDiscount}</div><div class="cl">Unid. descuento</div><div class="cs">${dayList.filter(d => d.discountUnits > 0).length} día(s) con descuento</div></div>
+    <div class="card"><div class="cv a">${rangeTotals.lateWeekday}</div><div class="cl">Ret. Lun–Vie</div><div class="cs">entre semana</div></div>
+    <div class="card"><div class="cv a">${rangeTotals.lateWeekend}</div><div class="cl">Ret. Sáb–Dom</div><div class="cs">fin de semana</div></div>
+  </div>
+
+  <!-- Horas extras del rango, desglosadas por estado de aprobación -->
+  <div class="sg" style="margin-top:6px">
+    <div class="card"><div class="cv g">${formatOvertime(rangeTotals.overtimeApproved) || '0min'}</div><div class="cl">Extras aprobadas</div><div class="cs">cuentan para el pago</div></div>
+    <div class="card"><div class="cv b">${formatOvertime(rangeTotals.overtimePending) || '0min'}</div><div class="cl">Extras por aprobar</div><div class="cs">esperan decisión</div></div>
+    <div class="card"><div class="cv">${formatOvertime(rangeTotals.overtimeRejected) || '0min'}</div><div class="cl">Extras rechazadas</div><div class="cs">desestimadas</div></div>
+  </div>
+
+  <!-- Composición del período: en qué se fue cada día del rango -->
+  <div class="sg" style="margin-top:6px">
+    <div class="card"><div class="cv">${rangeTotals.descanso}</div><div class="cl">Días libres</div><div class="cs">descanso</div></div>
+    <div class="card"><div class="cv b">${rangeTotals.permiso}</div><div class="cl">Permisos</div><div class="cs">autorizados</div></div>
+    <div class="card"><div class="cv r">${rangeTotals.falta}</div><div class="cl">Faltas</div><div class="cs">faltas y ausencias</div></div>
+    <div class="card"><div class="cv g">${rangeTotals.extra}</div><div class="cl">Días extra</div><div class="cs">franco trabajado</div></div>
+    <div class="card"><div class="cv b">${rangeTotals.sundaysWorked}</div><div class="cl">Domingos trab.</div><div class="cs">con entrada marcada</div></div>
   </div>
 </div>
 <div class="sec">
@@ -378,7 +458,7 @@ tr:nth-child(even) td{background:#fafafa}
 </div>
 <div class="tot">
   <div class="ti"><div class="tl">Total horas trabajadas</div><div class="tv" style="color:#2e7d32">${Math.floor(totalMin/60)}h ${String(totalMin%60).padStart(2,'0')}m</div></div>
-  <div class="ti"><div class="tl">Total horas extras</div><div class="tv" style="color:#2e7d32">${formatMinutes(summary.extraMinutes) || '0min'}</div></div>
+  <div class="ti"><div class="tl">Extras aprobadas</div><div class="tv" style="color:#2e7d32">${formatOvertime(rangeTotals.overtimeApproved) || '0min'}</div></div>
   <div class="ti"><div class="tl">Total retardos</div><div class="tv" style="color:#e65100">${formatMinutes(summary.lateMinutes) || '0min'}</div></div>
   <div class="ti"><div class="tl">Unidades a descontar</div><div class="tv" style="color:#c62828">${totalDiscount}</div></div>
   <div class="ti"><div class="tl">Horas esperadas</div><div class="tv">${Math.floor(summary.expectedMinutes/60)}h ${String(summary.expectedMinutes%60).padStart(2,'0')}m</div></div>
@@ -712,15 +792,26 @@ function FooterCell({ label, value, green, amber }) {
 function AttendanceRow({ day }) {
     const horario  = day.startTime && day.endTime ? `${day.startTime}–${day.endTime}` : '—';
     const worked   = day.record?.checkIn ? (formatWorked(day.record.checkIn, day.record.checkOut) || '—') : '—';
-    const extraTx  = day.extraMin > 0 ? `+${formatMinutes(day.extraMin)}` : '—';
+    // Horas extras con la jornada base del turno; el color refleja su estado
+    const overtimeMin = day.overtime?.minutes || 0;
+    const extraTx  = overtimeMin > 0 ? `+${formatOvertime(overtimeMin)}` : '—';
+    const extraColor = overtimeMin === 0 ? 'text-gray-300'
+        : day.overtime?.status === 'approved' ? 'text-emerald-600'
+        : day.overtime?.status === 'rejected' ? 'text-gray-400 line-through'
+        : 'text-blue-600';
     const retardoTx = day.lateMin > 0 ? `+${day.lateMin}m` : '—';
     const dateStr  = day.date.toLocaleDateString('es-VE', { timeZone: 'UTC', day: '2-digit', month: '2-digit' });
-    const rowBg = day.status === 'Retardo' ? 'bg-amber-50/50' : day.status === 'Ausente' ? 'bg-red-50/30' : '';
+    // El domingo se resalta con fondo índigo propio; el color de estado
+    // (retardo / ausencia) tiene prioridad para no ocultar una alerta.
+    const rowBg = day.status === 'Retardo' ? 'bg-amber-50/50'
+        : day.status === 'Ausente' ? 'bg-red-50/30'
+        : day.isSunday ? 'bg-indigo-50/60'
+        : '';
     return (
         <tr className={`hover:bg-gray-50/70 transition-colors ${rowBg}`}>
             <td className='px-3 py-2 whitespace-nowrap'>
-                <span className='text-[12px] font-medium text-gray-700'>{dateStr}</span>
-                <span className='text-[11px] text-gray-400 ml-1'>{DAY_NAMES[day.date.getUTCDay()]}</span>
+                <span className={`text-[12px] ${day.isSunday ? 'font-bold text-indigo-700' : 'font-medium text-gray-700'}`}>{dateStr}</span>
+                <span className={`text-[11px] ml-1 ${day.isSunday ? 'font-bold text-indigo-500' : 'text-gray-400'}`}>{DAY_NAMES[day.date.getUTCDay()]}</span>
             </td>
             <td className='px-3 py-2'><StatusBadge status={day.status} /></td>
             <td className='px-3 py-2 text-[12px] font-bold text-gray-700 whitespace-nowrap'>{day.record?.checkIn  ? formatTimeVE(day.record.checkIn)  : '—'}</td>
@@ -728,7 +819,7 @@ function AttendanceRow({ day }) {
             <td className='px-3 py-2 text-[11px] text-gray-500 whitespace-nowrap'>{horario}</td>
             <td className='px-3 py-2 text-[11px] text-gray-500 whitespace-nowrap'>{day.shift}</td>
             <td className='px-3 py-2 text-[12px] text-gray-700 whitespace-nowrap'>{worked}</td>
-            <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.extraMin > 0 ? 'text-emerald-600' : 'text-gray-300'}`}>{extraTx}</td>
+            <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${extraColor}`} title={overtimeMin > 0 ? OVERTIME_LABEL[day.overtime.status] : undefined}>{extraTx}</td>
             <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.lateMin  > 0 ? 'text-amber-600'   : 'text-gray-300'}`}>{retardoTx}</td>
             {/* Unidades a descontar por el retardo del día */}
             <td className={`px-3 py-2 text-[12px] font-bold whitespace-nowrap ${day.discountUnits > 0 ? 'text-rose-600' : 'text-gray-300'}`}>
@@ -790,8 +881,8 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
         return fuse.search(searchQuery).map(r => r.item).slice(0, 8);
     }, [searchQuery, fuse, allUsers]);
 
-    // Lista completa de días para la tabla (construida a partir de la respuesta de la API)
-    const dayList = useMemo(() => buildDayList(reportData), [reportData]);
+    // Lista de días para la tabla + contadores de TODO el rango
+    const { days: dayList, totals: rangeTotals } = useMemo(() => buildDayList(reportData), [reportData]);
 
     // Paginación client-side sobre dayList
     const totalPages    = Math.max(1, Math.ceil(dayList.length / ROWS_PER_PAGE));
@@ -829,7 +920,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
         if (!reportData) return;
         const logoUrl = window.location.origin + '/RBG-Logo-AMAZONAS%20365-Original.png';
         const win = window.open('', '_blank', 'width=1100,height=750');
-        win.document.write(buildIndividualPrintHTML(reportData, dayList, logoUrl));
+        win.document.write(buildIndividualPrintHTML(reportData, dayList, logoUrl, rangeTotals));
         win.document.close();
     };
 
@@ -973,15 +1064,47 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                         </div>
                     </div>
 
-                    {/* Cards de resumen */}
-                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3'>
+                    {/* Cards de resumen.
+                        Las unidades de descuento NO van acá: los retardos ya
+                        están desglosados por tipo de día, y el total sigue
+                        disponible en el pie de la tabla junto al detalle. */}
+                    <div className='grid grid-cols-2 lg:grid-cols-4 gap-3'>
                         <SummaryCard value={summary.totalWorkingDays} label='Días laborables'  sub='en el período'                                                           color='gray'  />
                         <SummaryCard value={summary.presentDays}      label='Días presentes'   sub={`${summary.attendanceRate}% asistencia`}                               color='green' />
-                        <SummaryCard value={summary.lateDays}         label='Retardos'         sub={`${summary.justifiedLateDays} justificado${summary.justifiedLateDays !== 1 ? 's' : ''}`} color='amber' />
-                        <SummaryCard value={formatMinutes(summary.extraMinutes) || '0min'} label='Horas extras' sub={`${dayList.filter(d => d.extraMin > 0).length} días con extra`} color='green' />
-                        <SummaryCard value={summary.absentDays}       label='Ausencias'        sub='sin justificar'                                                        color='red'   />
-                        {/* Unidades a descontar acumuladas (discountUnits del modelo) */}
-                        <SummaryCard value={totalDiscountUnits}       label='Unid. descuento'  sub={`${dayList.filter(d => d.discountUnits > 0).length} día${dayList.filter(d => d.discountUnits > 0).length !== 1 ? 's' : ''} con descuento`} color='red' />
+                        {/* Retardos separados por tipo de día */}
+                        <SummaryCard value={rangeTotals.lateWeekday}  label='Ret. Lun–Vie'     sub='entre semana'                                                          color='amber' />
+                        <SummaryCard value={rangeTotals.lateWeekend}  label='Ret. Sáb–Dom'     sub='fin de semana'                                                         color='amber' />
+                    </div>
+
+                    {/* Horas extras del rango, desglosadas por estado de aprobación */}
+                    <div className='grid grid-cols-1 sm:grid-cols-3 gap-3'>
+                        <SummaryCard
+                            value={formatOvertime(rangeTotals.overtimeApproved) || '0min'}
+                            label='Extras aprobadas'
+                            sub='cuentan para el pago'
+                            color='green'
+                        />
+                        <SummaryCard
+                            value={formatOvertime(rangeTotals.overtimePending) || '0min'}
+                            label='Extras por aprobar'
+                            sub='esperan decisión'
+                            color='blue'
+                        />
+                        <SummaryCard
+                            value={formatOvertime(rangeTotals.overtimeRejected) || '0min'}
+                            label='Extras rechazadas'
+                            sub='desestimadas'
+                            color='gray'
+                        />
+                    </div>
+
+                    {/* Composición del período: qué pasó con cada día del rango */}
+                    <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3'>
+                        <SummaryCard value={rangeTotals.descanso}      label='Días libres'    sub='descanso'                color='gray'  />
+                        <SummaryCard value={rangeTotals.permiso}       label='Permisos'       sub='autorizados'             color='blue'  />
+                        <SummaryCard value={rangeTotals.falta}         label='Faltas'         sub='faltas y ausencias'      color='red'   />
+                        <SummaryCard value={rangeTotals.extra}         label='Días extra'     sub='franco trabajado'        color='green' />
+                        <SummaryCard value={rangeTotals.sundaysWorked} label='Domingos trab.' sub='con entrada marcada'     color='blue'  />
                     </div>
 
                     {/* Tabla de detalle */}
@@ -1030,7 +1153,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                         {/* Totales footer */}
                         <div className='border-t grid grid-cols-2 sm:grid-cols-5 bg-gray-50 rounded-b-xl'>
                             <FooterCell label='Total horas trabajadas' value={`${Math.floor(totalWorkedMin/60)}h ${String(totalWorkedMin%60).padStart(2,'0')}m`} green />
-                            <FooterCell label='Total horas extras'     value={formatMinutes(summary.extraMinutes) || '0min'} green />
+                            <FooterCell label='Extras aprobadas'       value={formatOvertime(rangeTotals.overtimeApproved) || '0min'} green />
                             <FooterCell label='Minutos de retardo'     value={formatMinutes(summary.lateMinutes)  || '0min'} amber />
                             <FooterCell label='Unidades a descontar'   value={String(totalDiscountUnits)} amber />
                             <FooterCell label='Horas esperadas'        value={`${Math.floor(summary.expectedMinutes/60)}h ${String(summary.expectedMinutes%60).padStart(2,'0')}m`} />

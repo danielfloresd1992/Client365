@@ -158,6 +158,23 @@ export const setAuxiliaryRole = async (payload) => {
 
 
 /**
+ * Aprueba o rechaza las horas extras de un día. Solo administradores.
+ * Los minutos NO se envían: los deriva el servidor del propio registro, así
+ * el cliente no puede inflar la cantidad aprobada.
+ * @param {{ userId?, dni?, date: string, status: 'approved'|'rejected', note?: string }} payload
+ */
+export const decideOvertime = async (payload) => {
+    try {
+        const response = await axiosInstance.post('/user/attendance/overtime', payload);
+        return response.data;
+    }
+    catch (error) {
+        throw error;
+    }
+}
+
+
+/**
  * Ficha del personal de HOY: jornada efectiva de cada usuario (override por
  * fecha > regla semanal > defecto), marcaje y roles del día.
  * @returns {{ date: string, dayNumber: number, roster: Array }}
