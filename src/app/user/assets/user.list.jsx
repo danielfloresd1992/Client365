@@ -437,14 +437,14 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                     {overtime.minutes > 0 && (
                         <div className={`rounded-lg border p-3 ${
                             overtime.status === 'approved' ? 'border-emerald-300 bg-emerald-50'
-                            : overtime.status === 'rejected' ? 'border-gray-300 bg-gray-50'
+                            : overtime.status === 'rejected' ? 'border-red-300 bg-red-50'
                             : 'border-blue-300 bg-blue-50'
                         }`}>
                             <div className='flex items-center gap-2 mb-1.5'>
                                 <p className='text-xs font-black uppercase tracking-wider text-gray-600'>Horas extras</p>
                                 <span className={`ml-auto text-[15px] font-black ${
                                     overtime.status === 'approved' ? 'text-emerald-700'
-                                    : overtime.status === 'rejected' ? 'text-gray-400 line-through'
+                                    : overtime.status === 'rejected' ? 'text-red-600 line-through'
                                     : 'text-blue-700'
                                 }`}>
                                     {formatOvertime(overtime.minutes)}
@@ -454,7 +454,7 @@ function DetailPopover({ attendanceData, user, onClose, onMouseEnter, onMouseLea
                             <div className='flex items-center gap-2 flex-wrap'>
                                 <span className={`text-[10px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded text-white ${
                                     overtime.status === 'approved' ? 'bg-emerald-600'
-                                    : overtime.status === 'rejected' ? 'bg-gray-500'
+                                    : overtime.status === 'rejected' ? 'bg-red-600'
                                     : 'bg-blue-600'
                                 }`}>
                                     {OVERTIME_LABEL[overtime.status]}
@@ -1972,7 +1972,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                     >
                         <svg
                             xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'
-                            stroke={cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#9ca3af' : '#2563eb'}
+                            stroke={cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#dc2626' : '#2563eb'}
                             strokeWidth='2.6' strokeLinecap='round' strokeLinejoin='round'
                             className='w-[11px] h-[11px] flex-shrink-0'
                         >
@@ -1981,7 +1981,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         </svg>
                         <span
                             className='text-[9px] font-black uppercase tracking-wider leading-none'
-                            style={{ color: cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#9ca3af' : '#2563eb' }}
+                            style={{ color: cellOvertime.status === 'approved' ? '#16a34a' : cellOvertime.status === 'rejected' ? '#dc2626' : '#2563eb' }}
                         >
                             extra
                         </span>

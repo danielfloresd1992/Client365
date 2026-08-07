@@ -60,12 +60,12 @@ const OvertimeClockIcon = ({ color }) => (
 
 /*
  * Estados de la hora extra. Los colores son literalmente los que pinta la
- * celda: verde aprobada, azul por aprobar, gris rechazada.
+ * celda: verde aprobada, azul por aprobar, rojo rechazada.
  */
 const OVERTIME_LEGEND = [
     { color: '#16a34a', label: 'Reloj verde: hora extra aprobada' },
     { color: '#2563eb', label: 'Reloj azul: hora extra por aprobar' },
-    { color: '#9ca3af', label: 'Reloj gris: hora extra rechazada' },
+    { color: '#dc2626', label: 'Reloj rojo: hora extra rechazada' },
 ];
 
 const MENU_ITEMS = [

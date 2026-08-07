@@ -351,10 +351,10 @@ function buildIndividualPrintHTML(reportData, dayList, logoUrl, rangeTotals = em
         const worked  = formatWorked(d.record?.checkIn, d.record?.checkOut) || '0h 00m';
         const overtimeMin = d.overtime?.minutes || 0;
         const extras  = overtimeMin > 0 ? `+${formatOvertime(overtimeMin)}` : '—';
-        // Verde = aprobada · azul = por aprobar · gris = rechazada
+        // Verde = aprobada · azul = por aprobar · rojo = rechazada
         const extraColor = overtimeMin === 0 ? '#bbb'
             : d.overtime?.status === 'approved' ? '#2e7d32'
-            : d.overtime?.status === 'rejected' ? '#999'
+            : d.overtime?.status === 'rejected' ? '#b71c1c'
             : '#1565c0';
         const retardo = d.lateMin  > 0 ? `+${d.lateMin}m` : '—';
         const desc    = d.discountUnits > 0 ? `-${d.discountUnits}` : '—';
@@ -437,7 +437,7 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sg" style="margin-top:6px">
     <div class="card"><div class="cv g">${formatOvertime(rangeTotals.overtimeApproved) || '0min'}</div><div class="cl">Extras aprobadas</div><div class="cs">cuentan para el pago</div></div>
     <div class="card"><div class="cv b">${formatOvertime(rangeTotals.overtimePending) || '0min'}</div><div class="cl">Extras por aprobar</div><div class="cs">esperan decisión</div></div>
-    <div class="card"><div class="cv">${formatOvertime(rangeTotals.overtimeRejected) || '0min'}</div><div class="cl">Extras rechazadas</div><div class="cs">desestimadas</div></div>
+    <div class="card"><div class="cv r">${formatOvertime(rangeTotals.overtimeRejected) || '0min'}</div><div class="cl">Extras rechazadas</div><div class="cs">desestimadas</div></div>
   </div>
 
   <!-- Composición del período: en qué se fue cada día del rango -->
@@ -1105,7 +1105,7 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                             value={formatOvertime(rangeTotals.overtimeRejected) || '0min'}
                             label='Extras rechazadas'
                             sub='desestimadas'
-                            color='gray'
+                            color='red'
                         />
                     </div>
 
@@ -1379,7 +1379,7 @@ function GlobalReportSection() {
                             </div>
                             <div>
                                 <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Rechazadas</p>
-                                <p className={`text-lg font-black leading-tight ${filteredTotals.overtimeRejected > 0 ? 'text-gray-500' : 'text-gray-300'}`}>
+                                <p className={`text-lg font-black leading-tight ${filteredTotals.overtimeRejected > 0 ? 'text-red-600' : 'text-gray-300'}`}>
                                     {formatOvertime(filteredTotals.overtimeRejected) || '0h'}
                                 </p>
                             </div>
