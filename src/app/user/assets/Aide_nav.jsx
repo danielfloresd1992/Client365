@@ -46,6 +46,28 @@ const ChevronLeftIcon = ({ className }) => (
     </svg>
 );
 
+/*
+ * Reloj de horas extras — misma figura y grosor que el distintivo del pie de
+ * la celda en user.list.jsx, para que la leyenda se lea como una réplica.
+ * El color lo decide el estado de la hora extra (ver OVERTIME_LEGEND).
+ */
+const OvertimeClockIcon = ({ color }) => (
+    <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke={color} strokeWidth='2.6' strokeLinecap='round' strokeLinejoin='round' className='w-3.5 h-3.5 flex-shrink-0'>
+        <circle cx='12' cy='12' r='10'></circle>
+        <polyline points='12 6 12 12 16 14'></polyline>
+    </svg>
+);
+
+/*
+ * Estados de la hora extra. Los colores son literalmente los que pinta la
+ * celda: verde aprobada, azul por aprobar, gris rechazada.
+ */
+const OVERTIME_LEGEND = [
+    { color: '#16a34a', label: 'Reloj verde: hora extra aprobada' },
+    { color: '#2563eb', label: 'Reloj azul: hora extra por aprobar' },
+    { color: '#9ca3af', label: 'Reloj gris: hora extra rechazada' },
+];
+
 const MENU_ITEMS = [
     { name: 'Horario y Guardias',   path: '/user',            Icon: CalendarIcon },
     { name: 'Consultar Asistencia', path: '/user/asistencia', Icon: ClipboardCheckIcon },
@@ -187,6 +209,23 @@ export default function AsideNav() {
                                     </span>
                                     Auxiliar del día (depto.)
                                 </li>
+
+                                {/*
+                                 * Horas extras: no pintan el fondo de la celda,
+                                 * aparecen como reloj + "extra" al pie. Por eso
+                                 * se listan juntas y con su propio separador.
+                                 */}
+                                <li className='pt-1.5 mt-0.5 border-t border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider whitespace-nowrap'>
+                                    Horas extras (pie de celda)
+                                </li>
+                                {OVERTIME_LEGEND.map(({ color, label }) => (
+                                    <li key={color} className='flex items-start gap-2'>
+                                        <span className='mt-0.5 flex items-center flex-shrink-0'>
+                                            <OvertimeClockIcon color={color} />
+                                        </span>
+                                        {label}
+                                    </li>
+                                ))}
                             </ul>
                         </div>
                     </div>
