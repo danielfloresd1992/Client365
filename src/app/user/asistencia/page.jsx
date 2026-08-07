@@ -506,6 +506,10 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     // Total de unidades a descontar del conjunto que va al PDF
     const totalDiscount = filtered.reduce((a, e) => a + (e.discountUnits || 0), 0);
 
+    // Horas extras del conjunto que va al PDF, por estado
+    const totalOtApproved = filtered.reduce((a, e) => a + (e.overtimeApprovedMinutes || 0), 0);
+    const totalOtPending  = filtered.reduce((a, e) => a + (e.overtimePendingMinutes  || 0), 0);
+
     // Agrupar por departamento para separar secciones en el PDF
     const byDept = {};
     filtered.forEach(e => {
@@ -520,7 +524,7 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
     let rowIndex = 0;
     Object.entries(byDept).forEach(([dept, emps]) => {
         // Fila separadora de departamento (agrupa visualmente en el PDF)
-        rows += `<tr><td colspan="14" style="background:#e8f5e9;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d32;padding:4px 6px;border-bottom:1px solid #c8e6c9">${dept}</td></tr>`;
+        rows += `<tr><td colspan="15" style="background:#e8f5e9;font-weight:700;font-size:8.5px;text-transform:uppercase;letter-spacing:.06em;color:#2e7d32;padding:4px 6px;border-bottom:1px solid #c8e6c9">${dept}</td></tr>`;
         emps.forEach(e => {
             rowIndex++;
             // Filas alternas para facilitar lectura horizontal
@@ -532,6 +536,9 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
             const vac      = e.vacacionesCount || 0;
             const guard    = e.onDutyDays || 0;
             const aux      = e.auxiliaryDays || 0;
+            // Horas extras: aprobadas en verde, pendientes como nota al pie
+            const otAppr   = e.overtimeApprovedMinutes || 0;
+            const otPend   = e.overtimePendingMinutes  || 0;
             // Las columnas numéricas van centradas
             rows += `<tr style="${bg}">
               <td style="text-align:center;color:#999;font-size:9px">${rowIndex}</td>
@@ -544,6 +551,7 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
               <td style="text-align:center;${lateColor(e.lateWeekend)}">${e.lateWeekend}</td>
               <td style="text-align:center;${descColor(desc)}">${desc > 0 ? `-${desc}` : 0}</td>
               <td style="text-align:center;${extraColor(e.extraDays)}">${e.extraDays}</td>
+              <td style="text-align:center;${otAppr > 0 ? 'color:#1f9a08;font-weight:700' : 'color:#bbb'}">${formatOvertime(otAppr) || '0h'}${otPend > 0 ? `<span style="display:block;font-size:7px;color:#1565c0;font-weight:700">+${formatOvertime(otPend)} p/aprob.</span>` : ''}</td>
               <td style="text-align:center;${permColor(perm)}">${perm}</td>
               <td style="text-align:center;${vacColor(vac)}">${vac}</td>
               <td style="text-align:center;${faltaColor(falta)}">${falta}</td>
@@ -681,6 +689,8 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
   <div class="card"><div class="cv g">${totals.totalPresent}</div><div class="cl">Presencias</div></div>
   <div class="card"><div class="cv r">${totals.totalFalta}</div><div class="cl">Total faltas</div></div>
   <div class="card"><div class="cv r">${totalDiscount}</div><div class="cl">Unid. descuento</div></div>
+  <!-- Horas extras aprobadas del período; las pendientes van como subtexto -->
+  <div class="card"><div class="cv g">${formatOvertime(totalOtApproved) || '0h'}</div><div class="cl">H. extra aprob.</div><div class="cs">${totalOtPending > 0 ? `${formatOvertime(totalOtPending)} por aprobar` : 'sin pendientes'}</div></div>
 </div>
 
 <!-- Tabla con recuadro completo (div.wrap controla el borde exterior) -->
@@ -690,15 +700,16 @@ function buildGlobalPrintHTML(globalData, searchFilter, logoUrl) {
       <tr>
         <!-- Anchos fijos que suman ~100% del área útil landscape A4 (~267mm) -->
         <th style="width:3%">#</th>
-        <th style="width:17%">Apellido, Nombre</th>
+        <th style="width:15%">Apellido, Nombre</th>
         <th style="width:8%">Cédula</th>
-        <th style="width:13%">Departamento</th>
-        <th style="width:12%">Cargo</th>
-        <th style="width:7%;text-align:center">Turno</th>
+        <th style="width:12%">Departamento</th>
+        <th style="width:11%">Cargo</th>
+        <th style="width:6%;text-align:center">Turno</th>
         <th style="width:6%;text-align:center;color:#b71c1c">Ret. Sem.</th>
         <th style="width:6%;text-align:center;color:#e65100">Ret. Finde</th>
         <th style="width:5%;text-align:center;color:#c62828">Desc.</th>
         <th style="width:5%;text-align:center;color:#1565c0">Extra</th>
+        <th style="width:5%;text-align:center;color:#1f9a08">H. Extra</th>
         <th style="width:5%;text-align:center;color:#6a1b9a">Perm.</th>
         <th style="width:5%;text-align:center;color:#00838f">Vac.</th>
         <th style="width:4%;text-align:center;color:#c62828">Faltas</th>
@@ -1251,6 +1262,12 @@ function GlobalReportSection() {
         vacaciones:    filteredEmployees.reduce((a, e) => a + (e.vacacionesCount || 0), 0),
         onDuty:        filteredEmployees.reduce((a, e) => a + (e.onDutyDays || 0), 0),
         auxiliary:     filteredEmployees.reduce((a, e) => a + (e.auxiliaryDays || 0), 0),
+        // Horas extras en MINUTOS, derivadas en el backend con la misma función
+        // que el reporte individual. Se acumulan sobre el conjunto visible para
+        // que el total responda al filtro de búsqueda.
+        overtimeApproved: filteredEmployees.reduce((a, e) => a + (e.overtimeApprovedMinutes || 0), 0),
+        overtimePending:  filteredEmployees.reduce((a, e) => a + (e.overtimePendingMinutes  || 0), 0),
+        overtimeRejected: filteredEmployees.reduce((a, e) => a + (e.overtimeRejectedMinutes || 0), 0),
     }), [filteredEmployees]);
 
     const periodLabel = useMemo(() => {
@@ -1329,6 +1346,52 @@ function GlobalReportSection() {
             {/* Resultado global */}
             {!isLoading && globalData && (
                 <>
+                    {/*
+                     * Banda de horas extras del período.
+                     * Va por encima de las cards porque es el dato que se
+                     * consulta primero para la nómina: el total APROBADO.
+                     * Los otros dos estados van al lado, en menor jerarquía,
+                     * para que se vea de una si queda algo por revisar.
+                     */}
+                    <div className='bg-white rounded-xl shadow-sm border flex flex-wrap items-center gap-x-8 gap-y-4 p-4'>
+                        <div className='flex items-center gap-3.5'>
+                            <span className='w-11 h-11 rounded-full bg-[#29c50c]/10 flex items-center justify-center flex-shrink-0'>
+                                <svg xmlns='http://www.w3.org/2000/svg' className='w-6 h-6 text-[#1f9a08]' fill='none' viewBox='0 0 24 24' stroke='currentColor' strokeWidth='2'>
+                                    <circle cx='12' cy='12' r='9' />
+                                    <path strokeLinecap='round' strokeLinejoin='round' d='M12 7v5l3 2' />
+                                </svg>
+                            </span>
+                            <div>
+                                <p className='text-[10px] font-bold text-gray-500 uppercase tracking-wider'>Horas extras aprobadas</p>
+                                <p className='text-3xl font-black leading-none text-[#1f9a08] mt-1'>
+                                    {formatOvertime(filteredTotals.overtimeApproved) || '0h'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Pendientes y rechazadas: contexto del total aprobado */}
+                        <div className='flex items-center gap-6'>
+                            <div>
+                                <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Por aprobar</p>
+                                <p className={`text-lg font-black leading-tight ${filteredTotals.overtimePending > 0 ? 'text-blue-600' : 'text-gray-300'}`}>
+                                    {formatOvertime(filteredTotals.overtimePending) || '0h'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className='text-[10px] font-bold text-gray-400 uppercase tracking-wider'>Rechazadas</p>
+                                <p className={`text-lg font-black leading-tight ${filteredTotals.overtimeRejected > 0 ? 'text-gray-500' : 'text-gray-300'}`}>
+                                    {formatOvertime(filteredTotals.overtimeRejected) || '0h'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {searchFilter && (
+                            <span className='text-[10px] text-gray-400 italic'>
+                                Totales del conjunto filtrado
+                            </span>
+                        )}
+                    </div>
+
                     {/* Cards de resumen globales — 7 métricas */}
                     <div className='grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3'>
                         {/* Total empleados con desglose activos/inactivos */}
@@ -1389,6 +1452,8 @@ function GlobalReportSection() {
                                         {/* Unidades a descontar por retardos (discountUnits) */}
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-rose-400 uppercase tracking-wider whitespace-nowrap min-w-[80px]'>Desc.</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-blue-400 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Días Extra</th>
+                                        {/* Horas extras APROBADAS del período (las pendientes van como subtexto) */}
+                                        <th className='px-4 py-2.5 text-center text-[10px] font-bold text-[#1f9a08] uppercase tracking-wider whitespace-nowrap min-w-[110px]'>H. Extra aprob.</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-purple-400 uppercase tracking-wider whitespace-nowrap min-w-[90px]'>Permisos</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-cyan-500 uppercase tracking-wider whitespace-nowrap min-w-[80px]'>Vacac.</th>
                                         <th className='px-4 py-2.5 text-center text-[10px] font-bold text-emerald-500 uppercase tracking-wider whitespace-nowrap min-w-[100px]'>Presencias</th>
@@ -1408,7 +1473,7 @@ function GlobalReportSection() {
                                         />
                                     ))}
                                     {paginatedEmps.length === 0 && (
-                                        <tr><td colSpan={16} className='text-center py-10 text-gray-400 text-sm'>
+                                        <tr><td colSpan={17} className='text-center py-10 text-gray-400 text-sm'>
                                             {searchFilter ? 'No hay empleados que coincidan con el filtro' : 'No hay datos para este período'}
                                         </td></tr>
                                     )}
@@ -1437,7 +1502,7 @@ function GlobalReportSection() {
                         )}
 
                         {/* Footer totales globales — incluye faltas y descuentos */}
-                        <div className='border-t grid grid-cols-3 sm:grid-cols-6 bg-gray-50 rounded-b-xl'>
+                        <div className='border-t grid grid-cols-3 sm:grid-cols-7 bg-gray-50 rounded-b-xl'>
                             <FooterCell label='Total empleados'   value={`${filteredEmployees.length}`} />
                             <FooterCell label='Ret. semana'       value={String(filteredTotals.lateWeekday)} amber />
                             <FooterCell label='Ret. finde'        value={String(filteredTotals.lateWeekend)} amber />
@@ -1445,6 +1510,7 @@ function GlobalReportSection() {
                             {/* Total de faltas pre-registradas del conjunto visible */}
                             <FooterCell label='Total faltas'      value={String(filteredTotals.faltaCount)} />
                             <FooterCell label='Unid. descuento'   value={String(filteredTotals.discountUnits)} amber />
+                            <FooterCell label='H. extra aprob.'   value={formatOvertime(filteredTotals.overtimeApproved) || '0h'} green />
                         </div>
                     </div>
                 </>
@@ -1468,6 +1534,10 @@ function GlobalEmployeeRow({ emp, index }) {
     const pos        = emp.jobInformation?.position   || '—';
     const isInactive = emp.inabilited === true;
     const falta      = emp.faltaCount || 0;
+    // Minutos derivados por el backend con overtime.lib.js (|| 0 tolera
+    // respuestas de la API anterior al despliegue).
+    const overtimeApproved = emp.overtimeApprovedMinutes || 0;
+    const overtimePending  = emp.overtimePendingMinutes  || 0;
 
     return (
         <tr className={`hover:bg-gray-50/70 transition-colors ${isInactive ? 'opacity-60' : ''}`}>
@@ -1516,6 +1586,21 @@ function GlobalEmployeeRow({ emp, index }) {
             {/* Días extra — azul si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${emp.extraDays > 0 ? 'text-blue-500' : 'text-gray-300'}`}>
                 {emp.extraDays}
+            </td>
+            {/*
+             * Horas extras aprobadas del período. Debajo, en azul, las que
+             * siguen esperando decisión: quien revisa la nómina necesita ver
+             * de una que a esa persona le falta aprobar algo.
+             */}
+            <td className='px-3 py-2.5 text-center'>
+                <span className={`text-[13px] font-black ${overtimeApproved > 0 ? 'text-[#1f9a08]' : 'text-gray-300'}`}>
+                    {formatOvertime(overtimeApproved) || '0h'}
+                </span>
+                {overtimePending > 0 && (
+                    <span className='block text-[9px] font-bold text-blue-500 leading-tight'>
+                        +{formatOvertime(overtimePending)} por aprobar
+                    </span>
+                )}
             </td>
             {/* Permisos — púrpura si > 0 */}
             <td className={`px-3 py-2.5 text-center text-[13px] font-black ${(emp.permisoCount || 0) > 0 ? 'text-purple-500' : 'text-gray-300'}`}>
