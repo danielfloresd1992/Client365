@@ -104,7 +104,11 @@ export default function AppDock() {
         <div className='relative w-[52px] h-full shrink-0'>
             <nav
                 aria-label='Navegación de la aplicación'
-                className='group absolute inset-y-0 left-0 w-[52px] hover:w-[232px] transition-[width] duration-200 ease-out bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-xl flex flex-col py-2 overflow-hidden z-40'
+                /* Al expandirse, la barra se monta SOBRE el contenido: la sombra
+                   es direccional (hacia la derecha, que es por donde crece) para
+                   que se lea como una capa despegada y no como un borde. Va en la
+                   transición junto al ancho, si no aparece de golpe. */
+                className='group absolute inset-y-0 left-0 w-[52px] hover:w-[232px] transition-[width,box-shadow] duration-200 ease-out bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-[26px_0_44px_-10px_rgba(15,23,42,0.42),4px_0_12px_-2px_rgba(15,23,42,0.20)] flex flex-col py-2 overflow-hidden z-40'
             >
                 {/* Marca: logo de Jarvis365 centrado; el nombre aparece al expandir */}
                 <div className='flex items-center h-10 shrink-0 mb-1 mx-[7px]'>
