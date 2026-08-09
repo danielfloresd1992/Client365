@@ -40,6 +40,19 @@ const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 // ═══════════════════════════════════════════════════════════════════════════
 
 /**
+ * Subtítulo de las tarjetas de descuento: cuántos días generaron el descuento.
+ * La tarjeta muestra las UNIDADES como número principal, así que este texto es
+ * el que aclara sobre cuántos días se acumularon.
+ * @param {number} dias
+ * @returns {string} "4 días con llegada tarde"
+ */
+function diasConRetardo(dias) {
+    const n = Number(dias) || 0;
+    if (n === 0) return 'sin llegadas tarde';
+    return `${n} día${n === 1 ? '' : 's'} con llegada tarde`;
+}
+
+/**
  * Formatea un string de fecha ISO a hora local Venezuela (UTC-4, 24 h).
  * @param {string|null} dateStr
  * @returns {string} "HH:mm" o "--:--" si no hay valor
@@ -171,6 +184,11 @@ const emptyRangeTotals = () => ({
     sundaysWorked: 0,   // domingos con marcaje de entrada
     lateWeekday: 0,     // retardos de lunes a viernes
     lateWeekend: 0,     // retardos de sábado y domingo
+    // Unidades a descontar (attendance.discountUnits), separadas igual que los
+    // retardos. Son el dato que se lleva a nómina: un retardo de 10 minutos y
+    // otro de hora y media cuentan igual como retardo, pero descuentan distinto.
+    discountWeekday: 0,
+    discountWeekend: 0,
     // Horas extras del rango, desglosadas por estado de aprobación
     overtimeApproved: 0,
     overtimePending: 0,
@@ -252,7 +270,10 @@ function buildDayList(reportData) {
                 || override?.note?.[override.note.length - 1]?.message
                 || null;
 
-            const lateMin = status === 'Retardo'
+            // Igual que los contadores: se mide sobre isLate, no sobre el
+            // status. Con `status === 'Retardo'` un franco trabajado con
+            // retardo reportaba 0 minutos.
+            const lateMin = record?.isLate
                 ? calcLateMinutes(record?.checkIn, startTime)
                 : 0;
 
@@ -272,9 +293,25 @@ function buildDayList(reportData) {
             if (status === 'Franco tr.' || workedOnRestDay) totals.extra++;
             if (isSunday && record?.checkIn) totals.sundaysWorked++;
 
-            if (status === 'Retardo') {
-                if (dow === 0 || dow === 6) totals.lateWeekend++;
+            // Retardos y unidades: se leen de lo que PERSISTIÓ el backend
+            // (isLate y discountUnits), no del status visible.
+            //
+            // El status es excluyente y prioriza "Franco tr.": un día extra en
+            // el que además se llegó tarde quedaba como franco trabajado, y el
+            // retardo no se contaba nunca aunque el registro lo trajera marcado
+            // y con sus unidades de descuento calculadas.
+            const isWeekendDay = dow === 0 || dow === 6;
+            const dayUnits = Number(record?.discountUnits) || 0;
+
+            if (record?.isLate) {
+                if (isWeekendDay) totals.lateWeekend++;
                 else totals.lateWeekday++;
+            }
+            // Las unidades se suman aunque el día no quedara marcado como
+            // retardo: si el backend las calculó, hay descuento que reportar.
+            if (dayUnits > 0) {
+                if (isWeekendDay) totals.discountWeekend += dayUnits;
+                else totals.discountWeekday += dayUnits;
             }
 
             // Horas extras del día, con la MISMA función que usa la celda del
@@ -441,8 +478,8 @@ tr:nth-child(even) td{background:#fafafa}
   <div class="sg">
     <div class="card"><div class="cv">${summary.totalWorkingDays}</div><div class="cl">Días laborables</div><div class="cs">en el período</div></div>
     <div class="card"><div class="cv g">${summary.presentDays}</div><div class="cl">Días presentes</div><div class="cs">${summary.attendanceRate}% asistencia</div></div>
-    <div class="card"><div class="cv a">${rangeTotals.lateWeekday}</div><div class="cl">Ret. Lun–Vie</div><div class="cs">entre semana</div></div>
-    <div class="card"><div class="cv a">${rangeTotals.lateWeekend}</div><div class="cl">Ret. Sáb–Dom</div><div class="cs">fin de semana</div></div>
+    <div class="card"><div class="cv a">${rangeTotals.discountWeekday}</div><div class="cl">Descuento Lun–Vie</div><div class="cs">${diasConRetardo(rangeTotals.lateWeekday)}</div></div>
+    <div class="card"><div class="cv a">${rangeTotals.discountWeekend}</div><div class="cl">Descuento Sáb–Dom</div><div class="cs">${diasConRetardo(rangeTotals.lateWeekend)}</div></div>
   </div>
 
   <!-- Horas extras del rango, desglosadas por estado de aprobación -->
@@ -1099,8 +1136,22 @@ function IndividualReportSection({ allUsers, loadingUsers }) {
                         <SummaryCard value={summary.totalWorkingDays} label='Días laborables'  sub='en el período'                                                           color='gray'  />
                         <SummaryCard value={summary.presentDays}      label='Días presentes'   sub={`${summary.attendanceRate}% asistencia`}                               color='green' />
                         {/* Retardos separados por tipo de día */}
-                        <SummaryCard value={rangeTotals.lateWeekday}  label='Ret. Lun–Vie'     sub='entre semana'                                                          color='amber' />
-                        <SummaryCard value={rangeTotals.lateWeekend}  label='Ret. Sáb–Dom'     sub='fin de semana'                                                         color='amber' />
+                        {/* Lo que manda es la UNIDAD DE DESCUENTO, que es lo que
+                            va a nómina; el número de días con retardo queda como
+                            contexto. Dos retardos de 10 min y uno de hora y media
+                            son 3 días en ambos casos, pero descuentan distinto. */}
+                        <SummaryCard
+                            value={rangeTotals.discountWeekday}
+                            label='Descuento Lun–Vie'
+                            sub={diasConRetardo(rangeTotals.lateWeekday)}
+                            color='amber'
+                        />
+                        <SummaryCard
+                            value={rangeTotals.discountWeekend}
+                            label='Descuento Sáb–Dom'
+                            sub={diasConRetardo(rangeTotals.lateWeekend)}
+                            color='amber'
+                        />
                     </div>
 
                     {/* Horas extras del rango, desglosadas por estado de aprobación */}
