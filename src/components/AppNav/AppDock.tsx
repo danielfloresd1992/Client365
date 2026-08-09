@@ -12,6 +12,8 @@ import type { ISessionUser } from '@/interfaces/ISession';
 import { NAV_SECTIONS } from '@/config/navigation.generated';
 import { navigationIconByKey, fallbackNavigationIcon } from './navigationIconRegistry';
 import { BellIcon, BellOffIcon, SettingsIcon, LogoutIcon, userAvatarPlaceholder } from '@/components/icons';
+import useNotifications from '@/hook/useNotifications';
+import NotificationPanel from './NotificationPanel';
 
 /*
  * AppDock: barra de navegación GLOBAL de la app. En reposo es un riel delgado
@@ -77,8 +79,21 @@ export default function AppDock() {
         roleWindow: string | null;
     };
 
-    // Notificaciones — placeholder estético (igual que en el Header)
-    const [hasUnread, setHasUnread] = useState(true);
+    // Notificaciones reales: estado, socket y lecturas viven en el hook.
+    const { notifications, unread, loading, loaded, load, markRead, markAllRead, textOf, pulseKey } = useNotifications();
+    const [panelOpen, setPanelOpen] = useState(false);
+    const hasUnread = unread > 0;
+
+    // La lista se pide al ABRIR, no al montar: el contador ya viene de un
+    // endpoint que no trae documentos, así que quien nunca abre la campana no
+    // paga por cargarla.
+    const togglePanel = () => {
+        setPanelOpen(abierto => {
+            const siguiente = !abierto;
+            if (siguiente && !loaded) load();
+            return siguiente;
+        });
+    };
 
     const user: ISessionUser | undefined = dataSessionState?.dataSession;
     const userName = `${user?.name || ''} ${user?.surName || ''}`.trim();
@@ -141,19 +156,39 @@ export default function AppDock() {
                         badge pulsante y, al expandir, contador a la derecha) */}
                     <button
                         type='button'
-                        onClick={() => setHasUnread(v => !v)}
-                        title={hasUnread ? 'Tienes notificaciones sin leer' : 'Sin notificaciones nuevas'}
+                        onClick={togglePanel}
+                        aria-expanded={panelOpen}
+                        title={hasUnread ? `Tienes ${unread} notificación${unread === 1 ? '' : 'es'} sin leer` : 'Sin notificaciones nuevas'}
                         className={`${ROW} w-[calc(100%-14px)] ${hasUnread
                             ? 'text-rose-600 hover:bg-rose-50'
                             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
                     >
                         <span className={`${ICON_BOX} relative`}>
                             <span className={`flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${hasUnread ? 'bg-rose-100' : ''}`}>
-                                {hasUnread ? <BellIcon size={18} /> : <BellOffIcon size={18} />}
+                                {/*
+                                  DOS CAPAS, y no una con dos animaciones: ambas
+                                  animan `transform` y sobre el mismo elemento se
+                                  pisarían. Anidadas, sus transformaciones se
+                                  componen.
+
+                                  · Capa externa: repique periódico mientras haya
+                                    sin leer. Infinita, pero quieta el 88% del ciclo.
+                                  · Capa interna: sacudida de UNA pasada al llegar
+                                    algo. `key={pulseKey}` la remonta, que es lo
+                                    único que relanza una animación CSS ya
+                                    terminada. Con pulseKey en 0 no lleva clase,
+                                    así no sacude al recargar la página.
+                                */}
+                                <span className={`flex ${hasUnread ? 'jarvis-bell--alert' : ''}`}>
+                                    <span key={pulseKey} className={`flex ${pulseKey > 0 ? 'jarvis-bell--shake' : ''}`}>
+                                        {hasUnread ? <BellIcon size={18} /> : <BellOffIcon size={18} />}
+                                    </span>
+                                </span>
                             </span>
+
                             {hasUnread && (
                                 <span className='absolute top-0.5 right-1 flex h-[9px] w-[9px]' aria-hidden='true'>
-                                    <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75'></span>
+                                    <span className='jarvis-badge-halo absolute inline-flex h-full w-full rounded-full bg-rose-400'></span>
                                     <span className='relative inline-flex rounded-full h-[9px] w-[9px] bg-rose-500 ring-2 ring-white'></span>
                                 </span>
                             )}
@@ -161,10 +196,28 @@ export default function AppDock() {
                         <span className={`${LABEL} flex-1 flex items-center justify-between`}>
                             <span>Notificaciones</span>
                             {hasUnread && (
-                                <span className='mr-2 text-[10px] font-black text-white bg-rose-500 rounded-full px-1.5 py-0.5 leading-none'>3</span>
+                                // key={unread}: el número da un golpe seco cada
+                                // vez que cambia la cuenta, no solo al aparecer.
+                                <span
+                                    key={unread}
+                                    className='jarvis-badge-pop mr-2 text-[10px] font-black text-white bg-rose-500 rounded-full px-1.5 py-0.5 leading-none'
+                                >
+                                    {unread > 99 ? '99+' : unread}
+                                </span>
                             )}
                         </span>
                     </button>
+
+                    <NotificationPanel
+                        open={panelOpen}
+                        onClose={() => setPanelOpen(false)}
+                        notifications={notifications}
+                        unread={unread}
+                        loading={loading}
+                        onMarkRead={markRead}
+                        onMarkAllRead={markAllRead}
+                        textOf={textOf}
+                    />
 
                     {/* Usuario (avatar + nombre/rol). Si el horario de hoy lo
                         designa encargado/auxiliar, la campanita lo resalta. */}
