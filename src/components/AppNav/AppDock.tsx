@@ -80,7 +80,10 @@ export default function AppDock() {
     };
 
     // Notificaciones reales: estado, socket y lecturas viven en el hook.
-    const { notifications, unread, loading, loaded, load, markRead, markAllRead, textOf, pulseKey } = useNotifications();
+    const {
+        notifications, unread, loading, loaded, load,
+        markRead, markAllRead, textOf, pulseKey, decide, deciding,
+    } = useNotifications();
     const [panelOpen, setPanelOpen] = useState(false);
     const hasUnread = unread > 0;
 
@@ -217,6 +220,9 @@ export default function AppDock() {
                         onMarkRead={markRead}
                         onMarkAllRead={markAllRead}
                         textOf={textOf}
+                        onDecide={decide}
+                        deciding={deciding}
+                        isAdmin={user?.admin === true}
                     />
 
                     {/* Usuario (avatar + nombre/rol). Si el horario de hoy lo

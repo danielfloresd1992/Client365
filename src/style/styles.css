@@ -8392,3 +8392,35 @@ body .jarvis-panel {
        superior: 100vh menos el footer, el margen inferior y un respiro. */
     max-height: calc(100vh - var(--app-footer-h) - 32px);
 }
+
+
+/* ── Empleado resaltado al llegar desde una notificación ────────────── */
+/* /user?userId=...&date=... baja hasta la fila y la marca unos segundos.
+   Anima solo opacity mediante un pseudo-elemento superpuesto: pintar el
+   fondo de la fila obligaria a repintar toda la grilla en cada
+   fotograma, y son setenta y seis filas con treinta y una celdas. */
+body .jarvis-row-highlight {
+    position: relative;
+}
+
+body .jarvis-row-highlight::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(41, 197, 12, 0.16);
+    box-shadow: inset 0 0 0 2px #29c50c;
+    border-radius: 6px;
+    animation: jarvisRowHighlight 4s ease-out forwards;
+}
+
+@keyframes jarvisRowHighlight {
+    0%   { opacity: 0; }
+    8%   { opacity: 1; }
+    70%  { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body .jarvis-row-highlight::after { animation: none; opacity: 1; }
+}

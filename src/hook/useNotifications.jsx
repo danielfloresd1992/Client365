@@ -5,7 +5,7 @@ import socket from '@/libs/socket/socketIo';
 import useAuthOnServer from '@/hook/auth';
 import {
     getNotifications, getUnreadCount,
-    markNotificationRead, markAllNotificationsRead,
+    markNotificationRead, markAllNotificationsRead, decideNotificationRequest,
 } from '@/libs/ajaxClient/notification.fetch';
 
 // ══════════════════════════════════════════════════════════════════════
@@ -133,5 +133,39 @@ export default function useNotifications() {
         catch { refreshUnread(); }
     }, [refreshUnread]);
 
-    return { notifications, unread, loading, loaded, load, markRead, markAllRead, textOf, pulseKey };
+    // ── Solicitudes ───────────────────────────────────────────────────
+    // Aprobar o rechazar. NO es optimista a propósito: al aprobar, el servidor
+    // escribe el horario, y adelantar el resultado dejaría la campana diciendo
+    // "aprobado" sobre un cambio que pudo no aplicarse.
+    const [deciding, setDeciding] = useState(null);   // id en curso
+
+    const decide = useCallback(async (id, decision, note = '') => {
+        setDeciding(id);
+        try {
+            const data = await decideNotificationRequest(id, decision, note);
+            const actualizada = data?.notification;
+            setNotifications(prev => prev.map(n => (
+                String(n._id) === String(id)
+                    ? { ...n, ...(actualizada || {}), read: true, request: actualizada?.request || { ...n.request, status: decision } }
+                    : n
+            )));
+            refreshUnread();
+            return { ok: true, applied: data?.applied ?? 0 };
+        }
+        catch (error) {
+            return {
+                ok: false,
+                message: error?.response?.data?.message || 'No se pudo procesar la solicitud.',
+            };
+        }
+        finally {
+            setDeciding(null);
+        }
+    }, [refreshUnread]);
+
+    return {
+        notifications, unread, loading, loaded, load,
+        markRead, markAllRead, textOf, pulseKey,
+        decide, deciding,
+    };
 }

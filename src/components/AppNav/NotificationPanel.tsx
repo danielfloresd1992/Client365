@@ -33,6 +33,13 @@ interface Notificacion {
     actor?: { name?: string; surName?: string; img?: string | null };
     resource?: { name?: string; path?: string; img?: string | null; kind?: string };
     changes?: { label?: string; field?: string; from?: unknown; to?: unknown }[];
+    target?: { name?: string; surName?: string };
+    request?: {
+        status?: 'none' | 'pending' | 'approved' | 'rejected';
+        decidedBy?: { name?: string; surName?: string } | string | null;
+        decidedAt?: string | null;
+        note?: string;
+    };
 }
 
 
@@ -98,6 +105,9 @@ interface Props {
     onMarkRead: (id: string) => void;
     onMarkAllRead: () => void;
     textOf: (n: Notificacion) => { title: string; body: string };
+    onDecide?: (id: string, decision: 'approved' | 'rejected') => Promise<{ ok: boolean; message?: string }>;
+    deciding?: string | null;
+    isAdmin?: boolean;
 }
 
 const desde = (fecha?: string) => {
@@ -109,6 +119,7 @@ const desde = (fecha?: string) => {
 
 export default function NotificationPanel({
     open, onClose, notifications, unread, loading, onMarkRead, onMarkAllRead, textOf,
+    onDecide, deciding, isAdmin,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null);
 
@@ -205,8 +216,21 @@ export default function NotificationPanel({
                                         {n.scope === 'personal' && (
                                             <span className='text-[9px] font-bold uppercase tracking-wider text-blue-500'>para ti</span>
                                         )}
+                                        {n.scope === 'admin' && (
+                                            <span className='text-[9px] font-bold uppercase tracking-wider text-amber-600'>solo admin</span>
+                                        )}
                                         {actor && <span className='text-[10px] text-gray-300 truncate'>· {actor}</span>}
                                     </div>
+
+                                    {/* Estado de la solicitud, ya resuelta */}
+                                    {(n.request?.status === 'approved' || n.request?.status === 'rejected') && (
+                                        <p className={`text-[10.5px] font-bold mt-1.5 ${n.request.status === 'approved' ? 'text-[#1f9a08]' : 'text-rose-600'}`}>
+                                            {n.request.status === 'approved' ? 'Aprobada' : 'Rechazada'}
+                                            {typeof n.request.decidedBy === 'object' && n.request.decidedBy?.name
+                                                ? ` por ${n.request.decidedBy.name} ${n.request.decidedBy.surName || ''}`.trimEnd()
+                                                : ''}
+                                        </p>
+                                    )}
                                 </div>
                             </div>
                         </>
@@ -214,23 +238,63 @@ export default function NotificationPanel({
 
                     // active:scale-[.99] da la sensación de pulsación sin tocar
                     // nada que obligue a repintar.
-                    const clases = `jarvis-item-in block w-full text-left px-4 py-3 border-b border-gray-50 transition-colors duration-150 active:scale-[.99] ${n.read ? 'hover:bg-gray-50' : 'bg-[#29c50c]/[0.04] hover:bg-[#29c50c]/[0.09]'}`;
+                    const clases = `block w-full text-left px-4 py-3 transition-colors duration-150 active:scale-[.99] ${n.read ? 'hover:bg-gray-50' : 'bg-[#29c50c]/[0.04] hover:bg-[#29c50c]/[0.09]'}`;
 
-                    // Con ruta, la notificación lleva al recurso; sin ruta solo
-                    // se marca como leída.
-                    return n.resource?.path ? (
-                        <Link
-                            key={n._id}
-                            href={n.resource.path}
-                            onClick={() => { onMarkRead(n._id); onClose(); }}
-                            className={clases}
-                        >
-                            {contenido}
-                        </Link>
-                    ) : (
-                        <button key={n._id} type='button' onClick={() => onMarkRead(n._id)} className={clases}>
-                            {contenido}
-                        </button>
+                    // Solicitud pendiente que ESTE usuario puede resolver.
+                    const puedeDecidir = Boolean(
+                        isAdmin && onDecide && n.request?.status === 'pending',
+                    );
+                    const enCurso = deciding === n._id;
+
+                    return (
+                        <div key={n._id} className='jarvis-item-in border-b border-gray-50'>
+                            {/*
+                              El contenido navega; los botones NO van dentro.
+                              Anidar un <button> en un <a> es HTML inválido y el
+                              clic terminaría navegando en vez de decidir.
+                            */}
+                            {n.resource?.path ? (
+                                <Link
+                                    href={n.resource.path}
+                                    onClick={() => { onMarkRead(n._id); onClose(); }}
+                                    className={clases}
+                                >
+                                    {contenido}
+                                </Link>
+                            ) : (
+                                <button type='button' onClick={() => onMarkRead(n._id)} className={clases}>
+                                    {contenido}
+                                </button>
+                            )}
+
+                            {puedeDecidir && (
+                                <div className='flex items-center gap-2 px-4 pb-3 -mt-1'>
+                                    <button
+                                        type='button'
+                                        disabled={enCurso}
+                                        onClick={() => onDecide!(n._id, 'approved')}
+                                        className='flex-1 h-8 rounded-lg text-[11px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors disabled:opacity-60'
+                                    >
+                                        {enCurso ? 'Procesando…' : 'Aceptar'}
+                                    </button>
+                                    <button
+                                        type='button'
+                                        disabled={enCurso}
+                                        onClick={() => onDecide!(n._id, 'rejected')}
+                                        className='flex-1 h-8 rounded-lg text-[11px] font-bold border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-60'
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            )}
+
+                            {/* Pendiente pero sin permiso para resolverla */}
+                            {n.request?.status === 'pending' && !puedeDecidir && (
+                                <p className='px-4 pb-3 -mt-1 text-[10.5px] font-bold text-amber-600'>
+                                    Pendiente por aprobar
+                                </p>
+                            )}
+                        </div>
                     );
                 })}
             </div>

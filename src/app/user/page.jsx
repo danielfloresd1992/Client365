@@ -438,8 +438,56 @@ export default function UserScheduler() {
     };
 
 
+    // ── Apertura desde una notificación ───────────────────────────────
+    // La campana enlaza a /user?userId=<id>&date=YYYY-MM-DD. Al llegar así, el
+    // horario se posiciona en ese mes, baja hasta el empleado y lo resalta unos
+    // segundos, para que quien viene a resolver una solicitud no tenga que
+    // buscarlo entre setenta y seis filas.
+    //
+    // Se lee de window.location y no con useSearchParams a propósito: ese hook
+    // obliga a envolver la página en un Suspense para el prerenderizado, y acá
+    // no aporta nada porque la página ya es de cliente.
+    const openTargetRef = useRef(null);   // { userId, date } pendiente de resaltar
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        const userId = params.get('userId');
+        const dateParam = params.get('date');
+        if (!userId && !dateParam) return;
+
+        if (dateParam) {
+            const fecha = new Date(`${dateParam}T00:00:00`);
+            if (!Number.isNaN(fecha.getTime())) setPivotDate(fecha);
+        }
+        // Se guarda para resaltar cuando las filas ya estén montadas: en este
+        // punto userRefs todavía está vacío.
+        openTargetRef.current = { userId, date: dateParam };
+    }, []);
+
+    // Resalta al empleado en cuanto su fila existe. Se toca la clase del nodo
+    // directamente porque ya tenemos su ref: hacerlo con estado obligaría a
+    // pasar la marca por toda la jerarquía de la grilla para un efecto que dura
+    // cuatro segundos.
+    useEffect(() => {
+        const objetivo = openTargetRef.current;
+        if (!objetivo?.userId || userData.length === 0) return;
+
+        const fila = userRefs.current?.[objetivo.userId];
+        if (!fila) return;
+
+        openTargetRef.current = null;
+        fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        fila.classList.add('jarvis-row-highlight');
+        const id = setTimeout(() => fila.classList.remove('jarvis-row-highlight'), 4000);
+        return () => clearTimeout(id);
+    }, [userData, daysRange]);
+
+
     // 4. Smooth Scroll to Today
     useEffect(() => {
+        // Si se viene desde una notificación, manda ese destino y no "hoy".
+        if (openTargetRef.current) return;
         if (todayRef.current) {
             todayRef.current.scrollIntoView({
                 behavior: 'smooth',

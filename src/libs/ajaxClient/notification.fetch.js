@@ -34,3 +34,19 @@ export const markAllNotificationsRead = async () => {
     const response = await axiosInstance.post('/notifications/read-all');
     return response.data;
 };
+
+/**
+ * Resuelve una solicitud pendiente. Solo administradores.
+ *
+ * Al aprobar, el servidor aplica el cambio guardado en la solicitud: desde acá
+ * NO se reenvía el contenido del cambio. Si viajara en la petición, quien
+ * aprueba podría alterar lo que se solicitó.
+ *
+ * @param {string} id
+ * @param {'approved'|'rejected'} decision
+ * @param {string} [note] motivo, sobre todo al rechazar
+ */
+export const decideNotificationRequest = async (id, decision, note = '') => {
+    const response = await axiosInstance.post(`/notifications/${id}/decide`, { decision, note });
+    return response.data;
+};
