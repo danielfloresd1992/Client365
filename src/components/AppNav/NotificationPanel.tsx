@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { StoreIcon } from '@/components/icons';
 
 /*
  * NotificationPanel — el desplegable de la campana del AppDock.
@@ -30,8 +31,62 @@ interface Notificacion {
     createdAt?: string;
     scope?: string;
     actor?: { name?: string; surName?: string; img?: string | null };
-    resource?: { name?: string; path?: string };
+    resource?: { name?: string; path?: string; img?: string | null; kind?: string };
     changes?: { label?: string; field?: string; from?: unknown; to?: unknown }[];
+}
+
+
+/**
+ * Avatar de la notificación: el RECURSO manda, la persona es la insignia.
+ *
+ * En un aviso sobre un establecimiento lo que se reconoce de un vistazo es su
+ * logo, no la foto de quien lo tocó. Por eso el logo va grande y el actor como
+ * marca pequeña encima: se responde "qué" y "quién" sin leer una palabra.
+ *
+ * Sin logo —una franquicia, por ejemplo— se cae a un ícono según el tipo de
+ * recurso, y solo si tampoco hay tipo se muestra al actor solo. Así las
+ * notificaciones anteriores a este cambio, que no traen `resource.img`, siguen
+ * viéndose bien.
+ */
+function ResourceAvatar({ n }: { n: Notificacion }) {
+    const iniciales = (n.actor?.name?.[0] || '') + (n.actor?.surName?.[0] || '');
+    const kind = n.resource?.kind || '';
+    const tieneSujeto = Boolean(n.resource?.img) || Boolean(kind);
+
+    // Sin recurso reconocible: el actor ocupa todo, como antes.
+    if (!tieneSujeto) {
+        return (
+            <span className='w-9 h-9 rounded-full bg-slate-100 shrink-0 overflow-hidden flex items-center justify-center'>
+                {n.actor?.img
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={n.actor.img} alt='' className='w-full h-full object-cover' />
+                    : <span className='text-[11px] font-bold text-slate-500'>{iniciales}</span>}
+            </span>
+        );
+    }
+
+    return (
+        <span className='relative w-9 h-9 shrink-0'>
+            {/* Sujeto: cuadrado redondeado, no círculo — un logo no es una cara */}
+            <span className='block w-9 h-9 rounded-lg bg-slate-100 overflow-hidden flex items-center justify-center border border-gray-200'>
+                {n.resource?.img
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={n.resource.img} alt='' className='w-full h-full object-cover' />
+                    : kind === 'system'
+                        // eslint-disable-next-line @next/next/no-img-element
+                        ? <img src='/logo-page-removebg.png' alt='' className='w-6 h-6 object-contain' />
+                        : <StoreIcon size={17} />}
+            </span>
+
+            {/* Quién lo hizo: insignia sobre la esquina */}
+            <span className='absolute -bottom-1 -right-1 w-[17px] h-[17px] rounded-full bg-slate-200 overflow-hidden flex items-center justify-center ring-2 ring-white'>
+                {n.actor?.img
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={n.actor.img} alt='' className='w-full h-full object-cover' />
+                    : <span className='text-[8px] font-black text-slate-600 leading-none'>{iniciales || '·'}</span>}
+            </span>
+        </span>
+    );
 }
 
 interface Props {
@@ -128,15 +183,8 @@ export default function NotificationPanel({
                                 {/* Punto de nivel: sirve de indicador de no leída */}
                                 <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${n.read ? 'bg-gray-200' : `jarvis-dot--unread ${LEVEL_DOT[n.level || 'info'] || LEVEL_DOT.info}`}`} />
 
-                                {/* Foto de quien lo hizo */}
-                                <span className='w-7 h-7 rounded-full bg-slate-100 shrink-0 overflow-hidden flex items-center justify-center'>
-                                    {n.actor?.img
-                                        // eslint-disable-next-line @next/next/no-img-element
-                                        ? <img src={n.actor.img} alt='' className='w-full h-full object-cover' />
-                                        : <span className='text-[10px] font-bold text-slate-500'>
-                                            {(n.actor?.name?.[0] || '') + (n.actor?.surName?.[0] || '')}
-                                        </span>}
-                                </span>
+                                {/* Qué (logo del recurso) y quién (insignia) */}
+                                <ResourceAvatar n={n} />
 
                                 <div className='min-w-0 flex-1'>
                                     <p className={`text-[12.5px] leading-snug ${n.read ? 'font-semibold text-gray-600' : 'font-bold text-gray-800'}`}>
