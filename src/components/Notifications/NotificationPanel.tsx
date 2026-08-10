@@ -10,7 +10,8 @@ import type { Notification, Decision, DecideResult } from './types';
  * Va en posición fija junto al riel y no dentro de él: el dock mide 52px en
  * reposo y crece solo al pasar el mouse, así que un panel anidado quedaría
  * recortado por su `overflow-hidden`. La clase `jarvis-panel` (styles.css)
- * resuelve su separación del footer y su alto máximo.
+ * resuelve su separación del footer, y `jarvis-panel__list` el alto fijo de la
+ * lista: la bandeja mide siempre lo mismo y lo que sobra se va al scroll.
  *
  * Solo pinta. El estado, el socket y las lecturas viven en useNotifications.
  */
@@ -24,6 +25,8 @@ interface Props {
     loadingMore: boolean;
     error: string | null;
     hasMore: boolean;
+    /** Cuántas traerá el botón de cargar más; la última tanda suele ser menor. */
+    nextCount?: number;
     onLoadMore: () => void;
     onRetry: () => void;
     onMarkRead: (id: string) => void;
@@ -35,7 +38,7 @@ interface Props {
 }
 
 export default function NotificationPanel({
-    open, onClose, notifications, unread, loading, loadingMore, error, hasMore,
+    open, onClose, notifications, unread, loading, loadingMore, error, hasMore, nextCount = 0,
     onLoadMore, onRetry, onMarkRead, onMarkAllRead, textOf, onDecide, deciding, isAdmin,
 }: Props) {
     const ref = useRef<HTMLDivElement>(null);
@@ -86,8 +89,13 @@ export default function NotificationPanel({
                 )}
             </div>
 
-            {/* Lista */}
-            <div className='flex-1 min-h-0 overflow-y-auto'>
+            {/*
+              Lista con ALTO FIJO (jarvis-panel__list) y no elástico: cada tanda
+              que se carga se va al scroll en vez de estirar la bandeja. Sin
+              esto, pulsar "ver más" movía el panel entero bajo el cursor y el
+              botón se escapaba de donde estaba.
+            */}
+            <div className='jarvis-panel__list overflow-y-auto'>
                 {loading && notifications.length === 0 && (
                     <p className='px-4 py-8 text-center text-xs text-gray-400'>Cargando…</p>
                 )}
@@ -143,7 +151,7 @@ export default function NotificationPanel({
                         disabled={loadingMore}
                         className='w-full py-3 text-[11px] font-bold text-[#1f9a08] hover:bg-gray-50 transition-colors disabled:opacity-60'
                     >
-                        {loadingMore ? 'Cargando…' : 'Ver más'}
+                        {loadingMore ? 'Cargando…' : (nextCount ? `Ver ${nextCount} más` : 'Ver más')}
                     </button>
                 )}
             </div>

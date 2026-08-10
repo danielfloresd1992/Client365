@@ -8386,6 +8386,10 @@ body .jarvis-dot--unread {
    footer cambie de alto, esto se ajusta en un solo punto. */
 :root {
     --app-footer-h: 30px;
+    /* Alto de la LISTA (sin la cabecera). Da para las siete de la primera
+       tanda; a partir de ahí cada "ver más" se va al scroll. Está acá y no
+       escrito en el componente para poder afinarlo en un solo punto. */
+    --notif-list-h: 432px;
 }
 
 body .jarvis-panel {
@@ -8393,6 +8397,15 @@ body .jarvis-panel {
     /* Que nunca crezca por detrás del footer ni por encima del borde
        superior: 100vh menos el footer, el margen inferior y un respiro. */
     max-height: calc(100vh - var(--app-footer-h) - 32px);
+}
+
+/* La lista mide SIEMPRE lo mismo y lo que sobra se desplaza.
+   Antes crecía con el contenido: cargar otra tanda estiraba la bandeja hacia
+   arriba y el botón se movía de debajo del cursor.
+   El max-height gana en pantallas bajas, donde 432px no caben. */
+body .jarvis-panel__list {
+    height: var(--notif-list-h);
+    max-height: calc(100vh - var(--app-footer-h) - 110px);
 }
 
 

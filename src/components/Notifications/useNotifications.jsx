@@ -24,7 +24,19 @@ import {
 const LANG = 'es';
 
 export const NOTIFICATION_EVENT = 'notification:new';
-const PAGE_SIZE = 20;
+
+/**
+ * Cuántas trae cada tanda.
+ *
+ * Siete y no veinte: la bandeja tiene una altura fija y con siete se llena sin
+ * que nada quede a medio asomar. Pedir veinte de entrada era traer —y renderizar
+ * con sus fotos y avatares— tres pantallas de más que casi nadie llegaba a
+ * mirar, en la primera apertura de cada sesión.
+ *
+ * El servidor acepta hasta 50 por página, así que este número se cambia acá sin
+ * tocar la API.
+ */
+export const PAGE_SIZE = 7;
 
 
 // ══════════════════════════════════════════════════════════════════════
@@ -312,6 +324,9 @@ export default function useNotifications() {
         notifications, unread, total,
         loading, loadingMore, error,
         hasMore: notifications.length < total,
+        // Cuántas trae realmente el botón. La última tanda casi nunca son
+        // siete, y prometer "ver 7 más" para traer 2 es mentirle al que pulsa.
+        nextCount: Math.max(0, Math.min(PAGE_SIZE, total - notifications.length)),
         load, loadMore,
         markRead, markAllRead,
         decide, deciding,
