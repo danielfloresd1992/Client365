@@ -8304,15 +8304,17 @@ body .jarvis-badge-halo {
     animation: jarvisBadgePulse 2.4s cubic-bezier(0, 0, .2, 1) infinite;
 }
 
-/* Golpe seco del número cuando sube la cuenta */
+/* Golpe del número cuando sube la cuenta.
+   Sin sobreimpulso: la salida exponencial arranca rápido y frena suave, y
+   eso ya llama la atención. Un rebote sobre una insignia de 9px se lee
+   juguetón y desentona con el resto del riel. */
 @keyframes jarvisBadgePop {
-    0%   { transform: scale(.4); opacity: 0; }
-    55%  { transform: scale(1.25); opacity: 1; }
+    0%   { transform: scale(.5); opacity: 0; }
     100% { transform: scale(1); opacity: 1; }
 }
 
 body .jarvis-badge-pop {
-    animation: jarvisBadgePop .42s cubic-bezier(.34, 1.56, .64, 1) 1;
+    animation: jarvisBadgePop .32s cubic-bezier(.16, 1, .3, 1) 1;
 }
 
 /* ── Entrada de la bandeja ──────────────────────────────────────────── */

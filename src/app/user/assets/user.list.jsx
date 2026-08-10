@@ -10,6 +10,8 @@ import UserNextMonthScheduleForm from './user.nextmonth.schedule.form';
 import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole, decideOvertime } from '@/libs/ajaxClient/user.fecth';
+import { decideNotificationRequest, withdrawNotificationRequest } from '@/components/Notifications';
+import { ensurePendingLoaded, subscribePending, pendingFor, clearPending } from './schedulePending';
 import { overtimeOfDay, formatOvertime, OVERTIME_LABEL } from '@/libs/attendance/overtime';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
@@ -1623,6 +1625,73 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const dispatch = useDispatch();
     const [isSendingComment, setIsSendingComment] = useState(false);
 
+    // ── Solicitud de cambio de horario esperando decisión ──────────────
+    // El mapa lo carga UNA vez toda la grilla y se actualiza por socket; acá
+    // solo se mira si a ESTA celda le tocó, y se repinta cuando el mapa cambia.
+    const [, refrescarPendiente] = useReducer((x) => x + 1, 0);
+    const [resolviendoPendiente, setResolviendoPendiente] = useState(false);
+
+    const sessionUserId = dataSessionState?.dataSession?._id;
+    useEffect(() => {
+        ensurePendingLoaded(sessionUserId);
+        return subscribePending(refrescarPendiente);
+    }, [sessionUserId]);
+
+    const pendiente = pendingFor(user._id, dateObj);
+    const esAdmin = dataSessionState?.dataSession?.admin === true;
+    const esMio = Boolean(pendiente) && String(pendiente.requestedBy?.user || '') === String(dataSessionState?.dataSession?._id || '');
+
+    // Un administrador decide; quien la pidió puede retirarla. Un `super`
+    // mirando la solicitud de otro solo la ve, no la toca.
+    const puedeDecidir = Boolean(pendiente) && esAdmin;
+    const puedeRetirar = Boolean(pendiente) && esMio && !esAdmin;
+
+    /**
+     * Resuelve la solicitud desde la celda.
+     *
+     * Se limpia el mapa sin esperar al socket: el evento va a llegar, pero
+     * quien acaba de pulsar el botón tiene que ver el resultado ya. Si la
+     * petición falla se recarga, que es la única forma de saber cómo quedó.
+     */
+    const resolverPendiente = (accion) => runLocked(async () => {
+        if (!pendiente?.notificationId) return;
+        setResolviendoPendiente(true);
+        try {
+            if (accion === 'withdraw') {
+                await withdrawNotificationRequest(pendiente.notificationId);
+            } else {
+                await decideNotificationRequest(pendiente.notificationId, accion);
+            }
+            clearPending(pendiente.notificationId);
+        }
+        catch (error) {
+            const data = error?.response?.data;
+
+            // 409 con `stale`: el horario se movió después de pedirse el
+            // cambio. No se aprueba a ciegas — se cuenta y se deja decidir.
+            if (data?.stale) {
+                dispatch(setConfigModal({
+                    type: 'warning',
+                    title: 'El horario cambió',
+                    description: `${data.message} Si aun así quieres aplicarlo, apruébalo desde la campana de notificaciones.`,
+                    modalOpen: true,
+                }));
+            } else {
+                dispatch(setConfigModal({
+                    type: 'error',
+                    title: 'No se pudo resolver',
+                    description: data?.message || 'Hubo un problema con la solicitud. Intenta nuevamente.',
+                    modalOpen: true,
+                }));
+                // Ya resuelta por otro, o error: el mapa quedó viejo.
+                if (error?.response?.status === 409) clearPending(pendiente.notificationId);
+            }
+        }
+        finally {
+            setResolviendoPendiente(false);
+        }
+    }, 'pendiente');
+
     // El cerrojo va por REF (useSubmitLock): setIsSendingComment agenda un
     // re-render, no cambia la variable en el acto, así que un doble clic
     // disparaba dos comentarios idénticos. El estado se conserva solo para
@@ -2098,6 +2167,51 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
                         >
                             extra
                         </span>
+                    </div>
+                )}
+
+                {/* Solicitud de cambio esperando decisión.
+                    Va encima de todo y con `pointerEvents` propio: el contenido
+                    de la celda los tiene desactivados y el contenedor usa
+                    mousedown para la selección por arrastre, así que sin esto el
+                    clic en el botón seleccionaría la celda en vez de decidir. */}
+                {pendiente && (
+                    <div
+                        className='absolute top-0 left-0 right-0 z-[4] flex items-center justify-between gap-0.5 px-1 py-[2px] bg-amber-400/95 border-b border-amber-500'
+                        style={{ pointerEvents: 'auto' }}
+                        onMouseDown={(e) => e.stopPropagation()}
+                        onMouseEnter={(e) => e.stopPropagation()}
+                        title={`Cambio solicitado por ${pendiente.requestedBy?.name || ''} ${pendiente.requestedBy?.surName || ''}`.trim()
+                            + (pendiente.slotCount > 1 ? ` · el lote toca ${pendiente.slotCount} celdas` : '')}
+                    >
+                        <span className='text-[8px] font-black uppercase tracking-tighter text-amber-900 leading-none truncate'>
+                            {pendiente.slotCount > 1 ? `Pend. ×${pendiente.slotCount}` : 'Pend.'}
+                        </span>
+
+                        {(puedeDecidir || puedeRetirar) && (
+                            <span className='flex items-center gap-0.5 flex-shrink-0'>
+                                {puedeDecidir && (
+                                    <button
+                                        type='button'
+                                        disabled={resolviendoPendiente}
+                                        onClick={(e) => { e.stopPropagation(); resolverPendiente('approved'); }}
+                                        title='Aceptar el cambio'
+                                        className='w-[15px] h-[15px] rounded-sm bg-white/90 text-emerald-700 hover:bg-white hover:text-emerald-800 disabled:opacity-50 flex items-center justify-center leading-none font-black text-[10px]'
+                                    >
+                                        ✓
+                                    </button>
+                                )}
+                                <button
+                                    type='button'
+                                    disabled={resolviendoPendiente}
+                                    onClick={(e) => { e.stopPropagation(); resolverPendiente(puedeRetirar ? 'withdraw' : 'rejected'); }}
+                                    title={puedeRetirar ? 'Retirar mi solicitud' : 'Cancelar el cambio'}
+                                    className='w-[15px] h-[15px] rounded-sm bg-white/90 text-rose-700 hover:bg-white hover:text-rose-800 disabled:opacity-50 flex items-center justify-center leading-none font-black text-[10px]'
+                                >
+                                    ✕
+                                </button>
+                            </span>
+                        )}
                     </div>
                 )}
 

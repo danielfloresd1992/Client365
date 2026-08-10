@@ -10,6 +10,72 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-10
+- **Solicitudes de horario reforzadas de punta a punta (con api_jarvis365):**
+  - **Autoría real.** El autor del cambio sale de la sesión y no del cuerpo de
+    la petición: la auditoría del documento de asistencia decía lo que el front
+    declarara, así que un `adminUserId` equivocado firmaba con otro nombre.
+  - **Alcance del lote.** La solicitud registra a TODOS los empleados que toca,
+    no solo al primero. Antes un administrador leía "cambio para Ana" y al
+    aprobar movía la jornada de cinco personas.
+  - **Quién pidió y quién aprobó.** El empleado leía "Kervis modificó tu
+    horario" cuando Kervis solo autorizó lo que pidió otro; ahora el aviso
+    nombra a los dos.
+  - **Conflictos.** Una segunda solicitud sobre la misma celda se rechaza con
+    409 diciendo quién tiene la primera. Y al aprobar, si el horario cambió
+    desde que se pidió, se corta y se muestra qué cambió en vez de pisarlo en
+    silencio (`force: true` lo aplica igual, como decisión explícita).
+  - **Retiro.** Quien solicitó puede retirar lo suyo (`/notifications/:id/withdraw`),
+    estado nuevo `withdrawn` — distinto de `rejected`, que es un administrador
+    negando un cambio ajeno.
+  - **Aceptar/cancelar en la celda**, con socket en vivo. Las pendientes llegan
+    indexadas por celda (`userId|YYYY-MM-DD`) en una sola petición: preguntar
+    celda por celda serían más de dos mil para dibujar un mes. El evento
+    `schedule:request` pinta y libera las celdas sin recargar. _(Claude Code)_
+
+- **Los cambios de horario ahora sí le llegan al administrador (api_jarvis365):**
+  `schedule.changed` estaba dirigida **solo al empleado afectado**, así que el
+  administrador que hacía el cambio no la recibía nunca — ni por socket ni al
+  abrir la bandeja, porque la consulta filtra por destinatario. No era un fallo
+  del socket: la notificación se creaba bien, para alguien que no estaba
+  mirando.
+
+  Se resuelve con dos avisos, uno por audiencia: al empleado "tu horario
+  cambió" y a los demás administradores "X modificó el horario de Y". Son dos
+  documentos porque el texto se guarda ya renderizado y no puede decir "tu
+  horario" y "el horario de Ana" a la vez. El administrador que hizo el cambio
+  queda fuera de la lista: contarle lo que acaba de hacer es ruido. _(Claude Code)_
+
+- **La campana distingue "visto" de "leído" (Client365 y Jarvis-express365):**
+  al llegar algo nuevo la campana avisa —repique, halo y color de aviso— y se
+  calma al **abrir la bandeja**, sin marcar nada como leído: el número de
+  pendientes sigue ahí y solo baja al abrir, clicar o decidir una notificación.
+  El contador se queda pero en gris, informando sin tirar del ojo.
+
+  Se resuelve en el cliente con `localStorage`, guardando **el contador de
+  pendientes en el momento de mirar** en vez de una marca de tiempo: así no hace
+  falta cargar la lista para saber si hay novedad, alcanza con el contador que
+  la campana ya pide. La clave lleva el id del usuario porque en las estaciones
+  de monitoreo se turnan varias personas en la misma máquina. _(Claude Code)_
+
+- **Notificación privada del marcaje (con api_jarvis365 y Jarvis-express365):**
+  al fichar en la máquina, quien marca recibe una notificación **solo para él**
+  con el resultado de su asistencia: hora de entrada y de salida, si llegó
+  puntual o con retardo (y de cuántos minutos), las unidades de descuento que
+  genera, si el día cuenta como extra, cuánto trabajó y sus horas extras. Trae
+  las **dos fotos** del fichaje como comprobante, la fecha de la jornada y la
+  fecha del aviso.
+
+  Es privada de verdad: la estrategia del backend la declara `personal` con
+  audiencia de una sola persona, viaja por la sala de socket de ese usuario y la
+  consulta filtra por destinatario en el servidor. Un administrador no ve los
+  retardos de los demás por la campana.
+
+  En el cliente se implementó como **familia visual propia** (`attendance`,
+  reloj de fondo y acento teal) con un slot `detail` nuevo en el registro de
+  vistas: el ítem de la bandeja sigue sin conocer ninguna familia, le pide su
+  detalle a la vista y lo pinta. Vale para los dos frontends. _(Claude Code)_
+
 ## 2026-08-03
 - **Reportes de asistencia al día con el modelo (con api_jarvis365):** el
   reporte individual de /user/asistencia suma columnas Turno, Desc. (unidades

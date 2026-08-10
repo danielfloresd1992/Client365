@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 
 import Loader3D from './Loader3D';
 import ServerConnectionError from '@/components/error/ServerConnectionError';
+import Forbidden403 from '@/components/error/Forbidden403';
 
 import { myUserContext } from '@/contexts/userContext';
 import { useSingleFetch } from '@/hook/ajax_hook/useFetch';
@@ -136,11 +137,9 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
                 router.replace(DEFAULT_AUTHENTICATED_ROUTE);
                 redirectAttempted.current = true;
             }
-            // Autenticado sin permisos de admin en ruta admin → al Lobby
-            else if (isAdminRoute(pathName) && !dataSessionState.dataSession?.admin) {
-                router.replace(DEFAULT_AUTHENTICATED_ROUTE);
-                redirectAttempted.current = true;
-            }
+            // Sin permisos de admin en ruta admin: NO se redirige. Se muestra el
+            // 403 (más abajo, en el render) para que quede claro por qué no se
+            // puede entrar; la redirección silenciosa solo dejaba un parpadeo.
         }
         else if (dataSessionState.stateSession === 'unauthenticated') {
             // No autenticado en ruta protegida → al login
@@ -228,9 +227,10 @@ export default function LoadingGuard({ title = 'Cargando...', children }: any): 
         return <Loader3D title={title} />;
     }
 
-    // Ruta de admin sin permisos → loader mientras redirige al Lobby
+    // Ruta de admin sin permisos → 403. Se llega acá escribiendo la URL a mano,
+    // porque el menú ya no muestra estas rutas a quien no es administrador.
     if (session === 'authenticated' && isAdminRoute(pathName) && !isAdmin) {
-        return <Loader3D title={title} />;
+        return <Forbidden403 pathname={pathName} />;
     }
 
     // Autorizado → render normal

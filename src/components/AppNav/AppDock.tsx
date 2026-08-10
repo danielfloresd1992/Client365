@@ -1,8 +1,9 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo } from 'react';
 import { useDispatch } from 'react-redux';
+import { isAdminRoute } from '@/libs/auth/routes.config';
 import useAuthOnServer from '@/hook/auth';
 import { useDayRole } from '@/contexts/dayRoleContext';
 import { setOpenWindowConfig } from '@/store/slices/configModalStore';
@@ -11,9 +12,8 @@ import type { NavItem } from '@/config/nav.types';
 import type { ISessionUser } from '@/interfaces/ISession';
 import { NAV_SECTIONS } from '@/config/navigation.generated';
 import { navigationIconByKey, fallbackNavigationIcon } from './navigationIconRegistry';
-import { BellIcon, BellOffIcon, SettingsIcon, LogoutIcon, userAvatarPlaceholder } from '@/components/icons';
-import useNotifications from '@/hook/useNotifications';
-import NotificationPanel from './NotificationPanel';
+import { BellOffIcon, SettingsIcon, LogoutIcon, userAvatarPlaceholder } from '@/components/icons';
+import { NotificationBell } from '@/components/Notifications';
 
 /*
  * AppDock: barra de navegación GLOBAL de la app. En reposo es un riel delgado
@@ -79,27 +79,27 @@ export default function AppDock() {
         roleWindow: string | null;
     };
 
-    // Notificaciones reales: estado, socket y lecturas viven en el hook.
-    const {
-        notifications, unread, loading, loaded, load,
-        markRead, markAllRead, textOf, pulseKey, decide, deciding,
-    } = useNotifications();
-    const [panelOpen, setPanelOpen] = useState(false);
-    const hasUnread = unread > 0;
-
-    // La lista se pide al ABRIR, no al montar: el contador ya viene de un
-    // endpoint que no trae documentos, así que quien nunca abre la campana no
-    // paga por cargarla.
-    const togglePanel = () => {
-        setPanelOpen(abierto => {
-            const siguiente = !abierto;
-            if (siguiente && !loaded) load();
-            return siguiente;
-        });
-    };
-
     const user: ISessionUser | undefined = dataSessionState?.dataSession;
     const userName = `${user?.name || ''} ${user?.surName || ''}`.trim();
+    const isAdmin = user?.admin === true;
+
+    // El menú solo ofrece lo que el usuario puede abrir. La lista de rutas de
+    // administrador es la MISMA que aplica LoadingGuard (routes.config), así no
+    // hay dos definiciones que se desincronicen: agregar una ruta allí la oculta
+    // acá y la bloquea con el 403 en la página.
+    //
+    // Mientras la sesión se resuelve, `user` es undefined y las rutas de admin
+    // quedan ocultas. Es el default seguro: aparecen al confirmarse el permiso,
+    // en vez de mostrarse y desaparecer.
+    const visibleSections = useMemo(
+        () => NAV_SECTIONS
+            .map(section => ({
+                ...section,
+                items: section.items.filter(item => isAdmin || !isAdminRoute(item.path)),
+            }))
+            .filter(section => section.items.length > 0),
+        [isAdmin],
+    );
 
     const handleLogout = (): void => logOut('/');
 
@@ -140,7 +140,7 @@ export default function AppDock() {
 
                 {/* Navegación (auto-generada desde el file-system; scroll propio si no cabe) */}
                 <div className='flex-1 min-h-0 w-full flex flex-col overflow-y-auto overflow-x-hidden'>
-                    {NAV_SECTIONS.map(section => (
+                    {visibleSections.map(section => (
                         <div key={section.label} className='w-full pt-1'>
                             <p className='h-4 flex items-center px-[13px] text-[9.5px] font-bold uppercase tracking-wider text-gray-300 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity duration-150'>
                                 {section.label}
@@ -155,75 +155,10 @@ export default function AppDock() {
                 {/* Zona inferior fija: notificaciones · usuario · config · salir */}
                 <div className='shrink-0 w-full pt-1.5 mt-1 border-t border-gray-100'>
 
-                    {/* Notificaciones — resalta cuando hay sin leer (campana con
-                        badge pulsante y, al expandir, contador a la derecha) */}
-                    <button
-                        type='button'
-                        onClick={togglePanel}
-                        aria-expanded={panelOpen}
-                        title={hasUnread ? `Tienes ${unread} notificación${unread === 1 ? '' : 'es'} sin leer` : 'Sin notificaciones nuevas'}
-                        className={`${ROW} w-[calc(100%-14px)] ${hasUnread
-                            ? 'text-rose-600 hover:bg-rose-50'
-                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-800'}`}
-                    >
-                        <span className={`${ICON_BOX} relative`}>
-                            <span className={`flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${hasUnread ? 'bg-rose-100' : ''}`}>
-                                {/*
-                                  DOS CAPAS, y no una con dos animaciones: ambas
-                                  animan `transform` y sobre el mismo elemento se
-                                  pisarían. Anidadas, sus transformaciones se
-                                  componen.
-
-                                  · Capa externa: repique periódico mientras haya
-                                    sin leer. Infinita, pero quieta el 88% del ciclo.
-                                  · Capa interna: sacudida de UNA pasada al llegar
-                                    algo. `key={pulseKey}` la remonta, que es lo
-                                    único que relanza una animación CSS ya
-                                    terminada. Con pulseKey en 0 no lleva clase,
-                                    así no sacude al recargar la página.
-                                */}
-                                <span className={`flex ${hasUnread ? 'jarvis-bell--alert' : ''}`}>
-                                    <span key={pulseKey} className={`flex ${pulseKey > 0 ? 'jarvis-bell--shake' : ''}`}>
-                                        {hasUnread ? <BellIcon size={18} /> : <BellOffIcon size={18} />}
-                                    </span>
-                                </span>
-                            </span>
-
-                            {hasUnread && (
-                                <span className='absolute top-0.5 right-1 flex h-[9px] w-[9px]' aria-hidden='true'>
-                                    <span className='jarvis-badge-halo absolute inline-flex h-full w-full rounded-full bg-rose-400'></span>
-                                    <span className='relative inline-flex rounded-full h-[9px] w-[9px] bg-rose-500 ring-2 ring-white'></span>
-                                </span>
-                            )}
-                        </span>
-                        <span className={`${LABEL} flex-1 flex items-center justify-between`}>
-                            <span>Notificaciones</span>
-                            {hasUnread && (
-                                // key={unread}: el número da un golpe seco cada
-                                // vez que cambia la cuenta, no solo al aparecer.
-                                <span
-                                    key={unread}
-                                    className='jarvis-badge-pop mr-2 text-[10px] font-black text-white bg-rose-500 rounded-full px-1.5 py-0.5 leading-none'
-                                >
-                                    {unread > 99 ? '99+' : unread}
-                                </span>
-                            )}
-                        </span>
-                    </button>
-
-                    <NotificationPanel
-                        open={panelOpen}
-                        onClose={() => setPanelOpen(false)}
-                        notifications={notifications}
-                        unread={unread}
-                        loading={loading}
-                        onMarkRead={markRead}
-                        onMarkAllRead={markAllRead}
-                        textOf={textOf}
-                        onDecide={decide}
-                        deciding={deciding}
-                        isAdmin={user?.admin === true}
-                    />
+                    {/* Notificaciones: la campana se monta entera desde su
+                        modulo. AppDock solo le presta las clases del riel para
+                        que la fila encaje con las demas. */}
+                    <NotificationBell rowClass={ROW} iconBoxClass={ICON_BOX} labelClass={LABEL} />
 
                     {/* Usuario (avatar + nombre/rol). Si el horario de hoy lo
                         designa encargado/auxiliar, la campanita lo resalta. */}

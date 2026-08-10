@@ -1,0 +1,152 @@
+'use client';
+
+import { useEffect, useRef } from 'react';
+import NotificationItem from './NotificationItem';
+import type { Notification, Decision, DecideResult } from './types';
+
+/*
+ * La bandeja desplegable de la campana.
+ *
+ * Va en posición fija junto al riel y no dentro de él: el dock mide 52px en
+ * reposo y crece solo al pasar el mouse, así que un panel anidado quedaría
+ * recortado por su `overflow-hidden`. La clase `jarvis-panel` (styles.css)
+ * resuelve su separación del footer y su alto máximo.
+ *
+ * Solo pinta. El estado, el socket y las lecturas viven en useNotifications.
+ */
+
+interface Props {
+    open: boolean;
+    onClose: () => void;
+    notifications: Notification[];
+    unread: number;
+    loading: boolean;
+    loadingMore: boolean;
+    error: string | null;
+    hasMore: boolean;
+    onLoadMore: () => void;
+    onRetry: () => void;
+    onMarkRead: (id: string) => void;
+    onMarkAllRead: () => void;
+    textOf: (n: Notification) => { title: string; body: string };
+    onDecide?: (id: string, decision: Decision) => Promise<DecideResult>;
+    deciding?: string | null;
+    isAdmin?: boolean;
+}
+
+export default function NotificationPanel({
+    open, onClose, notifications, unread, loading, loadingMore, error, hasMore,
+    onLoadMore, onRetry, onMarkRead, onMarkAllRead, textOf, onDecide, deciding, isAdmin,
+}: Props) {
+    const ref = useRef<HTMLDivElement>(null);
+
+    // Cierre al hacer clic fuera y con Escape. Sin esto el panel queda abierto
+    // sobre el contenido y hay que volver a la campana para cerrarlo.
+    useEffect(() => {
+        if (!open) return;
+        const onDown = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+        };
+        const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        document.addEventListener('mousedown', onDown);
+        document.addEventListener('keydown', onKey);
+        return () => {
+            document.removeEventListener('mousedown', onDown);
+            document.removeEventListener('keydown', onKey);
+        };
+    }, [open, onClose]);
+
+    if (!open) return null;
+
+    const vacia = !loading && !error && notifications.length === 0;
+
+    return (
+        <div
+            ref={ref}
+            role='dialog'
+            aria-label='Notificaciones'
+            className='jarvis-panel jarvis-panel-in fixed left-[62px] z-[1010] w-[370px] max-w-[calc(100vw-80px)] flex flex-col bg-white border border-gray-200 rounded-xl shadow-[10px_0_34px_-6px_rgba(15,23,42,0.30)] overflow-hidden'
+        >
+            {/* Cabecera */}
+            <div className='shrink-0 flex items-center gap-2 px-4 py-3 border-b border-gray-100'>
+                <p className='text-sm font-bold text-gray-800'>Notificaciones</p>
+                {unread > 0 && (
+                    <span className='text-[10px] font-black text-white bg-rose-500 rounded-full px-1.5 py-0.5 leading-none'>
+                        {unread}
+                    </span>
+                )}
+                {unread > 0 && (
+                    <button
+                        type='button'
+                        onClick={onMarkAllRead}
+                        className='ml-auto text-[11px] font-bold text-[#1f9a08] hover:underline'
+                    >
+                        Marcar todas como leídas
+                    </button>
+                )}
+            </div>
+
+            {/* Lista */}
+            <div className='flex-1 min-h-0 overflow-y-auto'>
+                {loading && notifications.length === 0 && (
+                    <p className='px-4 py-8 text-center text-xs text-gray-400'>Cargando…</p>
+                )}
+
+                {/*
+                  Un fallo NO se muestra como "sin notificaciones": eso se lee
+                  como "no hay nada" cuando en realidad no se pudo consultar.
+                */}
+                {error && notifications.length === 0 && (
+                    <div className='px-4 py-8 text-center'>
+                        <p className='text-sm font-semibold text-rose-600'>No se pudieron cargar</p>
+                        <p className='text-[11px] text-gray-400 mt-1'>{error}</p>
+                        <button
+                            type='button'
+                            onClick={onRetry}
+                            className='mt-3 h-8 px-4 rounded-lg text-[11px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'
+                        >
+                            Reintentar
+                        </button>
+                    </div>
+                )}
+
+                {vacia && (
+                    <div className='px-4 py-10 text-center'>
+                        <p className='text-sm font-semibold text-gray-500'>Sin notificaciones</p>
+                        <p className='text-[11px] text-gray-400 mt-1'>
+                            Acá aparecerán los cambios del sistema.
+                        </p>
+                    </div>
+                )}
+
+                {notifications.map(n => {
+                    const { title, body } = textOf(n);
+                    return (
+                        <NotificationItem
+                            key={n._id}
+                            n={n}
+                            title={title}
+                            body={body}
+                            canDecide={Boolean(isAdmin && onDecide && n.request?.status === 'pending')}
+                            deciding={deciding === n._id}
+                            onMarkRead={onMarkRead}
+                            onNavigate={onClose}
+                            onDecide={onDecide}
+                        />
+                    );
+                })}
+
+                {hasMore && (
+                    <button
+                        type='button'
+                        onClick={onLoadMore}
+                        disabled={loadingMore}
+                        className='w-full py-3 text-[11px] font-bold text-[#1f9a08] hover:bg-gray-50 transition-colors disabled:opacity-60'
+                    >
+                        {loadingMore ? 'Cargando…' : 'Ver más'}
+                    </button>
+                )}
+            </div>
+        </div>
+    );
+}
