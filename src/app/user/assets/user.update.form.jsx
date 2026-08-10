@@ -5,6 +5,7 @@ import { Label, TextInput, Checkbox, Select, FileInput , HelperText} from 'flowb
 import { HiInformationCircle } from 'react-icons/hi';
 import { HiMail } from "react-icons/hi";
 import { fetchFileData } from '@/libs/ajaxClient/file.fecth';
+import useSubmitLock from '@/hook/useSubmitLock';
 
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const WORK_TYPE_OPTIONS = [
@@ -73,6 +74,10 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
         formState: { errors, dirtyFields }
     } = useForm({ defaultValues: initialData });
 
+    // Cerrojo del formulario: una clave para el guardado y otra para la subida
+    // de la foto, que son dos peticiones distintas.
+    const { run: runLocked, isBusy } = useSubmitLock();
+
     // La foto no es un input controlado (FileInput sube el archivo y guarda la
     // URL con setValue), así que se registra "virtual" para que react-hook-form
     // la valide igual que al resto: obligatoria SOLO si el documento del
@@ -98,7 +103,7 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
     }, [initialData, reset]);
 
 
-    const onSubmit = (data) => {
+    const onSubmit = (data) => runLocked(async () => {
         // Enviar SOLO lo modificado: así el historial updateByUser del backend
         // registra únicamente los campos que realmente cambiaron.
         const payload = {};
@@ -137,8 +142,11 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
             return;
         }
 
-        onSave(initialData._id, payload);
-    };
+        // Se ESPERA a onSave para que el cerrojo siga puesto mientras el
+        // guardado viaja: si no, se liberaría al instante y el botón volvería a
+        // aceptar clics con la petición todavía en vuelo.
+        await onSave(initialData._id, payload);
+    }, 'guardar');
 
     const updateDayField = (dayKey, field, value) => {
         setScheduleByDay((prev) => {
@@ -159,18 +167,26 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
 
 
 
-    const handleFileChange = async (event) => {
-        const file = event.target.files[0]; // Obtenemos el primer archivo seleccionado
-        if (file) {
-            console.log("Archivo cargado:", file.name);
-            console.log("Tamaño:", file.size);
-            // Aquí es donde disparas tu lógica
-            const response = await fetchFileData(file);
-            const newImageUrl = response.url;
-            setDataUser({...dataUser, img: newImageUrl});
-            // shouldValidate: al subir la foto se limpia el error de "obligatoria"
-            setValue('img', newImageUrl, { shouldDirty: true, shouldValidate: true });
-        }
+    // La subida de la foto es una petición PROPIA del formulario, aparte del
+    // guardado, y por eso lleva su propia clave de cerrojo. Elegir otro archivo
+    // mientras el anterior sube dejaría dos subidas compitiendo, y ganaría la
+    // que respondiera segunda — que no tiene por qué ser la última elegida.
+    const handleFileChange = (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        return runLocked(async () => {
+            try {
+                const response = await fetchFileData(file);
+                const newImageUrl = response.url;
+                setDataUser({ ...dataUser, img: newImageUrl });
+                // shouldValidate: al subir la foto se limpia el error de "obligatoria"
+                setValue('img', newImageUrl, { shouldDirty: true, shouldValidate: true });
+            }
+            catch (error) {
+                console.error('No se pudo subir la foto:', error);
+            }
+        }, 'foto');
     };
 
 
@@ -541,11 +557,14 @@ export default function UserEditForm({ initialData, onSave=() => {}, onCancel, d
                     >
                         Cancelar
                     </button>
-                    <button 
-                        type='submit' 
-                        className='btn-primary btn-sm flex-1'
+                    <button
+                        type='submit'
+                        disabled={isBusy('guardar') || isBusy('foto')}
+                        className='btn-primary btn-sm flex-1 disabled:opacity-60'
                     >
-                        Actualizar Cambios
+                        {isBusy('guardar')
+                            ? 'Guardando…'
+                            : isBusy('foto') ? 'Subiendo foto…' : 'Actualizar Cambios'}
                     </button>
                 </div>
             </form>

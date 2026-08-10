@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import useSubmitLock from '@/hook/useSubmitLock';
 
 const MAX_LENGTH = 500;
 
@@ -26,11 +27,15 @@ export default function UserCommentForm({ user, dateObj = null, onSave = () => {
     }, [onCancel]);
 
     const trimmed = comment.trim();
+    const { run: runLocked, isBusy } = useSubmitLock();
 
+    // Se ESPERA a onSave con el cerrojo puesto: sin await, el cerrojo se
+    // liberaba de inmediato y el botón volvía a aceptar clics con el comentario
+    // todavía viajando, guardándolo dos veces.
     const handleSubmit = (event) => {
         event.preventDefault();
         if (!trimmed) return;
-        onSave(trimmed);
+        return runLocked(() => onSave(trimmed));
     };
 
     return (
@@ -99,10 +104,10 @@ export default function UserCommentForm({ user, dateObj = null, onSave = () => {
                         </button>
                         <button
                             type='submit'
-                            disabled={!trimmed}
-                            className='btn-primary btn-sm flex-1'
+                            disabled={!trimmed || isBusy()}
+                            className='btn-primary btn-sm flex-1 disabled:opacity-60'
                         >
-                            Guardar comentario
+                            {isBusy() ? 'Guardando…' : 'Guardar comentario'}
                         </button>
                     </div>
                 </form>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useReducer, useImperativeHandle, forwardRef, useContext, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useContextMenuPosition from '@/hook/useContextMenuPosition';
+import useSubmitLock from '@/hook/useSubmitLock';
 import ContextMenu from '@/components/ContextMenu';
 import UserScheduleCalendar from './user.schedule.calendar';
 import UserCommentForm from './user.comment.form';
@@ -830,6 +831,13 @@ export default forwardRef(function UserList({
     }));
 
 
+    // Cerrojo contra el doble submit de las acciones del menú contextual.
+    // Cada acción usa su propia clave, así designar guardia no bloquea asignar
+    // jornada. Ver useSubmitLock: el cerrojo es un ref porque el estado no se
+    // actualiza a tiempo para frenar el segundo clic de un doble clic.
+    const { run: runLocked } = useSubmitLock();
+
+
 
     // Context menu state
     const {
@@ -886,8 +894,10 @@ export default forwardRef(function UserList({
     const ONDUTY_DEPARTMENTS = ['Operaciones', 'Reportes', 'Sistemas y desarrollo'];
     const canHaveOnDuty = ONDUTY_DEPARTMENTS.includes(userState?.jobInformation?.department);
 
-    // Designa o quita la guardia del día para la fecha clickeada
-    const toggleOnDutyGuard = async (onDuty) => {
+    // Designa o quita la guardia del día para la fecha clickeada.
+    // Cada acción lleva su propia clave de cerrojo: designar guardia y designar
+    // auxiliar son independientes y no tienen por qué bloquearse entre sí.
+    const toggleOnDutyGuard = (onDuty) => runLocked(async () => {
         try {
             const dateObj = new Date(contextMenuDate);
             dateObj.setHours(0, 0, 0, 0);
@@ -917,10 +927,10 @@ export default forwardRef(function UserList({
             }));
             return false;
         }
-    };
+    }, 'onDuty');
 
     // Designa o quita el auxiliar del día para la fecha clickeada
-    const toggleAuxiliaryRole = async (auxiliary) => {
+    const toggleAuxiliaryRole = (auxiliary) => runLocked(async () => {
         try {
             const dateObj = new Date(contextMenuDate);
             dateObj.setHours(0, 0, 0, 0);
@@ -950,10 +960,11 @@ export default forwardRef(function UserList({
             }));
             return false;
         }
-    };
+    }, 'auxiliary');
 
     // Guarda un override de jornada para la fecha clickeada (mismo endpoint que "Editar grupo")
-    const saveDayOverride = async ({ workType, shift = null, startTime = null, endTime = null, note = null, from = null, to = null }) => {
+    const saveDayOverride = (args) => runLocked(async () => {
+        const { workType, shift = null, startTime = null, endTime = null, note = null, from = null, to = null } = args || {};
         try {
             // Fechas objetivo: rango completo para vacaciones (un documento por
             // día), o solo el día donde se hizo click derecho
@@ -1016,7 +1027,7 @@ export default forwardRef(function UserList({
             }));
             return false;
         }
-    };
+    }, 'dayOverride');
 
 
     if (user.workSchedule.outForkSchedule) return null;
@@ -1382,7 +1393,7 @@ export default forwardRef(function UserList({
                     user={userState}
                     dateObj={contextMenuDate}
                     onCancel={() => setShowCommentForm(false)}
-                    onSave={async (texto) => {
+                    onSave={(texto) => runLocked(async () => {
                         try {
                             await addAttendanceComment({
                                 userId: userState._id,
@@ -1405,7 +1416,7 @@ export default forwardRef(function UserList({
                                 modalOpen: true,
                             }));
                         }
-                    }}
+                    }, 'comment')}
                 />,
                 document.body
             )}
@@ -1415,7 +1426,7 @@ export default forwardRef(function UserList({
                 <UserNextMonthScheduleForm
                     user={userState}
                     onCancel={() => setShowNextMonthForm(false)}
-                    onSave={async (updates) => {
+                    onSave={(updates) => runLocked(async () => {
                         try {
                             const response = await saveGroupDynamicSchedule({
                                 updates: updates.map(u => ({ ...u, userId: userState._id, dni: userState.dni })),
@@ -1443,7 +1454,7 @@ export default forwardRef(function UserList({
                                 modalOpen: true,
                             }));
                         }
-                    }}
+                    }, 'nextMonth')}
                 />,
                 document.body
             )}
@@ -1498,6 +1509,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const [showDetails, setShowDetails] = useState(false);
     const [isLoadingDetails, setIsLoadingDetails] = useState(false);
     const [isDecidingOvertime, setIsDecidingOvertime] = useState(false);
+    // Cerrojo por celda: cada una tiene sus propias acciones (comentar,
+    // decidir horas extras) y no deben bloquearse entre celdas distintas.
+    const { run: runLocked } = useSubmitLock();
     const closeTimeoutRef = useRef(null);
     const openTimeoutRef = useRef(null);
     const manuallyClosedRef = useRef(false);
@@ -1609,7 +1623,11 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const dispatch = useDispatch();
     const [isSendingComment, setIsSendingComment] = useState(false);
 
-    const handleAddComment = async (message) => {
+    // El cerrojo va por REF (useSubmitLock): setIsSendingComment agenda un
+    // re-render, no cambia la variable en el acto, así que un doble clic
+    // disparaba dos comentarios idénticos. El estado se conserva solo para
+    // deshabilitar el botón.
+    const handleAddComment = (message) => runLocked(async () => {
         setIsSendingComment(true);
         try {
             await addAttendanceComment({ userId: user._id, dni, date: requestDateISO, message });
@@ -1628,7 +1646,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         } finally {
             setIsSendingComment(false);
         }
-    };
+    }, 'comment');
 
 
     // Aprobar o rechazar las horas extras del día. Solo lo ve un admin; el
@@ -1638,7 +1656,9 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     // día, cuántas se autorizan. Va en null para aprobar el total. El servidor
     // valida la cantidad contra su propio cálculo, así que desde acá no se
     // puede aprobar más de lo que el día generó.
-    const handleDecideOvertime = async (decision, approvedMinutes = null) => {
+    // Misma razón que en el comentario: el cerrojo por ref frena el segundo
+    // clic, que aquí duplicaría una decisión sobre horas extras.
+    const handleDecideOvertime = (decision, approvedMinutes = null) => runLocked(async () => {
         setIsDecidingOvertime(true);
         try {
             await decideOvertime({
@@ -1663,7 +1683,7 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
         } finally {
             setIsDecidingOvertime(false);
         }
-    };
+    }, 'overtime');
 
 
     // Socket: escucha eventos para TODAS las fechas (no solo hoy).

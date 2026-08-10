@@ -19,6 +19,7 @@ import { myUserContext } from '@/contexts/userContext';
 
 // network
 import { fetchUserData, userById, updateUserByRrhh, saveGroupDynamicSchedule } from '@/libs/ajaxClient/user.fecth';
+import useSubmitLock from '@/hook/useSubmitLock';
 
 
 
@@ -59,6 +60,11 @@ export default function UserScheduler() {
 
     const dispatch = useDispatch();
     const { dataSessionState } = useContext(myUserContext);
+    // Cerrojo contra el doble submit de los guardados de esta página. Ver
+    // useSubmitLock: va por ref porque el estado no se actualiza a tiempo para
+    // frenar el segundo clic de un doble clic.
+    const { run: runLocked } = useSubmitLock();
+
     const [pivotDate, setPivotDate] = useState(new Date());
     const [userData, setUserData] = useState([]);
     const [editingUser, setEditingUser] = useState(null);
@@ -264,7 +270,7 @@ export default function UserScheduler() {
 
 
 
-    const handleUpdateUser = async (id, data) => {
+    const handleUpdateUser = (id, data) => runLocked(async () => {
         try {
             const response = await updateUserByRrhh(id, data);
             const updatedUser = response.userUpdate;
@@ -290,7 +296,7 @@ export default function UserScheduler() {
                 modalOpen: true,
             }));
         }
-    };
+    }, 'updateUser');
 
 
 
@@ -308,7 +314,7 @@ export default function UserScheduler() {
 
 
     
-    const handleSaveGroupDynamicSchedule = async (payload) => {
+    const handleSaveGroupDynamicSchedule = (payload) => runLocked(async () => {
         try {
             // Inyectar el ID del admin logueado para auditoría (modifiedBy)
             const adminUserId = dataSessionState?.dataSession?._id;
@@ -330,7 +336,7 @@ export default function UserScheduler() {
                 modalOpen: true,
             }));
         }
-    };
+    }, 'groupSchedule');
 
 
 

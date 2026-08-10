@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import useSubmitLock from '@/hook/useSubmitLock';
 
 /**
  * Modal compacto para asignar una jornada sobre una fecha desde el menú
@@ -68,6 +69,7 @@ export default function UserDayAssignForm({ user, dateObj, mode = 'laboral', onS
     const [fromDate, setFromDate] = useState(dateObj ? toInputDate(dateObj) : '');
     const [toDate, setToDate] = useState(dateObj ? toInputDate(dateObj) : '');
     const [saving, setSaving] = useState(false);
+    const { run: runLocked } = useSubmitLock();
 
     const config = MODE_CONFIG[mode] || MODE_CONFIG.laboral;
 
@@ -84,9 +86,13 @@ export default function UserDayAssignForm({ user, dateObj, mode = 'laboral', onS
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [onCancel]);
 
-    const handleSubmit = async (event) => {
+    // `setSaving` sigue existiendo para el texto del botón, pero quien FRENA el
+    // segundo clic es el cerrojo por ref: el estado no cambia a tiempo dentro
+    // del mismo tick de un doble clic.
+    const handleSubmit = (event) => {
         event.preventDefault();
         if (!canSave) return;
+        return runLocked(async () => {
         setSaving(true);
         try {
             await onSave({
@@ -101,6 +107,7 @@ export default function UserDayAssignForm({ user, dateObj, mode = 'laboral', onS
         } finally {
             setSaving(false);
         }
+        });
     };
 
     return (

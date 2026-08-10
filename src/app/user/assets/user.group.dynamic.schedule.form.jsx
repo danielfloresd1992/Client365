@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import useSubmitLock from '@/hook/useSubmitLock';
 import { format } from 'date-fns';
 import { getCachedAttendance } from './user.list';
 import { es } from 'date-fns/locale';
@@ -83,6 +84,7 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
 
     const [formByCell, setFormByCell] = useState(initialFormMap);
     const [isSaving, setIsSaving] = useState(false);
+    const { run: runLocked } = useSubmitLock();
 
     const updateField = (key, field, value) => {
         setFormByCell((prev) => {
@@ -186,12 +188,19 @@ export default function UserGroupDynamicScheduleForm({ selectedUsers = [], total
             return;
         }
 
-        setIsSaving(true);
-        try {
-            await onSave({ updates });
-        } finally {
-            setIsSaving(false);
-        }
+        // `disabled={isSaving}` no basta: en el mismo tick de un doble clic el
+        // botón todavía no se re-renderizó deshabilitado. El cerrojo por ref sí
+        // frena el segundo, y acá importa más que en ningún otro formulario:
+        // este guarda TODAS las celdas seleccionadas de varios empleados a la
+        // vez, así que duplicarlo escribiría el lote entero dos veces.
+        await runLocked(async () => {
+            setIsSaving(true);
+            try {
+                await onSave({ updates });
+            } finally {
+                setIsSaving(false);
+            }
+        });
     };
 
     return (

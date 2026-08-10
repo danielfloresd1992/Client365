@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import useSubmitLock from '@/hook/useSubmitLock';
 
 /**
  * Modal "Cambiar horario del mes siguiente".
@@ -60,6 +61,7 @@ export default function UserNextMonthScheduleForm({ user, onCancel = () => {}, o
     });
     const [note, setNote] = useState('');
     const [saving, setSaving] = useState(false);
+    const { run: runLocked } = useSubmitLock();
 
     const patchDay = (num, patch) => setDays(prev => ({ ...prev, [num]: { ...prev[num], ...patch } }));
 
@@ -85,9 +87,13 @@ export default function UserNextMonthScheduleForm({ user, onCancel = () => {}, o
         return () => window.removeEventListener('keydown', onKey);
     }, [onCancel]);
 
-    const handleSubmit = async (e) => {
+    // El cerrojo por ref frena el segundo clic; `saving` queda solo para el
+    // texto del botón. Acá pesa más que en otros formularios: este guarda un
+    // mes entero, y duplicarlo escribiría treinta documentos dos veces.
+    const handleSubmit = (e) => {
         e.preventDefault();
         if (!canSave) return;
+        return runLocked(async () => {
         setSaving(true);
         try {
             const updates = targetDates.map(dateObj => {
@@ -109,6 +115,7 @@ export default function UserNextMonthScheduleForm({ user, onCancel = () => {}, o
         finally {
             setSaving(false);
         }
+        });
     };
 
     return (
