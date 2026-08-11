@@ -12,6 +12,7 @@ import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole, decideOvertime } from '@/libs/ajaxClient/user.fecth';
 import { decideNotificationRequest, withdrawNotificationRequest } from '@/components/Notifications';
 import { ensurePendingLoaded, subscribePending, pendingFor, clearPending, dayKeyOf } from './schedulePending';
+import { getCellFocus, clearCellFocus, subscribeCellFocus } from './cellFocus';
 import { overtimeOfDay, formatOvertime, OVERTIME_LABEL } from '@/libs/attendance/overtime';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
@@ -1524,6 +1525,8 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
     const closeTimeoutRef = useRef(null);
     const openTimeoutRef = useRef(null);
     const manuallyClosedRef = useRef(false);
+    // Ficha anclada: se abrió desde una notificación y no se cierra sola.
+    const pinnedRef = useRef(false);
 
     const HOVER_DELAY_MS = 1000;
 
@@ -1552,6 +1555,13 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
     const handleCloseDetails = () => {
+        // Una ficha abierta desde una notificación NO se cierra al salir el
+        // ratón. La de siempre es un tooltip: aparece al posarse y se va al
+        // irse. Esta se abrió porque alguien vino a leer un comentario, y
+        // cerrarse al primer movimiento la volvía imposible de leer. Se queda
+        // hasta que la cierren con la equis.
+        if (pinnedRef.current) return;
+
         if (openTimeoutRef.current) {
             clearTimeout(openTimeoutRef.current);
             openTimeoutRef.current = null;
@@ -1570,6 +1580,10 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
 
 
     const handleManualClose = () => {
+        // Cerrar a mano suelta el anclaje: a partir de acá la celda vuelve a
+        // comportarse como cualquier otra.
+        pinnedRef.current = false;
+
         if (openTimeoutRef.current) {
             clearTimeout(openTimeoutRef.current);
             openTimeoutRef.current = null;
@@ -1589,6 +1603,37 @@ function AttendanceCell({ user, dni, dateObj, scheduleByDay }) {
             if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
         };
     }, []);
+
+
+    // ── Llegada desde el aviso de un comentario ────────────────────────
+    // /user?userId=…&date=…&detail=1 deja el recado en cellFocus; acá cada celda
+    // mira si es para ella y despliega su ficha, que es donde está la nota.
+    //
+    // Se abre a mano y no por el camino del hover (handleOpenDetails) a
+    // propósito: ese exige que ya haya datos cargados y espera un segundo, y
+    // acá la celda puede estar recién apareciendo por el scroll. Al llegar los
+    // datos la ficha se pinta sola, porque `showDetails` ya quedó en true.
+    useEffect(() => {
+        const atender = () => {
+            const foco = getCellFocus();
+            if (!foco?.openDetail) return;
+            if (String(foco.userId) !== String(user._id)) return;
+            if (foco.dayKey !== dayKeyOf(dateObj)) return;
+
+            // Se consume el recado antes de abrir: si no, cualquier repintado
+            // posterior de esta celda volvería a abrir la ficha que el usuario
+            // acaba de cerrar.
+            clearCellFocus();
+            manuallyClosedRef.current = false;
+            pinnedRef.current = true;
+            setShowDetails(true);
+        };
+
+        // Se atiende ya —el recado pudo dejarse antes de que existiera esta
+        // celda— y también al llegar uno nuevo.
+        atender();
+        return subscribeCellFocus(atender);
+    }, [user._id, dateObj]);
 
 
 

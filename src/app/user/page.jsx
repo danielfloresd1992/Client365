@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback, useContext } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, useContext, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import { addMonths, subMonths, eachDayOfInterval, format, isSameDay, startOfMonth, endOfMonth } from 'date-fns';
@@ -10,6 +11,7 @@ import { es } from 'date-fns/locale';
 import UserEditForm from './assets/user.update.form';
 import UserList, { AttendanceSummaryRow } from './assets/user.list';
 import { dayKeyOf } from './assets/schedulePending';
+import { setCellFocus } from './assets/cellFocus';
 import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
 import UserGroupDynamicScheduleForm from './assets/user.group.dynamic.schedule.form';
 
@@ -56,7 +58,27 @@ const ZoomInIcon = () => (
 
 
 
-export default function UserScheduler() {
+/*
+ * La página va envuelta en Suspense porque el horario lee la URL con
+ * `useSearchParams`, y Next exige la frontera para poder prerenderizar.
+ *
+ * Antes se leía `window.location.search` en un efecto de montaje, justamente
+ * para evitar este envoltorio. El problema: al pulsar un aviso de la campana
+ * ESTANDO YA en /user, el App Router no remonta la página —solo cambia la
+ * query, y su clave de caché descarta los search params—, así que el efecto no
+ * se volvía a ejecutar y no pasaba nada de nada. Y /user es justo donde se
+ * escriben y se leen esos comentarios, o sea el caso principal.
+ */
+export default function UserSchedulerPage() {
+    return (
+        <Suspense fallback={null}>
+            <UserScheduler />
+        </Suspense>
+    );
+}
+
+
+function UserScheduler() {
 
 
     const dispatch = useDispatch();
@@ -83,6 +105,11 @@ export default function UserScheduler() {
     // Grupos (departamento-turno) colapsados: solo muestran sus resúmenes.
     // Se persiste en localStorage para recordar la preferencia del usuario.
     const [collapsedGroups, setCollapsedGroups] = useState({});
+
+    // Grupo desplegado a la fuerza porque se llegó a él desde una notificación.
+    // Vive aparte de `collapsedGroups` para no acabar en localStorage: es una
+    // apertura de una vez, no una preferencia del usuario.
+    const [forcedOpenGroup, setForcedOpenGroup] = useState(null);
 
     useEffect(() => {
         try {
@@ -450,31 +477,75 @@ export default function UserScheduler() {
 
 
     // ── Apertura desde una notificación ───────────────────────────────
-    // La campana enlaza a /user?userId=<id>&date=YYYY-MM-DD. Al llegar así, el
-    // horario se posiciona en ese mes, baja hasta el empleado y lo resalta unos
-    // segundos, para que quien viene a resolver una solicitud no tenga que
-    // buscarlo entre setenta y seis filas.
-    //
-    // Se lee de window.location y no con useSearchParams a propósito: ese hook
-    // obliga a envolver la página en un Suspense para el prerenderizado, y acá
-    // no aporta nada porque la página ya es de cliente.
+    // La campana enlaza a /user?userId=<id>&date=YYYY-MM-DD[&detail=1]. Al
+    // llegar así, el horario se posiciona en ese mes, despliega el grupo si
+    // hace falta, baja hasta el empleado, resalta su celda y —con detail=1—
+    // abre su ficha, para que quien viene a leer un comentario o a resolver una
+    // solicitud no tenga que buscarlo entre setenta y seis filas.
     const openTargetRef = useRef(null);   // { userId, date } pendiente de resaltar
+    const searchParams = useSearchParams();
 
     useEffect(() => {
-        if (typeof window === 'undefined') return;
-        const params = new URLSearchParams(window.location.search);
-        const userId = params.get('userId');
-        const dateParam = params.get('date');
+        const userId = searchParams.get('userId');
+        const dateParam = searchParams.get('date');
         if (!userId && !dateParam) return;
 
-        if (dateParam) {
-            const fecha = new Date(`${dateParam}T00:00:00`);
+        // Los dos parámetros terminan dentro de un selector CSS para localizar
+        // la celda. Un id con comillas o corchetes rompería el selector y
+        // querySelector lanzaría, tumbando la página entera; por eso se exige la
+        // forma exacta —24 hex de ObjectId y YYYY-MM-DD— antes de tocarlos.
+        const userIdOk = userId && /^[a-f\d]{24}$/i.test(userId) ? userId : null;
+        const fechaOk = dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null;
+        if (!userIdOk && !fechaOk) return;
+
+        if (fechaOk) {
+            const fecha = new Date(`${fechaOk}T00:00:00`);
             if (!Number.isNaN(fecha.getTime())) setPivotDate(fecha);
         }
         // Se guarda para resaltar cuando las filas ya estén montadas: en este
         // punto userRefs todavía está vacío.
-        openTargetRef.current = { userId, date: dateParam };
-    }, []);
+        openTargetRef.current = { userId: userIdOk, date: fechaOk };
+
+        // `detail=1` lo manda el aviso de un comentario: además de señalar la
+        // celda hay que desplegar su ficha, que es donde está la nota. Abrirla
+        // es estado de la celda, así que se le deja el recado.
+        if (userIdOk && fechaOk && searchParams.get('detail') === '1') {
+            setCellFocus({ userId: userIdOk, dayKey: fechaOk, openDetail: true });
+        }
+        // Depende de searchParams y no de [] : pulsar un aviso estando ya en
+        // /user solo cambia la query, y el App Router no remonta la página en
+        // ese caso. Con un efecto de montaje, el segundo aviso —y el primero,
+        // si ya estabas acá— no hacían nada.
+    }, [searchParams]);
+
+    // Si el grupo del empleado está plegado, se despliega.
+    //
+    // Los grupos plegados se recuerdan en localStorage, así que quien tenga
+    // cerrado "Cocina-nocturno" abriría el aviso y no vería nada: su fila
+    // sencillamente no se pinta, y la celda que hay que señalar no llega a
+    // existir. Esto tiene que correr ANTES del efecto que la busca, y por eso
+    // está declarado acá arriba.
+    //
+    // Va a un estado APARTE y no a `collapsedGroups`, aunque sea más rodeo.
+    // toggleGroupCollapse serializa el objeto ENTERO a localStorage, así que
+    // meter acá el desplegado significaba que, al plegar cualquier otro grupo
+    // después, se guardaba también este y el usuario perdía para siempre —y en
+    // silencio— el grupo que él había dejado cerrado.
+    useEffect(() => {
+        const objetivo = openTargetRef.current;
+        if (!objetivo?.userId || userData.length === 0) return;
+
+        const empleado = userData.find(u => String(u._id) === String(objetivo.userId));
+        if (!empleado) return;
+
+        // Mismo criterio que processedUsers: si se calculara distinto, la clave
+        // no coincidiría con ningún grupo y no se abriría nada.
+        const dept = empleado.jobInformation?.department || 'Sin definir';
+        const shift = empleado.workSchedule?.shiftType?.toLowerCase() || 'sin definir';
+
+        setForcedOpenGroup(`${dept}-${shift}`);
+    }, [userData, searchParams]);
+
 
     // Lleva la vista hasta la CELDA del empleado en esa fecha y la resalta.
     //
@@ -524,7 +595,10 @@ export default function UserScheduler() {
 
         buscar();
         return () => { if (limpiar) clearTimeout(limpiar); };
-    }, [userData, daysRange]);
+        // `searchParams` entra en las dependencias porque pulsar otro aviso
+        // estando ya acá no cambia ni userData ni daysRange: sin él, el segundo
+        // aviso dejaba el objetivo puesto y nadie iba a buscarlo.
+    }, [userData, daysRange, searchParams]);
 
 
     // 4. Smooth Scroll to Today
@@ -701,7 +775,9 @@ export default function UserScheduler() {
                                             const [shift, subcategorys] = category;
                                             const color = shift ? COLORS_DEPARTMENTS.filter(config => config.name === dept)[0][shift] : 'red'
                                             const groupKey = `${dept}-${shift}`;
-                                            const isCollapsed = !!collapsedGroups[groupKey];
+                                            // El desplegado forzado gana sobre la preferencia
+                                            // guardada, sin sobrescribirla.
+                                            const isCollapsed = !!collapsedGroups[groupKey] && groupKey !== forcedOpenGroup;
                                             // No renderizar grupos sin empleados visibles (p. ej. vacíos o solo outForkSchedule)
                                             return countVisibleInShift(subcategorys) > 0 && (
                                                 <div key={groupKey}

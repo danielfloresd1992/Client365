@@ -17,6 +17,7 @@ export { default as NotificationPanel } from './NotificationPanel';
 export { default as NotificationItem } from './NotificationItem';
 export { default as ResourceAvatar } from './ResourceAvatar';
 export { default as AttendanceDetail } from './AttendanceDetail';
+export { default as CommentDetail } from './CommentDetail';
 export { viewOf } from './notificationViews';
 export type { NotificationView } from './notificationViews';
 export { default as useNotifications, NOTIFICATION_EVENT } from './useNotifications';
@@ -34,6 +35,7 @@ export {
 export type {
     Notification,
     AttendanceMeta,
+    CommentMeta,
     NotificationFamily,
     NotificationScope,
     NotificationLevel,

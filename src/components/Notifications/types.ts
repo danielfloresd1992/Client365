@@ -12,8 +12,9 @@ export type NotificationScope = 'global' | 'personal' | 'admin';
  *   resource   → establecimientos y franquicias
  *   system     → anuncios de la plataforma
  *   attendance → el marcaje propio: entrada, salida, retardo, día extra
+ *   comment    → una nota escrita sobre el día de otra persona
  */
-export type NotificationFamily = 'schedule' | 'resource' | 'system' | 'attendance' | 'general';
+export type NotificationFamily = 'schedule' | 'resource' | 'system' | 'attendance' | 'comment' | 'general';
 export type NotificationLevel = 'info' | 'success' | 'warning' | 'danger';
 /**
  * 'withdrawn' es distinto de 'rejected': rechazar lo hace un administrador
@@ -81,6 +82,21 @@ export interface AttendanceMeta {
     overtimeApprovedMinutes?: number | null;
 }
 
+/**
+ * Datos de un comentario del horario, en `meta` de la familia `comment`.
+ * El texto de la nota NO va en el cuerpo de la notificación: se pinta aparte
+ * como cita, para que el título se lea corrido por larga que sea.
+ */
+export interface CommentMeta {
+    /** La nota tal cual la escribieron. */
+    message?: string;
+    /** Día del horario comentado, "YYYY-MM-DD". */
+    dayKey?: string;
+    /** El mismo día, ya legible. */
+    dayLabel?: string;
+    attendanceId?: string;
+}
+
 export interface Notification {
     _id: string;
     type?: string;
@@ -104,7 +120,7 @@ export interface Notification {
      * Datos propios de la familia. Cada vista sabe leer los suyos y las demás
      * lo ignoran; por eso no está tipado como una unión cerrada.
      */
-    meta?: AttendanceMeta | Record<string, unknown> | null;
+    meta?: AttendanceMeta | CommentMeta | Record<string, unknown> | null;
 }
 
 /** Resultado de aprobar o rechazar una solicitud. */

@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { StoreIcon } from '@/components/icons';
 import AttendanceDetail from './AttendanceDetail';
+import CommentDetail from './CommentDetail';
 import type { Notification, NotificationFamily } from './types';
 
 // ══════════════════════════════════════════════════════════════════════
@@ -50,6 +51,13 @@ export interface NotificationView {
      * y lo pinta, sea cual sea.
      */
     detail?: (n: Notification) => ReactNode;
+    /**
+     * Ocultar el avatar estándar del ítem.
+     *
+     * Lo usa la familia cuyo `detail` ya muestra a las personas por su cuenta:
+     * repetir la misma cara en pequeño al lado sería ruido.
+     */
+    hideAvatar?: boolean;
 }
 
 
@@ -89,6 +97,16 @@ const ClockWatermark = (
     >
         <circle cx='12' cy='12' r='9' />
         <path d='M12 7v5l3.2 1.9' />
+    </svg>
+);
+
+const BubbleWatermark = (
+    <svg
+        viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'
+        className='absolute -right-2 -bottom-2 w-[86px] h-[86px] text-amber-500 opacity-[0.07] pointer-events-none'
+        aria-hidden='true'
+    >
+        <path d='M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-4-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-4 8.4 8.4 0 0 1 8.4-8.4h.6a8.4 8.4 0 0 1 8 8v.4z' />
     </svg>
 );
 
@@ -143,6 +161,29 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
             <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
                 <circle cx='12' cy='12' r='9' />
                 <path d='M12 7v5l3.2 1.9' />
+            </svg>
+        ),
+    },
+
+    // Una nota escrita sobre el día de otra persona.
+    //
+    // Ámbar y globo de fondo: es la única familia que transporta texto de una
+    // persona en vez de un hecho del sistema, y conviene que se distinga de un
+    // vistazo entre los avisos de cambios.
+    comment: {
+        watermark: BubbleWatermark,
+        accent: 'before:bg-amber-400',
+        unreadBg: 'bg-amber-400/[0.05]',
+        unreadHoverBg: 'hover:bg-amber-400/[0.10]',
+        // El nombre del comentado ya está en el cuerpo del texto y su cara en
+        // el detalle: la línea de "target" volvería a decir lo mismo.
+        showTarget: false,
+        // El detalle pinta las dos caras a 50px; el avatar chico sobra.
+        hideAvatar: true,
+        detail: (n) => <CommentDetail n={n} />,
+        fallbackIcon: (
+            <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
+                <path d='M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-4-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-4 8.4 8.4 0 0 1 8.4-8.4h.6a8.4 8.4 0 0 1 8 8v.4z' />
             </svg>
         ),
     },
