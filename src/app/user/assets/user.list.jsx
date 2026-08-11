@@ -1,4 +1,4 @@
-import { useState, useEffect, useReducer, useImperativeHandle, forwardRef, useContext, useMemo, useRef } from 'react';
+import { useState, useEffect, useReducer, forwardRef, useContext, useMemo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import useContextMenuPosition from '@/hook/useContextMenuPosition';
 import useSubmitLock from '@/hook/useSubmitLock';
@@ -11,7 +11,7 @@ import { myUserContext } from '@/contexts/userContext';
 import { isSameDay, getDay, isBefore, startOfDay } from 'date-fns';
 import { getAttendanceByDate, addAttendanceComment, saveGroupDynamicSchedule, setOnDutyGuard, setAuxiliaryRole, decideOvertime } from '@/libs/ajaxClient/user.fecth';
 import { decideNotificationRequest, withdrawNotificationRequest } from '@/components/Notifications';
-import { ensurePendingLoaded, subscribePending, pendingFor, clearPending } from './schedulePending';
+import { ensurePendingLoaded, subscribePending, pendingFor, clearPending, dayKeyOf } from './schedulePending';
 import { overtimeOfDay, formatOvertime, OVERTIME_LABEL } from '@/libs/attendance/overtime';
 import { useInView } from 'react-intersection-observer';
 import { useDispatch } from 'react-redux';
@@ -823,14 +823,13 @@ export default forwardRef(function UserList({
 
 
 
-    const updateUser = user => {
-
-    };
-
-
-    useImperativeHandle(ref, () => ({
-        updateUserInList: updateUser
-    }));
+    // La `ref` va al NODO de la fila (más abajo, en el contenedor).
+    //
+    // Antes había acá un useImperativeHandle que exponía { updateUserInList },
+    // apuntando a una función vacía que nadie llamaba. El efecto real era que
+    // `userRefs.current[id]` en /user no era un elemento sino ese objeto: al
+    // llegar desde una notificación, `fila.scrollIntoView(...)` reventaba la
+    // página entera con un error de cliente.
 
 
     // Cerrojo contra el doble submit de las acciones del menú contextual.
@@ -1039,6 +1038,8 @@ export default forwardRef(function UserList({
     return (
         <>
             <div
+                ref={ref}
+                data-userid={user._id}
                 className='flex border-b border-gray-300 bg-white hover:bg-gray-50 transition-colors select-none'
                 onDragStart={(e) => e.preventDefault()}
                 onContextMenu={onUserContextMenu}
@@ -1083,6 +1084,12 @@ export default forwardRef(function UserList({
                         <div
                             key={`${user._id}-${day.fullDateISO}`}
                             data-dateiso={day.fullDateISO}
+                            /* Coordenadas de la celda para poder encontrarla desde
+                               fuera: es como /user?userId=…&date=… la localiza al
+                               llegar desde una notificación, sin tener que pasar una
+                               ref por cada una de las más de dos mil celdas. */
+                            data-userid={user._id}
+                            data-daykey={dayKeyOf(day.dateObj)}
                             onMouseDown={(event) => onStartDragSelection?.(day.fullDateISO, event.button)}
                             onMouseEnter={() => onDragOverCell?.(day.fullDateISO)}
                             className={`flex-shrink-0 w-24 p-1 border-r border-gray-300 flex items-center justify-center cursor-pointer

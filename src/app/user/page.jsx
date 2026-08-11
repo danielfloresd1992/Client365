@@ -9,6 +9,7 @@ import { es } from 'date-fns/locale';
 // Assets & Components
 import UserEditForm from './assets/user.update.form';
 import UserList, { AttendanceSummaryRow } from './assets/user.list';
+import { dayKeyOf } from './assets/schedulePending';
 import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
 import UserGroupDynamicScheduleForm from './assets/user.group.dynamic.schedule.form';
 
@@ -128,6 +129,10 @@ export default function UserScheduler() {
         const capitalize = (text) => text.charAt(0).toUpperCase() + text.slice(1);
         return eachDayOfInterval({ start: startDate, end: endDate }).map(date => ({
             fullDateISO: date.toISOString(),
+            // Día en formato "YYYY-MM-DD" para localizar la celda desde la URL.
+            // Sale del mismo sitio que la clave de las solicitudes pendientes,
+            // así las dos apuntan siempre a la misma celda.
+            dayKey: dayKeyOf(date),
             dayNumber: format(date, 'd'),
             dayName: format(date, 'eee', { locale: es }),
             monthName: format(date, 'MMM', { locale: es }),
@@ -471,22 +476,54 @@ export default function UserScheduler() {
         openTargetRef.current = { userId, date: dateParam };
     }, []);
 
-    // Resalta al empleado en cuanto su fila existe. Se toca la clase del nodo
-    // directamente porque ya tenemos su ref: hacerlo con estado obligaría a
-    // pasar la marca por toda la jerarquía de la grilla para un efecto que dura
-    // cuatro segundos.
+    // Lleva la vista hasta la CELDA del empleado en esa fecha y la resalta.
+    //
+    // Se busca por atributos en el DOM y no por refs: la grilla monta más de dos
+    // mil celdas y llevar una ref por cada una, solo para poder señalar una,
+    // sería pagar en todas por lo que se usa una vez.
+    //
+    // `scrollIntoView` mueve TODOS los contenedores con scroll que haya por
+    // encima, así que resuelve de una vez el desplazamiento horizontal (la
+    // fecha) y el vertical (el empleado) dentro del horario.
+    //
+    // La clase se pone tocando el nodo: hacerlo con estado obligaría a pasar la
+    // marca por toda la jerarquía de la grilla para un efecto de cuatro segundos.
     useEffect(() => {
         const objetivo = openTargetRef.current;
         if (!objetivo?.userId || userData.length === 0) return;
 
-        const fila = userRefs.current?.[objetivo.userId];
-        if (!fila) return;
+        // La fila puede tardar en montarse —o no existir, si el empleado quedó
+        // fuera del filtro o su grupo está plegado—. Se reintenta un momento y
+        // luego se abandona en silencio: no encontrarlo no es un error, y el
+        // horario ya está a la vista.
+        let intentos = 0;
+        let limpiar = null;
 
-        openTargetRef.current = null;
-        fila.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        fila.classList.add('jarvis-row-highlight');
-        const id = setTimeout(() => fila.classList.remove('jarvis-row-highlight'), 4000);
-        return () => clearTimeout(id);
+        const buscar = () => {
+            const celda = objetivo.date
+                ? document.querySelector(`[data-userid="${objetivo.userId}"][data-daykey="${objetivo.date}"]`)
+                : null;
+            // Sin fecha en la URL —o si esa fecha no está en el mes a la vista—
+            // se cae a la fila, que es lo más cerca que se puede señalar. Esa sí
+            // la tenemos por ref: son setenta y seis, no dos mil.
+            const destino = celda || userRefs.current?.[objetivo.userId];
+
+            if (!destino) {
+                if (++intentos > 20) return;
+                limpiar = setTimeout(buscar, 150);
+                return;
+            }
+
+            openTargetRef.current = null;
+            destino.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+
+            const marca = celda ? 'jarvis-cell-highlight' : 'jarvis-row-highlight';
+            destino.classList.add(marca);
+            limpiar = setTimeout(() => destino.classList.remove(marca), 4000);
+        };
+
+        buscar();
+        return () => { if (limpiar) clearTimeout(limpiar); };
     }, [userData, daysRange]);
 
 

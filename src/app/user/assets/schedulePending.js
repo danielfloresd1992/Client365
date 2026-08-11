@@ -33,17 +33,27 @@ const avisar = () => oyentes.forEach(fn => fn());
 const dosDigitos = (n) => String(n).padStart(2, '0');
 
 /**
- * Clave de celda: "userId|YYYY-MM-DD".
+ * Día de una celda en formato "YYYY-MM-DD".
  *
- * La fecha se arma con los componentes LOCALES y no con `toISOString()`, que
- * convierte a UTC: la celda representa el día que se ve en la columna, y una
- * conversión de zona la correría un día en cuanto el servidor o el navegador
- * estén en otro huso.
+ * Se arma con los componentes LOCALES y no con `toISOString()`, que convierte a
+ * UTC: la celda representa el día que se ve en la columna, y una conversión de
+ * zona la correría un día en cuanto el navegador esté en otro huso.
+ *
+ * Es la ÚNICA definición de "qué día es esta celda" en el horario: la usan
+ * tanto las solicitudes pendientes como el resaltado al llegar desde una
+ * notificación. Si cada una la calculara por su lado, apuntarían a celdas
+ * distintas el día que se toque el criterio.
  */
-export const slotOf = (userId, dateObj) => {
+export const dayKeyOf = (dateObj) => {
     const d = dateObj instanceof Date ? dateObj : new Date(dateObj);
-    if (!userId || Number.isNaN(d.getTime())) return null;
-    return `${userId}|${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
+    if (Number.isNaN(d.getTime())) return null;
+    return `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
+};
+
+/** Clave de celda: "userId|YYYY-MM-DD". */
+export const slotOf = (userId, dateObj) => {
+    const dia = dayKeyOf(dateObj);
+    return (userId && dia) ? `${userId}|${dia}` : null;
 };
 
 /** Lo pendiente de una celda, o null. */
