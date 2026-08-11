@@ -8,12 +8,12 @@ import { addMonths, subMonths, eachDayOfInterval, format, isSameDay, startOfMont
 import { es } from 'date-fns/locale';
 
 // Assets & Components
-import UserEditForm from './assets/user.update.form';
-import UserList, { AttendanceSummaryRow } from './assets/user.list';
-import { dayKeyOf } from './assets/schedulePending';
-import { setCellFocus } from './assets/cellFocus';
-import UserDynamicScheduleForm from './assets/user.dynamic.schedule.form';
-import UserGroupDynamicScheduleForm from './assets/user.group.dynamic.schedule.form';
+import UserEditForm from './assets/forms/user.update.form';
+import UserRow, { AttendanceSummaryRow } from './assets/grid';
+import { dayKeyOf } from './assets/state/schedulePending';
+import { setCellFocus } from './assets/state/cellFocus';
+import UserDynamicScheduleForm from './assets/forms/user.dynamic.schedule.form';
+import UserGroupDynamicScheduleForm from './assets/forms/user.group.dynamic.schedule.form';
 
 
 
@@ -826,7 +826,7 @@ function UserScheduler() {
                                                                         !isCollapsed && listUser.length > 0 && listUser.map(user => {
 
                                                                             return (
-                                                                                <UserList
+                                                                                <UserRow
                                                                                     key={user._id}
                                                                                     user={user}
                                                                                     daysRange={daysRange}
