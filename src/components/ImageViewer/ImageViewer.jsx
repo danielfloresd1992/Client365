@@ -4,6 +4,27 @@ import { useSelector, useDispatch } from 'react-redux';
 import { closeViewer, setViewerIndex } from '@/store/slices/imageViewer';
 import { FiX, FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut, FiRotateCw } from 'react-icons/fi';
 
+/**
+ * Visor de imágenes con zoom, rotación, arrastre y miniaturas.
+ *
+ * PROTECCIÓN CONTRA LA DESCARGA — QUÉ HACE Y QUÉ NO
+ *
+ * Se cierran las vías fáciles de sacar la imagen: menú contextual, arrastrarla
+ * fuera, clic central —que la abriría en otra pestaña—, el menú de mantener
+ * pulsado en iOS, la selección, y Ctrl/Cmd+S mientras el visor está abierto.
+ *
+ * Ni la imagen grande ni las miniaturas son etiquetas <img>: se pintan como
+ * FONDO. Es la diferencia entre que el navegador ofrezca "Guardar imagen
+ * como…" y que no tenga ninguna imagen que ofrecer.
+ *
+ * LO QUE ESTO NO IMPIDE
+ *
+ * La imagen ya está en el equipo cuando se ve. Las herramientas del navegador,
+ * la pestaña de red o una captura de pantalla la sacan igual, y ninguna técnica
+ * del lado del navegador puede evitarlo. Esto sube el costo para el usuario
+ * común, que es un objetivo legítimo; proteger de verdad una imagen se decide
+ * en el servidor, con enlaces que caducan o marca de agua.
+ */
 export default function ImageViewer() {
     const dispatch = useDispatch();
     const { isOpen, src, alt, images, currentIndex } = useSelector(state => state.imageViewer);
@@ -13,9 +34,34 @@ export default function ImageViewer() {
     const [dragging, setDragging] = useState(false);
     const [position, setPosition] = useState({ x: 0, y: 0 });
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+    const [proporcion, setProporcion] = useState(3 / 2);
 
     const hasMultiple = images.length > 1;
     const currentSrc = images[currentIndex] || src;
+
+    // Un fondo CSS no tiene alto propio: hay que dárselo. Se lee el tamaño real
+    // de la imagen para respetar su forma; con una proporción fija, una foto
+    // vertical saldría con franjas.
+    //
+    // La carga no cuesta nada: el navegador ya la tiene en caché porque el
+    // mismo `src` se está pintando de fondo.
+    useEffect(() => {
+        if (!isOpen || !currentSrc) return;
+
+        let vigente = true;
+        const img = new Image();
+        img.onload = () => {
+            if (vigente && img.naturalWidth && img.naturalHeight) {
+                setProporcion(img.naturalWidth / img.naturalHeight);
+            }
+        };
+        img.src = currentSrc;
+
+        return () => { vigente = false; };
+    }, [isOpen, currentSrc]);
+
+    /** Corta el gesto que abriría el menú o sacaría la imagen. */
+    const bloquear = (e) => e.preventDefault();
 
     // Reset transform on image change
     useEffect(() => {
@@ -38,6 +84,14 @@ export default function ImageViewer() {
     useEffect(() => {
         if (!isOpen) return;
         const handler = (e) => {
+            // Ctrl/Cmd+S guardaría la página entera, y con ella la imagen. Se
+            // corta solo con el visor abierto: fuera de acá no hay por qué
+            // quitarle al usuario un atajo del navegador.
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                return;
+            }
+
             if (e.key === 'Escape') dispatch(closeViewer());
             if (e.key === 'ArrowLeft' && hasMultiple) dispatch(setViewerIndex(Math.max(0, currentIndex - 1)));
             if (e.key === 'ArrowRight' && hasMultiple) dispatch(setViewerIndex(Math.min(images.length - 1, currentIndex + 1)));
@@ -90,11 +144,16 @@ export default function ImageViewer() {
 
     return (
         <div
-            className='fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm'
+            className='no-descarga fixed inset-0 z-[9999] flex items-center justify-center bg-black/85 backdrop-blur-sm'
             onClick={handleBackdropClick}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
             onMouseLeave={handleMouseUp}
+            onContextMenu={bloquear}
+            onDragStart={bloquear}
+            // Clic central: abriría la imagen en otra pestaña, y desde ahí sí
+            // se puede guardar.
+            onAuxClick={bloquear}
         >
             {/* Top bar */}
             <div className='absolute top-0 left-0 right-0 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent z-10'>
@@ -132,18 +191,30 @@ export default function ImageViewer() {
                 </button>
             )}
 
-            {/* Image */}
-            <img
-                src={currentSrc}
-                alt={alt || ''}
-                draggable={false}
+            {/*
+              La imagen va como FONDO y no como etiqueta de imagen: así el
+              navegador no tiene nada que ofrecer al guardar ni que arrastrar.
+
+              El ancho se calcula para respetar los DOS límites a la vez —90vw
+              y 85vh— manteniendo la forma real de la foto. Con `max-height`
+              sobre una caja de proporción fija, el navegador recortaría el alto
+              sin ajustar el ancho y la imagen quedaría con franjas.
+            */}
+            <div
+                role='img'
+                aria-label={alt || 'Imagen'}
                 onWheel={handleWheel}
                 onMouseDown={handleMouseDown}
                 onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleMouseUp}
-                className='max-w-[90vw] max-h-[85vh] object-contain select-none transition-transform duration-150'
+                onContextMenu={bloquear}
+                onDragStart={bloquear}
+                className='shrink-0 select-none transition-transform duration-150 bg-center bg-no-repeat bg-contain'
                 style={{
+                    width: `min(90vw, ${(proporcion * 85).toFixed(3)}vh)`,
+                    aspectRatio: proporcion,
+                    backgroundImage: currentSrc ? `url("${currentSrc}")` : 'none',
                     transform: `translate(${position.x}px, ${position.y}px) scale(${zoom}) rotate(${rotation}deg)`,
                     cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'default',
                 }}
@@ -176,12 +247,14 @@ export default function ImageViewer() {
                         <button
                             key={i}
                             onClick={() => dispatch(setViewerIndex(i))}
-                            className={`w-10 h-10 rounded-md overflow-hidden shrink-0 border-2 transition-all ${
+                            title={`Imagen ${i + 1} de ${images.length}`}
+                            /* También como fondo: una miniatura se guarda con
+                               el mismo clic derecho que la grande. */
+                            className={`w-10 h-10 rounded-md overflow-hidden shrink-0 border-2 transition-all bg-center bg-no-repeat bg-cover ${
                                 i === currentIndex ? 'border-white scale-110' : 'border-transparent opacity-50 hover:opacity-80'
                             }`}
-                        >
-                            <img src={img} alt='' className='w-full h-full object-cover' />
-                        </button>
+                            style={{ backgroundImage: `url("${img}")` }}
+                        />
                     ))}
                 </div>
             )}
