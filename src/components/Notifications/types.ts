@@ -97,6 +97,32 @@ export interface CommentMeta {
     attendanceId?: string;
 }
 
+/**
+ * Un día del horario que cambió, en `meta.cambios` de la familia `schedule`.
+ *
+ * Lo arma jarvis_api con la etiqueta YA traducida —"Libre", no "descanso"—
+ * porque el texto de un aviso se guarda renderizado: uno de hace seis meses
+ * tiene que seguir diciendo lo que dijo aunque hoy ese tipo se llame distinto.
+ */
+export interface ScheduleChange {
+    /** "2026-08-12": localiza la celda en la grilla. */
+    dayKey?: string;
+    /** El mismo día, ya legible: "12/08/2026". */
+    fecha?: string;
+    /** Clave del tipo de jornada: 'falta', 'descanso', 'permiso'… */
+    workType?: string;
+    /** Campo del rol del día: 'onDuty' | 'auxiliary'. */
+    rol?: string;
+    /** Nombre legible del tipo o del rol. */
+    etiqueta?: string;
+    etiquetaEn?: string;
+    /** false cuando se QUITÓ el rol, no cuando se asignó. */
+    asignado?: boolean;
+    shift?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+}
+
 export interface Notification {
     _id: string;
     type?: string;
@@ -120,7 +146,7 @@ export interface Notification {
      * Datos propios de la familia. Cada vista sabe leer los suyos y las demás
      * lo ignoran; por eso no está tipado como una unión cerrada.
      */
-    meta?: AttendanceMeta | CommentMeta | Record<string, unknown> | null;
+    meta?: AttendanceMeta | CommentMeta | { cambios?: ScheduleChange[] } | Record<string, unknown> | null;
 }
 
 /** Resultado de aprobar o rechazar una solicitud. */

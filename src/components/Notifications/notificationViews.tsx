@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { StoreIcon } from '@/components/icons';
 import AttendanceDetail from './AttendanceDetail';
 import CommentDetail from './CommentDetail';
+import ScheduleDetail from './ScheduleDetail';
 import type { Notification, NotificationFamily } from './types';
 
 // ══════════════════════════════════════════════════════════════════════
@@ -129,6 +130,9 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
     // Verde de marca y calendario de fondo.
     schedule: {
         watermark: CalendarWatermark,
+        // Cada día que cambió, con lo que le pusieron. El cuerpo del aviso lo
+        // resume; esto lo desglosa y lo resalta.
+        detail: (n) => <ScheduleDetail n={n} />,
         accent: 'before:bg-[#29c50c]',
         unreadBg: 'bg-[#29c50c]/[0.05]',
         unreadHoverBg: 'hover:bg-[#29c50c]/[0.10]',
