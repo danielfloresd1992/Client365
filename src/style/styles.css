@@ -1485,6 +1485,38 @@ p {
 }
 
 
+/* ── Lienzo del visor ────────────────────────────────────────────────── */
+/* La imagen se pinta como FONDO y no con una etiqueta de imagen: el navegador
+   no puede ofrecer "Guardar imagen como…" sobre algo que no es una imagen para
+   él, ni permite arrastrarla fuera.
+
+   `contain` la muestra entera, sin recortar, sea cual sea su proporción. El
+   ancho lo controla el deslizador de zoom. */
+.img-zoom__lienzo {
+    aspect-ratio: 3 / 2;
+    max-width: 100%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    flex-shrink: 0;
+}
+
+
+/* ── Cerrar las vías fáciles de sacar la imagen ──────────────────────── */
+/* Esto NO impide descargarla: cuando se ve, ya está en el equipo, y una
+   captura de pantalla o las herramientas del navegador la sacan igual. Sube el
+   costo para el usuario común, que es lo único que puede hacerse desde acá.
+   Proteger de verdad una imagen se decide en el servidor. */
+.no-descarga,
+.no-descarga * {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    /* Sin esto, mantener pulsado en iOS abre el menú con "Guardar en Fotos". */
+    -webkit-touch-callout: none;
+}
+
+
 
 
 
