@@ -38,6 +38,11 @@ export const NAV_SECTIONS: NavSection[] = [
                 "name": "Gestión de perfiles",
                 "path": "/user/config",
                 "icon": "users"
+            },
+            {
+                "name": "Bonificación",
+                "path": "/user/bonificacion",
+                "icon": "bell"
             }
         ]
     },
