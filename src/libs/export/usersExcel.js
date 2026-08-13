@@ -89,25 +89,39 @@ export async function exportarUsuariosActivos({ onProgress } = {}) {
     if (ids.length === 0) throw new Error('No hay usuarios activos que exportar.');
 
     // 2. Sus datos.
-    const usuarios = await traerDetalles(ids, onProgress);
-    if (usuarios.length === 0) throw new Error('No se pudo leer ningún usuario.');
+    const detalles = await traerDetalles(ids, onProgress);
+    if (detalles.length === 0) throw new Error('No se pudo leer ningún usuario.');
+
+    // 3. Fuera los que están al margen de la estructura de horario.
+    //
+    // El servidor ya filtró por inhabilitados, pero `outForkSchedule` no viaja
+    // en esa consulta, así que se aplica acá.
+    //
+    // Se descarta solo cuando vale TRUE, no cuando es distinto de false: hay
+    // usuarios sin el campo, y para el resto de la plataforma —la grilla de
+    // /user y el corte diario— esos SÍ cuentan. Exigir un false explícito los
+    // dejaría fuera del directorio sin motivo.
+    const usuarios = detalles.filter(u => u?.workSchedule?.outForkSchedule !== true);
+    if (usuarios.length === 0) {
+        throw new Error('Ningún usuario activo está dentro de la estructura de horario.');
+    }
 
     // Se ordena como el resto de la plataforma: por apellido y luego nombre.
     usuarios.sort((a, b) =>
         `${a.surName || ''}${a.name || ''}`.localeCompare(`${b.surName || ''}${b.name || ''}`, 'es'));
 
-    // 3. Las fotos, en paralelo. Van después de los datos para no competir por
+    // 4. Las fotos, en paralelo. Van después de los datos para no competir por
     //    conexiones con las peticiones de arriba.
     onProgress?.({ fase: 'fotos', hechos: 0, total: usuarios.length });
     const fotos = await Promise.all(usuarios.map(u => traerFoto(u.img)));
 
-    // 4. El libro. El armado vive aparte, en usersWorkbook.js, para poder
+    // 5. El libro. El armado vive aparte, en usersWorkbook.js, para poder
     //    comprobarlo fuera del navegador.
     onProgress?.({ fase: 'generando' });
     const ExcelJS = (await import('exceljs')).default;
     const datos = await construirLibroUsuarios({ ExcelJS, usuarios, fotos });
 
-    // 5. Descarga.
+    // 6. Descarga.
     const archivo = `usuarios-activos-${new Date().toISOString().slice(0, 10)}.xlsx`;
 
     const url = URL.createObjectURL(
