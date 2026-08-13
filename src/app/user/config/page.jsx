@@ -1,4 +1,5 @@
 import UsersDirectory from './assets/UsersDirectory';
+import ExportUsersButton from './assets/ExportUsersButton';
 import { UsersIcon } from '@/components/icons';
 
 // Página /user/config - Gestión de perfiles: directorio de usuarios de la
@@ -15,6 +16,13 @@ export default function ConfigPage() {
                 <div>
                     <h1 className='text-lg font-bold text-gray-800'>Gestión de perfiles</h1>
                     <p className='text-xs text-gray-500'>Directorio de usuarios de la plataforma</p>
+                </div>
+
+                {/* La descarga va en la cabecera, no dentro del directorio: no
+                    exporta lo que hay en pantalla —que está paginado y filtrado
+                    por el buscador— sino la plantilla activa completa. */}
+                <div className='ml-auto'>
+                    <ExportUsersButton />
                 </div>
             </div>
 
