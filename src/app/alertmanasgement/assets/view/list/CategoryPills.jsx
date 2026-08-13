@@ -21,7 +21,7 @@ const PILL_BASE = {
  * Filtro por categoría (tags). 'all' muestra todas las secciones;
  * cualquier otro valor deja visible únicamente esa categoría.
  *
- * @param categories - arreglo { text, value } de ../model/category.js
+ * @param categories - catálogo del servidor: { value, es, icon, color, bg, ... }
  * @param active     - categoría seleccionada ('all' por defecto)
  * @param onSelect   - cambia la categoría activa
  */
@@ -47,11 +47,12 @@ export default function CategoryPills({ categories, active, onSelect }) {
             {categories.map((item, i) => {
                 const meta     = metaOf(item.value);
                 const isActive = active === item.value;
+                const etiqueta = item.es || item.value;
                 return (
                     <button
                         key={i}
                         type='button'
-                        title={item.text}
+                        title={item.active === false ? `${etiqueta} (desactivada)` : etiqueta}
                         onClick={() => onSelect(item.value)}
                         style={{
                             ...PILL_BASE,
@@ -59,9 +60,13 @@ export default function CategoryPills({ categories, active, onSelect }) {
                             color:      isActive ? '#fff'     : meta.color,
                             border:     isActive ? `1px solid ${meta.color}` : `1px solid ${meta.bg}`,
                             boxShadow:  isActive ? `0 2px 7px ${meta.color}55` : 'none',
+                            // Una categoría desactivada sigue apareciendo mientras
+                            // tenga alertas, pero atenuada: se puede filtrar por
+                            // ella sin que parezca una opción vigente.
+                            opacity:    item.active === false ? 0.55 : 1,
                         }}
                     >
-                        <meta.Icon size={10} /> {item.text}
+                        <meta.Icon size={10} /> {etiqueta}
                     </button>
                 );
             })}

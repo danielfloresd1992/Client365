@@ -10,6 +10,37 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-13
+- **Categorías de alerta administrables (con api_jarvis365).** Hasta ahora las
+  doce categorías con las que se agrupan las alertas estaban escritas dentro del
+  cliente —y por duplicado, en `model/category.js` y `assets/category.json`—, así
+  que agregar una obligaba a tocar código y volver a publicar. Ahora viven en la
+  base y se crean, editan y desactivan desde `/alertmanasgement`, con el botón
+  **Categorías** al lado de "Nueva alerta".
+
+  - **La clave no se puede cambiar.** `Menu.category` guarda la cadena
+    (`'client'`, `'localIncident'`), no una referencia; se dejó así a propósito
+    para no migrar las alertas ya creadas. La consecuencia es que el `value` es
+    inmutable: cambiarlo dejaría a todas sus alertas apuntando a una clave que
+    no existe y desaparecerían de la lista sin dar ningún error. El nombre que se
+    lee (`es` / `en`) sí se edita.
+  - **Borrar vs. desactivar.** Una categoría que alguna alerta usa no se borra:
+    el servidor responde 409 diciendo cuántas son. Para eso está desactivarla —
+    deja de ofrecerse al crear alertas nuevas y las que ya la tienen no cambian.
+  - **Se sigue viendo bien mientras la API no esté al día.** El endpoint se
+    despliega a mano, así que hay una ventana real en la que responde 404, y otra
+    en la que responde vacío porque falta la siembra. En las dos, la pantalla
+    trabaja con las categorías de siempre y lo dice; no se queda gris ni se
+    pierden íconos.
+  - **Corregido de paso:** el selector de categoría bajaba el valor a minúsculas,
+    y eso dejaba sin seleccionar a las que llevan mayúscula dentro
+    (`localIncident`).
+
+  En la API: modelo `MenuCategory` dentro del recurso `menu`, cuatro endpoints
+  bajo `/menu/categories` y el script `sembrar-categorias.js`, que además crea
+  —desactivadas— las categorías que alguna alerta usa pero que nunca se
+  declararon, para que esas alertas recuperen su nombre.
+
 ## 2026-08-10
 - **Solicitudes de horario reforzadas de punta a punta (con api_jarvis365):**
   - **Autoría real.** El autor del cambio sale de la sesión y no del cuerpo de

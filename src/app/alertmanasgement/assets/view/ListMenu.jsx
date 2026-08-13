@@ -1,12 +1,12 @@
 'use client';
 import { useState, useEffect, useContext } from 'react';
 import { useDispatch } from 'react-redux';
-import { FaBell, FaPlus } from 'react-icons/fa';
+import { FaBell, FaPlus, FaTags } from 'react-icons/fa';
 
 import { getMenuAll, deleteMenu, lockMenu } from '../model/menu.model.js';
 import { myUserContext } from '@/contexts/userContext';
 import { setConfigModal } from '@/store/slices/globalModal.js';
-import categoryArr from '../model/category.js';
+import useCategories from '../lib/useCategories.js';
 import { norm } from '../lib/format.js';
 
 import SearchBar from './list/SearchBar.jsx';
@@ -15,19 +15,24 @@ import CategoryGroup from './list/CategoryGroup.jsx';
 import AlertCard from './list/AlertCard.jsx';
 import ListSkeleton from './list/ListSkeleton.jsx';
 import EmptyState from './list/EmptyState.jsx';
+import CategoryManager from './categories/CategoryManager.jsx';
 
 /**
  * Agrupa las alertas por categoría respetando el filtro activo.
  *
  * - Con 'all' se devuelven todas las categorías con contenido, más un grupo
- *   "Otras" para categorías que no existen en category.js.
+ *   "Otras" para las categorías que no están en el catálogo.
  * - Con una categoría concreta, solo esa.
+ *
+ * El grupo "Otras" no sobra: `Menu.category` es texto libre, así que puede
+ * haber alertas con una categoría que nunca se declaró. Sin ese grupo,
+ * desaparecerían de la pantalla sin que nada lo indicara.
  */
-function buildGroups(alerts, activeCategory) {
-    const knownValues = new Set(categoryArr.map(c => c.value));
+function buildGroups(alerts, activeCategory, categorias) {
+    const knownValues = new Set(categorias.map(c => c.value));
 
-    const groups = categoryArr
-        .map(c => ({ value: c.value, text: c.text, items: alerts.filter(a => a.category === c.value) }))
+    const groups = categorias
+        .map(c => ({ value: c.value, text: c.es, items: alerts.filter(a => a.category === c.value) }))
         .filter(g => g.items.length > 0)
         .filter(g => activeCategory === 'all' || g.value === activeCategory);
 
@@ -67,7 +72,19 @@ function ListMenu({
     const [category, setCategory]         = useState('all');
     const [searchTerm, setSearchTerm]     = useState('');
     const [loading, setLoading]           = useState(true);
+    const [gestionAbierta, setGestionAbierta] = useState(false);
     const dispatch                        = useDispatch();
+
+    // Se piden TODAS, incluidas las desactivadas: una alerta creada con una
+    // categoría que después se dio de baja tiene que seguir viéndose con su
+    // nombre y su ícono, no caer al grupo "Otras".
+    const {
+        categorias,
+        cargando: cargandoCategorias,
+        sinCatalogo,
+        catalogoVacio,
+        recargar: recargarCategorias,
+    } = useCategories(true);
 
     // Solo los administradores (admin === true) ven el botón de bloqueo
     const { dataSessionState } = useContext(myUserContext);
@@ -138,7 +155,12 @@ function ListMenu({
     // Filtro por título (es / en), sin distinguir mayúsculas ni acentos
     const query    = norm(searchTerm);
     const filtered = arrayMenuAll.filter(a => !query || norm(a.es).includes(query) || norm(a.en).includes(query));
-    const groups   = buildGroups(filtered, category);
+    const groups   = buildGroups(filtered, category, categorias);
+
+    // Las pills ofrecen las categorías activas y, además, las desactivadas que
+    // todavía tengan alertas: si no, esas alertas serían visibles en la lista
+    // pero imposibles de filtrar.
+    const pills = categorias.filter(c => c.active !== false || arrayMenuAll.some(a => a.category === c.value));
 
     const showSkeleton = loading && arrayMenuAll.length === 0;
 
@@ -204,28 +226,51 @@ function ListMenu({
                         </span>
                     </div>
 
-                    <button
-                        type='button'
-                        onClick={() => onCreateNew()}
-                        style={{
-                            display:      'inline-flex',
-                            alignItems:   'center',
-                            gap:          '6px',
-                            flexShrink:   0,
-                            padding:      '8px 14px',
-                            borderRadius: '10px',
-                            border:       'none',
-                            cursor:       'pointer',
-                            fontWeight:   700,
-                            fontSize:     '13px',
-                            color:        '#fff',
-                            whiteSpace:   'nowrap',
-                            background:   'linear-gradient(135deg, #29c50c 0%, #1f9a08 100%)',
-                            boxShadow:    '0 3px 10px rgba(41,197,12,0.30)',
-                        }}
-                    >
-                        <FaPlus size={12} /> Nueva alerta
-                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                        <button
+                            type='button'
+                            onClick={() => setGestionAbierta(true)}
+                            title='Crear, editar o desactivar categorías'
+                            style={{
+                                display:      'inline-flex',
+                                alignItems:   'center',
+                                gap:          '6px',
+                                padding:      '8px 13px',
+                                borderRadius: '10px',
+                                cursor:       'pointer',
+                                fontWeight:   700,
+                                fontSize:     '13px',
+                                whiteSpace:   'nowrap',
+                                color:        '#4b5563',
+                                background:   '#fff',
+                                border:       '1px solid #e6dcc6',
+                            }}
+                        >
+                            <FaTags size={12} /> Categorías
+                        </button>
+
+                        <button
+                            type='button'
+                            onClick={() => onCreateNew()}
+                            style={{
+                                display:      'inline-flex',
+                                alignItems:   'center',
+                                gap:          '6px',
+                                padding:      '8px 14px',
+                                borderRadius: '10px',
+                                border:       'none',
+                                cursor:       'pointer',
+                                fontWeight:   700,
+                                fontSize:     '13px',
+                                color:        '#fff',
+                                whiteSpace:   'nowrap',
+                                background:   'linear-gradient(135deg, #29c50c 0%, #1f9a08 100%)',
+                                boxShadow:    '0 3px 10px rgba(41,197,12,0.30)',
+                            }}
+                        >
+                            <FaPlus size={12} /> Nueva alerta
+                        </button>
+                    </div>
                 </div>
 
                 <SearchBar
@@ -235,7 +280,7 @@ function ListMenu({
                 />
 
                 <CategoryPills
-                    categories={categoryArr}
+                    categories={pills}
                     active={category}
                     onSelect={setCategory}
                 />
@@ -268,6 +313,17 @@ function ListMenu({
                     </CategoryGroup>
                 ))}
             </div>
+
+            {gestionAbierta && (
+                <CategoryManager
+                    categorias={categorias}
+                    cargando={cargandoCategorias}
+                    sinCatalogo={sinCatalogo}
+                    catalogoVacio={catalogoVacio}
+                    onRecargar={recargarCategorias}
+                    onCerrar={() => setGestionAbierta(false)}
+                />
+            )}
         </div>
     );
 }
