@@ -1,6 +1,7 @@
 'use client';
 import { FaTrash, FaFileAlt, FaBroadcastTower, FaLock, FaLockOpen } from 'react-icons/fa';
-import { metaOf, BONUS_BADGE } from '../../lib/categoryMeta.js';
+import { metaOf } from '../../lib/categoryMeta.js';
+import BonusSummary from './BonusSummary.jsx';
 import PersonRow from './PersonRow.jsx';
 import FlagChip from './FlagChip.jsx';
 
@@ -21,9 +22,7 @@ import FlagChip from './FlagChip.jsx';
 export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmin = false, onToggleLock = () => {} }) {
     const { Icon, bg, color } = metaOf(item.category);
 
-    const bonusActive = Boolean(item.bonusCalculationRules?.activate);
-    const bonusWorth  = item.bonusCalculationRules?.defaultRule?.worth ?? 1;
-    const badge       = BONUS_BADGE[bonusWorth] ?? BONUS_BADGE[1];
+    const bonusActive = Boolean(item.bonusSystem?.isEnabled);
 
     // Bloqueo administrativo: con true el backend rechaza editar y borrar (423)
     const isLocked = Boolean(item.isLocked);
@@ -98,20 +97,6 @@ export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmi
                     <FlagChip Icon={FaBroadcastTower} label='En vivo' active={Boolean(item.useOfLiveAlertForTheCustomer)} />
                 </div>
 
-                {/* Badge del multiplicador de bono (solo si está activo) */}
-                {bonusActive && (
-                    <span style={{
-                        fontSize:     '11px',
-                        fontWeight:   700,
-                        padding:      '2px 8px',
-                        borderRadius: '999px',
-                        background:   badge.bg,
-                        color:        badge.color,
-                        flexShrink:   0,
-                    }}>
-                        {badge.label}
-                    </span>
-                )}
 
                 {/* Bloqueada: candado visible para TODOS (solo informativo) */}
                 {isLocked && !isAdmin && (
@@ -183,6 +168,13 @@ export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmi
                     <FaTrash size={13} />
                 </button>
             </div>
+
+            {/* Cómo bonifica. Va en su propia fila y no como insignia en la de
+                arriba: son cuatro datos —valor, proporción, alcance y
+                excepciones— y comprimirlos en una píldora los volvería
+                ilegibles justo en la lista, que es donde se comparan alertas
+                entre sí. No se pinta nada cuando no bonifica. */}
+            <BonusSummary bonusSystem={item.bonusSystem} />
 
             {/* Autoría (debajo de es/en): quién creó + últimas ediciones */}
             {hasAuthorship && (

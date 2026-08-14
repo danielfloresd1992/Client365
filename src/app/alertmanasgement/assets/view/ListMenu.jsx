@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect, useContext } from 'react';
 import { useDispatch } from 'react-redux';
-import { FaBell, FaPlus, FaTags } from 'react-icons/fa';
+import { FaBell, FaPlus, FaTags, FaStar } from 'react-icons/fa';
 
 import { getMenuAll, deleteMenu, lockMenu } from '../model/menu.model.js';
 import { myUserContext } from '@/contexts/userContext';
@@ -16,6 +16,7 @@ import AlertCard from './list/AlertCard.jsx';
 import ListSkeleton from './list/ListSkeleton.jsx';
 import EmptyState from './list/EmptyState.jsx';
 import CategoryManager from './categories/CategoryManager.jsx';
+import BonusReport from './report/BonusReport.jsx';
 
 /**
  * Agrupa las alertas por categoría respetando el filtro activo.
@@ -56,6 +57,8 @@ function buildGroups(alerts, activeCategory, categorias) {
  * @param expanded           - true → el panel ocupa todo el ancho
  * @param refreshKey         - cambia tras guardar para forzar el refetch
  * @param selectedId         - _id de la alerta abierta (se resalta en la lista)
+ * @param locals             - establecimientos, para nombrar las excepciones
+ * @param franchises         - franquicias, para lo mismo
  */
 function ListMenu({
     setMenu,
@@ -66,6 +69,10 @@ function ListMenu({
     expanded = false,
     refreshKey = 0,
     selectedId = null,
+    // El informe de bonificación muestra NOMBRES, pero las excepciones guardan
+    // solo ids. Los catálogos llegan del contenedor, que ya los tiene pedidos.
+    locals = [],
+    franchises = [],
 }) {
 
     const [arrayMenuAll, setArrayMenuAll] = useState([]);
@@ -73,6 +80,7 @@ function ListMenu({
     const [searchTerm, setSearchTerm]     = useState('');
     const [loading, setLoading]           = useState(true);
     const [gestionAbierta, setGestionAbierta] = useState(false);
+    const [informeAbierto, setInformeAbierto] = useState(false);
     const dispatch                        = useDispatch();
 
     // Se piden TODAS, incluidas las desactivadas: una alerta creada con una
@@ -229,6 +237,28 @@ function ListMenu({
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                         <button
                             type='button'
+                            onClick={() => setInformeAbierto(true)}
+                            title='Ver e imprimir cómo bonifica cada alerta'
+                            style={{
+                                display:      'inline-flex',
+                                alignItems:   'center',
+                                gap:          '6px',
+                                padding:      '8px 13px',
+                                borderRadius: '10px',
+                                cursor:       'pointer',
+                                fontWeight:   700,
+                                fontSize:     '13px',
+                                whiteSpace:   'nowrap',
+                                color:        '#b45309',
+                                background:   '#fffbeb',
+                                border:       '1px solid #fde68a',
+                            }}
+                        >
+                            <FaStar size={12} /> Bonificación
+                        </button>
+
+                        <button
+                            type='button'
                             onClick={() => setGestionAbierta(true)}
                             title='Crear, editar o desactivar categorías'
                             style={{
@@ -313,6 +343,15 @@ function ListMenu({
                     </CategoryGroup>
                 ))}
             </div>
+
+            {informeAbierto && (
+                <BonusReport
+                    alertas={arrayMenuAll}
+                    local={locals || []}
+                    franchises={franchises}
+                    onCerrar={() => setInformeAbierto(false)}
+                />
+            )}
 
             {gestionAbierta && (
                 <CategoryManager

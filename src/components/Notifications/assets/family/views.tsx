@@ -5,6 +5,7 @@ import { StoreIcon } from '@/components/icons';
 import AttendanceDetail from './detail/AttendanceDetail';
 import CommentDetail from './detail/CommentDetail';
 import ScheduleDetail from './detail/ScheduleDetail';
+import BonusDetail from './detail/BonusDetail';
 import type {
     Notification, NotificationFamily, PushExtras, AttendanceMeta, CommentMeta,
 } from '../types';
@@ -138,6 +139,28 @@ const SparkWatermark = (
 );
 
 
+const StarWatermark = (
+    <svg
+        viewBox='0 0 24 24' fill='currentColor'
+        className='absolute -right-2 -bottom-2 w-[86px] h-[86px] text-amber-500 opacity-[0.09] pointer-events-none'
+        aria-hidden='true'
+    >
+        <path d='m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z' />
+    </svg>
+);
+
+const TagWatermark = (
+    <svg
+        viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.5'
+        className='absolute -right-2 -bottom-2 w-[86px] h-[86px] text-slate-500 opacity-[0.07] pointer-events-none'
+        aria-hidden='true'
+    >
+        <path d='M20.6 13.4 12 22l-8.6-8.6A2 2 0 0 1 2.8 12V4a2 2 0 0 1 2-2h8a2 2 0 0 1 1.4.6l6.4 6.4a2 2 0 0 1 0 2.4z' />
+        <circle cx='7.5' cy='7.5' r='1.5' />
+    </svg>
+);
+
+
 // ── Registro ──────────────────────────────────────────────────────────
 
 const VIEWS: Record<NotificationFamily, NotificationView> = {
@@ -250,6 +273,43 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
         fallbackIcon: (
             // eslint-disable-next-line @next/next/no-img-element
             <img src='/logo-page-removebg.png' alt='' className='w-6 h-6 object-contain' />
+        ),
+    },
+
+    // La alerta como tal: se creó, se editó, se eliminó. Gris pizarra y una
+    // etiqueta de fondo — es información operativa, no toca dinero.
+    menu: {
+        watermark: TagWatermark,
+        accent: 'before:bg-slate-400',
+        unreadBg: 'bg-slate-500/[0.04]',
+        unreadHoverBg: 'hover:bg-slate-500/[0.09]',
+        showTarget: false,
+        fallbackIcon: (
+            <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
+                <path d='M20.6 13.4 12 22l-8.6-8.6A2 2 0 0 1 2.8 12V4a2 2 0 0 1 2-2h8a2 2 0 0 1 1.4.6l6.4 6.4a2 2 0 0 1 0 2.4z' />
+                <circle cx='7.5' cy='7.5' r='1.5' />
+            </svg>
+        ),
+    },
+
+    // Cambió lo que PAGA una alerta.
+    //
+    // Es la única familia dorada de toda la bandeja, y la única cuyo ícono de
+    // respaldo es una estrella rellena. No es decoración: entre veinte avisos
+    // de que alguien renombró un campo, el que cambia lo que cobra la gente
+    // tiene que poder encontrarse sin leer.
+    bonus: {
+        watermark: StarWatermark,
+        accent: 'before:bg-amber-500',
+        unreadBg: 'bg-amber-500/[0.07]',
+        unreadHoverBg: 'hover:bg-amber-500/[0.13]',
+        showTarget: false,
+        // El desglose de qué cambió en la bonificación, ya redactado por la API.
+        detail: (n) => <BonusDetail n={n} />,
+        fallbackIcon: (
+            <svg viewBox='0 0 24 24' fill='currentColor' className='w-[17px] h-[17px] text-amber-500'>
+                <path d='m12 3 2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z' />
+            </svg>
         ),
     },
 

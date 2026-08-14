@@ -90,15 +90,4 @@ const metaOf = (category) => {
 };
 
 
-/**
- * Badge del multiplicador de bono (bonusCalculationRules.defaultRule.worth):
- * X1 azul / X2 ámbar / X3 naranja / X5 rojo.
- */
-const BONUS_BADGE = {
-    1: { bg: '#dbeafe', color: '#1e40af', label: 'X1' },
-    2: { bg: '#fef9c3', color: '#92400e', label: 'X2' },
-    3: { bg: '#ffedd5', color: '#c2410c', label: 'X3' },
-    5: { bg: '#fee2e2', color: '#991b1b', label: 'X5' },
-};
-
-export { RESPALDO, CATEGORY_FALLBACK, metaOf, setCategoryCatalog, BONUS_BADGE };
+export { RESPALDO, CATEGORY_FALLBACK, metaOf, setCategoryCatalog };

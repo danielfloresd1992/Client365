@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
-import { NOMBRES_DE_ICONO, iconOf } from '../../lib/categoryIcons.js';
+import { GRUPOS_DE_ICONO, iconOf } from '../../lib/categoryIcons.js';
 
 /**
  * Alta y edición de una categoría.
@@ -13,24 +13,67 @@ import { NOMBRES_DE_ICONO, iconOf } from '../../lib/categoryIcons.js';
  */
 
 /**
- * Paletas listas. Cada una es el par fondo/color que ya usaban las categorías
- * originales, para que una categoría nueva se vea parte del conjunto sin tener
- * que acertarle a dos códigos hexadecimales.
+ * Paletas listas. Cada una es un par fondo/color, no dos elecciones sueltas:
+ * el fondo va claro y el color oscuro del mismo tono, que es lo que hace que
+ * el ícono se lea dentro del círculo.
+ *
+ * Se ofrecen armadas —y no dos selectores de color— porque acertarle a mano a
+ * dos hexadecimales que contrasten entre sí y que además peguen con las otras
+ * doce categorías es un trabajo de diseño, no de configuración.
+ *
+ * Van agrupadas por familia para poder recorrerlas: con veinticuatro sueltas,
+ * elegir "otro verde" obliga a mirarlas todas.
  */
-const PALETAS = [
-    { bg: '#dbeafe', color: '#1d4ed8', nombre: 'Azul' },
-    { bg: '#e0f2fe', color: '#0369a1', nombre: 'Celeste' },
-    { bg: '#d1fae5', color: '#065f46', nombre: 'Verde' },
-    { bg: '#ecfdf5', color: '#047857', nombre: 'Menta' },
-    { bg: '#fef9c3', color: '#854d0e', nombre: 'Amarillo' },
-    { bg: '#ffedd5', color: '#c2410c', nombre: 'Naranja' },
-    { bg: '#fff7ed', color: '#9a3412', nombre: 'Terracota' },
-    { bg: '#fee2e2', color: '#991b1b', nombre: 'Rojo' },
-    { bg: '#fef2f2', color: '#b91c1c', nombre: 'Carmín' },
-    { bg: '#f3e8ff', color: '#7e22ce', nombre: 'Morado' },
-    { bg: '#fdf4ff', color: '#7c3aed', nombre: 'Violeta' },
-    { bg: '#f1f5f9', color: '#475569', nombre: 'Gris' },
+const FAMILIAS_DE_COLOR = [
+    {
+        titulo: 'Fríos',
+        paletas: [
+            { bg: '#dbeafe', color: '#1d4ed8', nombre: 'Azul' },
+            { bg: '#e0f2fe', color: '#0369a1', nombre: 'Celeste' },
+            { bg: '#cffafe', color: '#0e7490', nombre: 'Cian' },
+            { bg: '#ccfbf1', color: '#0f766e', nombre: 'Turquesa' },
+            { bg: '#e0e7ff', color: '#4338ca', nombre: 'Índigo' },
+            { bg: '#ede9fe', color: '#6d28d9', nombre: 'Lavanda' },
+            { bg: '#f3e8ff', color: '#7e22ce', nombre: 'Morado' },
+            { bg: '#fae8ff', color: '#a21caf', nombre: 'Fucsia' },
+        ],
+    },
+    {
+        titulo: 'Verdes',
+        paletas: [
+            { bg: '#dcfce7', color: '#1f9a08', nombre: 'Verde marca' },
+            { bg: '#d1fae5', color: '#065f46', nombre: 'Bosque' },
+            { bg: '#ecfdf5', color: '#047857', nombre: 'Menta' },
+            { bg: '#ecfccb', color: '#4d7c0f', nombre: 'Lima' },
+            { bg: '#f7fee7', color: '#3f6212', nombre: 'Oliva' },
+        ],
+    },
+    {
+        titulo: 'Cálidos',
+        paletas: [
+            { bg: '#fef9c3', color: '#854d0e', nombre: 'Amarillo' },
+            { bg: '#fef3c7', color: '#b45309', nombre: 'Ámbar' },
+            { bg: '#ffedd5', color: '#c2410c', nombre: 'Naranja' },
+            { bg: '#fff7ed', color: '#9a3412', nombre: 'Terracota' },
+            { bg: '#fee2e2', color: '#991b1b', nombre: 'Rojo' },
+            { bg: '#fef2f2', color: '#b91c1c', nombre: 'Carmín' },
+            { bg: '#ffe4e6', color: '#9f1239', nombre: 'Coral' },
+            { bg: '#fce7f3', color: '#be185d', nombre: 'Rosa' },
+        ],
+    },
+    {
+        titulo: 'Neutros',
+        paletas: [
+            { bg: '#f1f5f9', color: '#475569', nombre: 'Gris' },
+            { bg: '#e2e8f0', color: '#334155', nombre: 'Pizarra' },
+            { bg: '#f3f4f6', color: '#374151', nombre: 'Grafito' },
+            { bg: '#efebe9', color: '#5d4037', nombre: 'Marrón' },
+        ],
+    },
 ];
+
+/** Todas las paletas juntas, para lo que necesite recorrerlas planas. */
+const PALETAS = FAMILIAS_DE_COLOR.flatMap(f => f.paletas);
 
 const ETIQUETA = {
     display:       'block',
@@ -133,56 +176,96 @@ export default function CategoryForm({ categoria, onGuardar, onCancelar, guardan
                 </div>
             )}
 
-            {/* Ícono */}
+            {/* Ícono, por tema.
+                Con cien íconos una rejilla plana es un muro donde nadie
+                encuentra nada; los títulos convierten la búsqueda en "voy a
+                Comida" en vez de recorrerlos todos. La caja tiene alto máximo
+                y su propio desplazamiento: si no, el selector empujaría fuera
+                de la vista los botones de guardar. */}
             <div>
                 <label style={ETIQUETA}>Ícono</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {NOMBRES_DE_ICONO.map(nombre => {
-                        const I = iconOf(nombre);
-                        const activo = nombre === icon;
-                        return (
-                            <button
-                                key={nombre}
-                                type='button'
-                                title={nombre}
-                                onClick={() => setIcon(nombre)}
-                                style={{
-                                    width: '34px', height: '34px', borderRadius: '9px', cursor: 'pointer',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    background: activo ? bg : '#fff',
-                                    border: activo ? `2px solid ${color}` : '1px solid #e6dcc6',
-                                }}
-                            >
-                                <I size={14} color={activo ? color : '#6b7280'} />
-                            </button>
-                        );
-                    })}
+                <div style={{
+                    maxHeight: '220px', overflowY: 'auto',
+                    border: '1px solid #e6dcc6', borderRadius: '10px',
+                    padding: '10px', background: '#fff',
+                    display: 'flex', flexDirection: 'column', gap: '10px',
+                }}>
+                    {GRUPOS_DE_ICONO.map(grupo => (
+                        <div key={grupo.titulo}>
+                            <p style={{
+                                margin: '0 0 5px', fontSize: '10px', fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '.06em', color: '#9ca3af',
+                            }}>
+                                {grupo.titulo}
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {grupo.nombres.map(nombre => {
+                                    const I = iconOf(nombre);
+                                    const activo = nombre === icon;
+                                    return (
+                                        <button
+                                            key={nombre}
+                                            type='button'
+                                            title={nombre}
+                                            onClick={() => setIcon(nombre)}
+                                            style={{
+                                                width: '34px', height: '34px', borderRadius: '9px', cursor: 'pointer',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                background: activo ? bg : '#fff',
+                                                border: activo ? `2px solid ${color}` : '1px solid #e6dcc6',
+                                            }}
+                                        >
+                                            <I size={14} color={activo ? color : '#6b7280'} />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {/* Color */}
+            {/* Color, por familia.
+                Agrupados para poder pedir "otro verde" sin mirar las
+                veinticuatro. El nombre va en el title: el color elegido se
+                verá después en una lista junto a los demás, y saber que es
+                "Ámbar" y no "ese amarillo" ayuda a no repetirlo. */}
             <div>
                 <label style={ETIQUETA}>Color</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                    {PALETAS.map(p => {
-                        const activo = p.bg === bg && p.color === color;
-                        return (
-                            <button
-                                key={p.nombre}
-                                type='button'
-                                title={p.nombre}
-                                onClick={() => { setBg(p.bg); setColor(p.color); }}
-                                style={{
-                                    width: '34px', height: '34px', borderRadius: '9px', cursor: 'pointer',
-                                    background: p.bg,
-                                    border: activo ? `2px solid ${p.color}` : '1px solid #e6dcc6',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                }}
-                            >
-                                {activo && <FaCheck size={11} color={p.color} />}
-                            </button>
-                        );
-                    })}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                    {FAMILIAS_DE_COLOR.map(familia => (
+                        <div key={familia.titulo}>
+                            <p style={{
+                                margin: '0 0 5px', fontSize: '10px', fontWeight: 700,
+                                textTransform: 'uppercase', letterSpacing: '.06em', color: '#9ca3af',
+                            }}>
+                                {familia.titulo}
+                            </p>
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                {familia.paletas.map(p => {
+                                    const activo = p.bg === bg && p.color === color;
+                                    return (
+                                        <button
+                                            key={p.nombre}
+                                            type='button'
+                                            title={p.nombre}
+                                            onClick={() => { setBg(p.bg); setColor(p.color); }}
+                                            style={{
+                                                width: '34px', height: '34px', borderRadius: '9px', cursor: 'pointer',
+                                                background: p.bg,
+                                                border: activo ? `2px solid ${p.color}` : '1px solid #e6dcc6',
+                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                            }}
+                                        >
+                                            {/* El tilde va del color OSCURO de la propia paleta:
+                                                es la comprobación de que ese par contrasta. */}
+                                            {activo && <FaCheck size={11} color={p.color} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 

@@ -20,6 +20,7 @@ import TiempoEspecialSection from './form/sections/TiempoEspecialSection.jsx';
 import DatosAdicionalesSection from './form/sections/DatosAdicionalesSection.jsx';
 import GerentesSection from './form/sections/GerentesSection.jsx';
 import BonoSection from './form/sections/BonoSection.jsx';
+import { bonusSystemVacio } from '../lib/bonusLabels.js';
 import ReporteSection from './form/sections/ReporteSection.jsx';
 
 /**
@@ -42,6 +43,10 @@ import ReporteSection from './form/sections/ReporteSection.jsx';
 function Form({
     menuIndividual,
     local,
+    // Las franquicias hacen falta para las excepciones por marca. Llegan del
+    // contenedor y no se piden acá: el formulario se monta y se desmonta cada
+    // vez que se abre una alerta, y volvería a pedirlas en cada apertura.
+    franchises = [],
     resetNoveltie,
     putMenuProps,
     createMenu,
@@ -77,29 +82,10 @@ function Form({
         _id: null,
         car: false,
 
-        // DEPRECATED — se mantiene por compatibilidad con alertas antiguas
-        rulesForBonus: {
-            forLocal: 'Todos',
-            worth: '',
-            amulative: ''
-        },
-
-        // NUEVO sistema de bonificación (mapea al reglamento oficial de bonos)
-        bonusCalculationRules: {
-            activate: false,
-            defaultRule: {
-                worth: 1,          // multiplicador: 1=X1, 2=X2, 3=X3, 5=X5
-                acum: 1,          // ocurrencias para contar como bono
-                valueBonusForTheStaffOnDuty: {
-                    day: 0.20,    // valor por punto turno diurno
-                    nigth: 0.30     // valor por punto turno nocturno / extra
-                },
-                reglamentoCode: '', // código del reglamento (ej: "1.1", "R2.3")
-                description: '', // descripción interna de la regla
-                defaultActive: true
-            },
-            localSpecificRules: []
-        },
+        // Sistema de bonificación. Nace APAGADO: crear una alerta y que
+        // empiece a pagar sin que nadie lo decida sería lo contrario de lo
+        // que se quiere. Ver assets/lib/bonusLabels.js.
+        bonusSystem: bonusSystemVacio(),
 
         useOnlyForTheReportingDocument: false,
         useOfLiveAlertForTheCustomer: false,
@@ -197,10 +183,18 @@ function Form({
         if (!menu.photos.length || menu.photos.length === 0) {
             return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'Debe indicar al menos 1 foto requerida.', isCallback: null, type: 'error' }));
         }
-        // Valida el nuevo sistema de bonificación solo si está activado
-        if (menu.bonusCalculationRules.activate) {
-            if (!menu.bonusCalculationRules.defaultRule.reglamentoCode.trim()) {
-                return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'Ingrese el código del reglamento para el bono.', isCallback: null, type: 'error' }));
+        // El sistema de bonificación solo se valida si está encendido.
+        if (menu.bonusSystem?.isEnabled) {
+            if (!menu.bonusSystem.regulationCode?.trim()) {
+                return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'Ingrese el código del reglamento para la bonificación.', isCallback: null, type: 'error' }));
+            }
+            // Sin regla general Y sin excepciones, la bonificación está
+            // encendida pero no aplica en ningún lado. Se avisa acá porque
+            // guardado se ve idéntico a una alerta bien configurada.
+            const sinExcepciones = !(menu.bonusSystem.franchiseExceptions?.length)
+                && !(menu.bonusSystem.localExceptions?.length);
+            if (menu.bonusSystem.defaultRule?.bonifies === false && sinExcepciones) {
+                return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'La bonificación está encendida pero no aplica en ningún establecimiento: activá la regla general o agregá al menos una excepción.', isCallback: null, type: 'error' }));
             }
         }
 
@@ -332,7 +326,7 @@ function Form({
                             <TiempoEspecialSection   menu={menu} setMenu={setMenu} />
                             <DatosAdicionalesSection menu={menu} setMenu={setMenu} />
                             <GerentesSection         menu={menu} setMenu={setMenu} />
-                            <BonoSection             menu={menu} setMenu={setMenu} local={local} />
+                            <BonoSection             menu={menu} setMenu={setMenu} local={local} franchises={franchises} />
                             <ReporteSection          menu={menu} setMenu={setMenu} />
                         </form>
                     </div>

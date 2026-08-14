@@ -23,6 +23,8 @@ export default function Section() {
     const [menuIndividual, setMenuIndividual] = useState(null);
     const [addManuState, setAddManuState] = useState(null);
     const [locals, setLocals] = useState(null);
+    // Para las excepciones por marca del sistema de bonificación.
+    const [franchises, setFranchises] = useState([]);
     // El formulario solo se muestra al seleccionar una alerta o al crear una nueva
     const [showForm, setShowForm] = useState(false);
     // Se incrementa tras guardar (crear/editar) para forzar el refetch de la lista
@@ -47,6 +49,18 @@ export default function Section() {
 
         };
     }, [menuIndividual]);
+
+
+    // Las franquicias se piden UNA vez: no cambian mientras se edita una
+    // alerta, y volver a pedirlas con cada selección sería una consulta por
+    // cada clic en la lista.
+    useEffect(() => {
+        requestAction({ url: `/franchise`, action: 'GET' })
+            .then(response => setFranchises(Array.isArray(response.data) ? response.data : []))
+            // Sin franquicias la pantalla sigue sirviendo: se pueden cargar
+            // excepciones por establecimiento, que es el caso más común.
+            .catch(() => setFranchises([]));
+    }, []);
 
 
 
@@ -105,12 +119,15 @@ export default function Section() {
                                 onCreateNew={createNewAlert}
                                 expanded={true}
                                 refreshKey={savedTick}
+                                locals={locals}
+                                franchises={franchises}
                                 selectedId={menuIndividual?._id}
                             />
                             {showForm && (
                                 <Form
                                     menuIndividual={menuIndividual}
                                     local={locals}
+                                    franchises={franchises}
                                     resetNoveltie={resetNoveltie}
                                     putMenuProps={putMenu}
                                     createMenu={sendMenu}

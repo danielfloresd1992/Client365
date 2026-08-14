@@ -13,8 +13,14 @@ export type NotificationScope = 'global' | 'personal' | 'admin';
  *   system     → anuncios de la plataforma
  *   attendance → el marcaje propio: entrada, salida, retardo, día extra
  *   comment    → una nota escrita sobre el día de otra persona
+ *   menu       → una alerta se creó, se editó o se eliminó
+ *   bonus      → cambió lo que PAGA una alerta. Va aparte de `menu` porque
+ *                toca lo que cobra la gente y tiene que distinguirse de un
+ *                vistazo: sale con estrella dorada.
  */
-export type NotificationFamily = 'schedule' | 'resource' | 'system' | 'attendance' | 'comment' | 'general';
+export type NotificationFamily =
+    | 'schedule' | 'resource' | 'system' | 'attendance' | 'comment'
+    | 'menu' | 'bonus' | 'general';
 export type NotificationLevel = 'info' | 'success' | 'warning' | 'danger';
 /**
  * 'withdrawn' es distinto de 'rejected': rechazar lo hace un administrador
