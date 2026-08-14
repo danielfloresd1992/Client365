@@ -179,12 +179,12 @@ export default function AppDock() {
                             {roleLabel && (
                                 <span className={`inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase tracking-wider text-white px-1.5 py-[2px] rounded ${onDuty ? 'bg-blue-700' : 'bg-red-600'}`}>
                                     <BellOffIcon size={10} strokeWidth={2.5} />
-                                    <span className='leading-tight'>
+                                    <span className='leading-tight text-white'>
                                         {roleLabel}
                                         {/* Ventana del rol: el día operativo respeta el turno
                                             (nocturno cruza la medianoche hasta las 07:00) */}
                                         {roleWindow && (
-                                            <span className='block text-[8px] font-bold tracking-widest opacity-90 normal-case'>
+                                            <span className='block text-[8px] font-bold tracking-widest opacity-90 normal-case text-white'>
                                                 {roleWindow}
                                             </span>
                                         )}
