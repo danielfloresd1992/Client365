@@ -1,6 +1,6 @@
 'use client';
 
-import type { AttendanceMeta, Notification } from './types';
+import type { AttendanceMeta, Notification } from '../../types';
 
 // ══════════════════════════════════════════════════════════════════════
 // DETALLE DE UN MARCAJE

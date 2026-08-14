@@ -117,10 +117,23 @@ export async function showBrowserNotification(title, options = {}) {
     };
 
     // Intentar via Service Worker (funciona en background + mobile)
+    //
+    // Se pregunta con getRegistration() y NO con `ready`. Parecen lo mismo y no
+    // lo son: `ready` espera a que haya un Service Worker ACTIVO, así que en una
+    // página donde nunca se registró ninguno la promesa queda pendiente para
+    // siempre. Como no lanza, el catch no corre y ni siquiera se llega al
+    // respaldo de abajo: la notificación no aparece y no hay ningún error.
+    //
+    // Pasa de verdad en la primera visita: registerServiceWorker() corre después
+    // de comprobar Cordova, que en la web tarda unos segundos en descartarse.
+    //
+    // getRegistration() siempre se resuelve —con el registro o con undefined—.
+    // Recién cuando sabemos que existe uno tiene sentido esperar su activación.
     try {
-        const registration = swRegistration || await navigator.serviceWorker?.ready;
+        const registration = swRegistration || await navigator.serviceWorker?.getRegistration();
         if (registration) {
-            await registration.showNotification(title, notifOptions);
+            const activo = await navigator.serviceWorker.ready;
+            await activo.showNotification(title, notifOptions);
             return;
         }
     } catch (err) {

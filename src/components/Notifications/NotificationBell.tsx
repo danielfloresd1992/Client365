@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { BellIcon, BellOffIcon } from '@/components/icons';
-import useNotifications from './useNotifications';
-import NotificationPanel from './NotificationPanel';
+import useNotifications from './assets/state/useNotifications';
+import NotificationPanel from './assets/view/NotificationPanel';
 
 /*
  * NotificationBell — la campana completa: botón, contador, animaciones y

@@ -2,10 +2,12 @@
 
 import type { ReactNode } from 'react';
 import { StoreIcon } from '@/components/icons';
-import AttendanceDetail from './AttendanceDetail';
-import CommentDetail from './CommentDetail';
-import ScheduleDetail from './ScheduleDetail';
-import type { Notification, NotificationFamily } from './types';
+import AttendanceDetail from './detail/AttendanceDetail';
+import CommentDetail from './detail/CommentDetail';
+import ScheduleDetail from './detail/ScheduleDetail';
+import type {
+    Notification, NotificationFamily, PushExtras, AttendanceMeta, CommentMeta,
+} from '../types';
 
 // ══════════════════════════════════════════════════════════════════════
 // VISTAS POR FAMILIA — el espejo en el cliente del patrón del backend
@@ -59,6 +61,19 @@ export interface NotificationView {
      * repetir la misma cara en pequeño al lado sería ruido.
      */
     hideAvatar?: boolean;
+    /**
+     * Qué le agrega esta familia al aviso del sistema —la notificación del
+     * escritorio o del teléfono— por encima del título y el cuerpo que ya trae
+     * la notificación.
+     *
+     * Vive acá, junto al resto de lo que define a la familia, y no en un mapa
+     * aparte: si estuviera en otro archivo habría dos listas de familias que
+     * mantener sincronizadas, y la segunda se olvidaría.
+     *
+     * Devuelve datos, no JSX: una notificación del sistema la dibuja el sistema
+     * operativo y solo entiende textos y URLs de imagen.
+     */
+    push?: (n: Notification) => PushExtras;
 }
 
 
@@ -137,6 +152,12 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
         unreadBg: 'bg-[#29c50c]/[0.05]',
         unreadHoverBg: 'hover:bg-[#29c50c]/[0.10]',
         showTarget: true,
+        // Una solicitud pendiente espera una decisión, así que el aviso se queda
+        // en pantalla en vez de desvanecerse solo: si se va antes de que la
+        // persona lo mire, el cambio queda esperando sin que nadie lo sepa.
+        push: (n) => ({
+            requireInteraction: n.request?.status === 'pending',
+        }),
         fallbackIcon: (
             <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
                 <rect x='3' y='4' width='18' height='18' rx='2' />
@@ -161,6 +182,13 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
         // dos caras iguales sería ruido.
         showTarget: false,
         detail: (n) => <AttendanceDetail n={n} />,
+        // La foto del marcaje como imagen grande. Es la única familia donde el
+        // aviso sirve de comprobante: verla en la notificación, sin abrir nada,
+        // es la mitad del valor.
+        push: (n) => {
+            const meta = (n.meta || {}) as AttendanceMeta;
+            return { image: meta.photoOut || meta.photoIn || undefined };
+        },
         fallbackIcon: (
             <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
                 <circle cx='12' cy='12' r='9' />
@@ -185,6 +213,13 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
         // El detalle pinta las dos caras a 50px; el avatar chico sobra.
         hideAvatar: true,
         detail: (n) => <CommentDetail n={n} />,
+        // La nota NO viaja en el cuerpo de la notificación —se pinta aparte como
+        // cita—, así que sin esto el aviso del sistema diría "te dejaron un
+        // comentario" sin decir cuál, que es justo lo único que importa.
+        push: (n) => {
+            const meta = (n.meta || {}) as CommentMeta;
+            return meta.message ? { body: `“${meta.message}”` } : {};
+        },
         fallbackIcon: (
             <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='w-[17px] h-[17px]'>
                 <path d='M21 11.5a8.4 8.4 0 0 1-9 8.4 8.9 8.9 0 0 1-4-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-4 8.4 8.4 0 0 1 8.4-8.4h.6a8.4 8.4 0 0 1 8 8v.4z' />
@@ -199,6 +234,9 @@ const VIEWS: Record<NotificationFamily, NotificationView> = {
         unreadBg: 'bg-blue-500/[0.04]',
         unreadHoverBg: 'hover:bg-blue-500/[0.09]',
         showTarget: false,
+        // El logo del establecimiento en grande: es lo que se reconoce de un
+        // vistazo, mucho antes que el nombre escrito.
+        push: (n) => ({ image: n.resource?.img || undefined }),
         fallbackIcon: <StoreIcon size={17} />,
     },
 

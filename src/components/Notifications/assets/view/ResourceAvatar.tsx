@@ -1,7 +1,7 @@
 'use client';
 
-import type { Notification, NotificationPerson } from './types';
-import { viewOf } from './notificationViews';
+import type { Notification, NotificationPerson } from '../types';
+import { viewOf } from '../family/views';
 
 /**
  * El visual de la notificación. Qué muestra depende de la FAMILIA, que decide

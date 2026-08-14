@@ -1,6 +1,6 @@
 'use client';
 
-import type { CommentMeta, Notification, NotificationPerson } from './types';
+import type { CommentMeta, Notification, NotificationPerson } from '../../types';
 
 // ══════════════════════════════════════════════════════════════════════
 // COMENTARIO EN UNA CELDA DEL HORARIO

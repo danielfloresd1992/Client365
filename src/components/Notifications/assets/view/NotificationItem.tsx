@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import ResourceAvatar from './ResourceAvatar';
-import { viewOf } from './notificationViews';
-import type { Notification, Decision, DecideResult } from './types';
+import { viewOf } from '../family/views';
+import type { Notification, Decision, DecideResult } from '../types';
 
 /*
  * Una fila de la bandeja. Solo pinta: el estado vive en useNotifications.

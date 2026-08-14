@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import NotificationItem from './NotificationItem';
-import type { Notification, Decision, DecideResult } from './types';
+import type { Notification, Decision, DecideResult } from '../types';
 
 /*
  * La bandeja desplegable de la campana.

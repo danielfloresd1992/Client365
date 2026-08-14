@@ -155,3 +155,33 @@ export interface DecideResult {
     applied?: number;
     message?: string;
 }
+
+/**
+ * Lo que una familia aporta al aviso del sistema (la notificación del
+ * escritorio o del teléfono), además del título y el cuerpo que ya trae la
+ * notificación.
+ *
+ * Va acá y no en notificationViews para que lo pueda leer código sin JSX.
+ */
+export interface PushExtras {
+    /** Reemplaza el cuerpo cuando la familia tiene algo mejor que decir. */
+    body?: string;
+    /** Ícono pequeño; si no, se usa el recurso o la cara de quien lo hizo. */
+    icon?: string;
+    /** Imagen grande. No todas las plataformas la muestran. */
+    image?: string;
+    /** Deja el aviso en pantalla hasta que la persona lo atienda. */
+    requireInteraction?: boolean;
+}
+
+/** El aviso del sistema ya armado, listo para `avisar()`. */
+export interface PushContent {
+    title: string;
+    body: string;
+    icon?: string;
+    image?: string;
+    /** Estable por notificación: la misma nunca aparece dos veces. */
+    tag: string;
+    url?: string;
+    requireInteraction?: boolean;
+}

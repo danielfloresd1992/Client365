@@ -1,6 +1,6 @@
 'use client';
 
-import type { Notification, ScheduleChange } from './types';
+import type { Notification, ScheduleChange } from '../../types';
 
 // ══════════════════════════════════════════════════════════════════════
 // QUÉ SE CAMBIÓ EN EL HORARIO

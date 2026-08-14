@@ -3,10 +3,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import socket from '@/libs/socket/socketIo';
 import useAuthOnServer from '@/hook/auth';
+import { avisar } from '@/libs/notification_push/plataforma';
+import { pushOf } from '../family/push';
 import {
     getNotifications, getUnreadCount,
     markNotificationRead, markAllNotificationsRead, decideNotificationRequest,
-} from './notification.fetch';
+} from '../model/notification.fetch';
 
 // ══════════════════════════════════════════════════════════════════════
 // NOTIFICACIONES — estado, socket, lectura y decisiones
@@ -120,6 +122,16 @@ export default function useNotifications() {
     const loadingRef = useRef(false);
     const mounted = useRef(true);
     useEffect(() => () => { mounted.current = false; }, []);
+
+    /**
+     * Ids que ya entraron por socket en esta sesión.
+     *
+     * Evita contar y avisar dos veces la misma notificación cuando el socket la
+     * reenvía al reconectar. Crece con la sesión, pero son unos pocos cientos
+     * de cadenas en el peor día: menos que una sola de las fotos que ya carga
+     * la bandeja.
+     */
+    const recibidas = useRef(new Set());
 
     /** Texto en el idioma activo, con respaldo al otro si faltara. */
     const textOf = useCallback((n) => {
@@ -245,14 +257,37 @@ export default function useNotifications() {
 
         const onNew = (notification) => {
             if (!notification?._id) return;
-            setUnread(n => n + 1);
-            setPulseKey(k => k + 1);
+
+            // La misma notificación puede llegar dos veces: el socket reintenta
+            // al reconectar. La comprobación va contra un registro FUERA de
+            // React —no contra el estado— porque el actualizador de `setState`
+            // corre en el render siguiente, y para entonces ya habríamos
+            // contado y avisado de más.
+            const id = String(notification._id);
+            if (recibidas.current.has(id)) return;
+            recibidas.current.add(id);
+
             setNotifications(prev => (
-                prev.some(p => String(p._id) === String(notification._id))
+                prev.some(p => String(p._id) === id)
                     ? prev
                     : [{ ...notification, read: false }, ...prev]
             ));
+            setUnread(n => n + 1);
+            setPulseKey(k => k + 1);
             setTotal(t => t + 1);
+
+            // Aviso del sistema, para que llegue aunque la aplicación esté
+            // cerrada o en segundo plano. La campana se encarga de lo que pasa
+            // dentro de la pantalla; esto es para lo de afuera.
+            //
+            // No se espera el resultado: mostrarlo puede tardar —permisos,
+            // Service Worker— y la campana no tiene por qué quedarse quieta.
+            // `avisar` nunca lanza, así que no hay nada que atrapar.
+            const aviso = pushOf(notification, textOf(notification));
+            if (aviso) {
+                const { title, ...opciones } = aviso;
+                avisar(title, opciones);
+            }
         };
 
         socket.on(NOTIFICATION_EVENT, onNew);
@@ -262,7 +297,7 @@ export default function useNotifications() {
             socket.off(NOTIFICATION_EVENT, onNew);
             socket.emit('leave-user', { userId });
         };
-    }, [userId, isAdmin]);
+    }, [userId, isAdmin, textOf]);
 
 
     // ── Lectura ───────────────────────────────────────────────────────
