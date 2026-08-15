@@ -8,6 +8,7 @@ import { myUserContext } from '@/contexts/userContext';
 import { setConfigModal } from '@/store/slices/globalModal.js';
 import useBonusCategories from '@/hook/useBonusCategories.js';
 import { listaDeCategorias } from '../lib/categoryMeta.js';
+import { iconOf } from '../lib/categoryIcons.js';
 import { norm } from '../lib/format.js';
 
 import SearchBar from './list/SearchBar.jsx';
@@ -78,6 +79,7 @@ function ListMenu({
 
     const [arrayMenuAll, setArrayMenuAll] = useState([]);
     const [category, setCategory]         = useState('all');
+    const [bonusCategory, setBonusCategory] = useState('all');
     const [searchTerm, setSearchTerm]     = useState('');
     const [loading, setLoading]           = useState(true);
     const [gestionAbierta, setGestionAbierta] = useState(false);
@@ -165,15 +167,36 @@ function ListMenu({
         }));
     };
 
-    // Filtro por título (es / en), sin distinguir mayúsculas ni acentos
+    // Filtro por título (es / en), sin distinguir mayúsculas ni acentos, y por
+    // categoría de BONIFICACIÓN. Esta última se resuelve acá y no en el
+    // servidor: `getMenuAll` filtra por la operativa, y la lista de alertas es
+    // corta, así que no vale un viaje más.
     const query    = norm(searchTerm);
-    const filtered = arrayMenuAll.filter(a => !query || norm(a.es).includes(query) || norm(a.en).includes(query));
+    const filtered = arrayMenuAll
+        .filter(a => !query || norm(a.es).includes(query) || norm(a.en).includes(query))
+        .filter(a => bonusCategory === 'all'
+            || (bonusCategory === '__sin' ? !a.bonusCategory : a.bonusCategory === bonusCategory));
+
     const groups   = buildGroups(filtered, category, categorias);
 
     // Las pills ofrecen las categorías activas y, además, las desactivadas que
     // todavía tengan alertas: si no, esas alertas serían visibles en la lista
     // pero imposibles de filtrar.
     const pills = categorias.filter(c => c.active !== false || arrayMenuAll.some(a => a.category === c.value));
+
+    // Mismo criterio para las de bonificación, más una pill "Sin bonificación":
+    // saber qué alertas todavía no tienen uno asignado es justo lo que se
+    // necesita mientras se está terminando de configurarlas.
+    const pillsDeBono = categoriasDeBono.filter(c => c.active !== false || arrayMenuAll.some(a => a.bonusCategory === c.value));
+    const hayAlertasSinBono = arrayMenuAll.some(a => !a.bonusCategory);
+
+    // La apariencia de una categoría de bonificación viaja en su documento: se
+    // crea desde la pantalla, así que no puede salir de un mapa fijo.
+    const metaDeBono = item => ({
+        Icon:  iconOf(item.icon),
+        bg:    item.bg || '#fdf6e7',
+        color: item.color || '#8a5a2b',
+    });
 
     const showSkeleton = loading && arrayMenuAll.length === 0;
 
@@ -314,11 +337,32 @@ function ListMenu({
                     onClear={() => setSearchTerm('')}
                 />
 
+                {/* Filtro por la categoría OPERATIVA: de qué se trata la alerta */}
                 <CategoryPills
                     categories={pills}
                     active={category}
                     onSelect={setCategory}
                 />
+
+                {/* Filtro por la categoría de BONIFICACIÓN: con qué criterio
+                    cuenta para el bono. Va en su propia fila porque es otra
+                    dimensión, no más opciones de la misma: se combinan, y
+                    mezclarlas haría creer que son excluyentes.
+
+                    Solo aparece cuando hay catálogo; sin categorías creadas no
+                    hay nada por lo que filtrar. */}
+                {(pillsDeBono.length > 0 || (hayAlertasSinBono && categoriasDeBono.length > 0)) && (
+                    <CategoryPills
+                        categories={[
+                            ...pillsDeBono,
+                            ...(hayAlertasSinBono ? [{ value: '__sin', es: 'Sin bonificación', icon: 'bell', bg: '#f3f4f6', color: '#6b7280' }] : []),
+                        ]}
+                        active={bonusCategory}
+                        onSelect={setBonusCategory}
+                        resolveMeta={metaDeBono}
+                        allLabel='Toda bonificación'
+                    />
+                )}
             </div>
 
             {/* ── Lista agrupada por categoría ────────────────────────────────── */}

@@ -21,14 +21,27 @@ const PILL_BASE = {
  * Filtro por categoría (tags). 'all' muestra todas las secciones;
  * cualquier otro valor deja visible únicamente esa categoría.
  *
- * @param categories - catálogo del servidor: { value, es, icon, color, bg, ... }
- * @param active     - categoría seleccionada ('all' por defecto)
- * @param onSelect   - cambia la categoría activa
+ * Sirve para las DOS categorías de una alerta, que resuelven su apariencia de
+ * forma distinta: la operativa la saca del mapa fijo del código, y la de
+ * bonificación la trae en el propio documento porque se crea desde la pantalla.
+ * Por eso el resolutor es un parámetro y no algo fijo acá adentro.
+ *
+ * @param categories   - lista a mostrar: { value, es, active?, ... }
+ * @param active       - categoría seleccionada ('all' por defecto)
+ * @param onSelect     - cambia la categoría activa
+ * @param resolveMeta  - item → { Icon, bg, color }. Por defecto, el mapa fijo.
+ * @param allLabel     - texto de la pill que quita el filtro
  */
-export default function CategoryPills({ categories, active, onSelect }) {
+export default function CategoryPills({
+    categories,
+    active,
+    onSelect,
+    resolveMeta = item => metaOf(item.value),
+    allLabel = 'Todos',
+}) {
     return (
         <div style={{ display: 'flex', gap: '7px', overflowX: 'auto', flexWrap: 'nowrap', paddingTop: '10px', paddingBottom: '10px' }}>
-            {/* Pill especial "Todos" */}
+            {/* Pill especial que quita el filtro */}
             <button
                 type='button'
                 onClick={() => onSelect('all')}
@@ -40,12 +53,12 @@ export default function CategoryPills({ categories, active, onSelect }) {
                     boxShadow:  active === 'all' ? '0 2px 6px rgba(31,41,55,0.22)' : 'none',
                 }}
             >
-                <FaFilter size={10} /> Todos
+                <FaFilter size={10} /> {allLabel}
             </button>
 
             {/* Una pill por categoría */}
             {categories.map((item, i) => {
-                const meta     = metaOf(item.value);
+                const meta     = resolveMeta(item);
                 const isActive = active === item.value;
                 const etiqueta = item.es || item.value;
                 return (
