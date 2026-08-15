@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown, FiShare2 } from 'react-icons/fi';
+import { FiCheckCircle, FiXCircle, FiSun, FiMoon, FiDownload, FiSend, FiTrash2, FiClock, FiUser, FiShield, FiMoreHorizontal, FiThumbsUp, FiThumbsDown, FiShare2, FiStar } from 'react-icons/fi';
 import { FaWhatsapp } from "react-icons/fa";
 import { isMobile } from 'react-device-detect';
 
@@ -413,7 +413,73 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     const isValidated = validationValue === true;
     const isInvalid = validationValue === false;
     const canManageState = !isReadOnly;
-    const canShare = isValidated && canManageState && noveltyState?.shift !== null;
+
+    // ── Progresión obligatoria de las acciones ──────────────────────────
+    // Los tres grupos de botones se habilitan en cadena y cada paso exige el
+    // anterior:
+    //
+    //   1. Aprobar / Rechazar    disponible siempre para quien tiene permiso
+    //   2. Turno día / noche     solo si quedó APROBADA
+    //   3. Descargar / Enviar    solo si está aprobada Y con turno asignado
+    //
+    // Rechazar corta la cadena: una novedad invalidada no lleva turno ni se
+    // manda al grupo, así que los grupos 2 y 3 quedan bloqueados.
+    //
+    // El turno además decide el valor del bono al validarse (el sello se
+    // congela en la API con el turno que tenga), así que enviar sin turno
+    // dejaría la novedad sin sellar.
+    //
+    // Se compara contra los valores reales y no con `!== null`: una novedad
+    // anterior a este campo lo tiene en `undefined`, que pasaba ese chequeo y
+    // habilitaba el envío sin turno.
+    const hasShift = noveltyState?.shift === 'day' || noveltyState?.shift === 'night';
+    const canSetShift = canManageState && isValidated;
+    const canShare = canManageState && isValidated && hasShift;
+
+    // El motivo por el que un botón está bloqueado, para que el tooltip lo diga
+    // en vez de dejar al usuario adivinando.
+    const shiftHint = isReadOnly ? 'Sin permiso para validar'
+        : isInvalid ? 'La novedad fue rechazada: no lleva turno'
+            : !isValidated ? 'Primero aprobá la novedad'
+                : null;
+
+    const shareHint = isReadOnly ? 'Sin permiso para enviar'
+        : isInvalid ? 'La novedad fue rechazada: no se envía al grupo'
+            : !isValidated ? 'Primero aprobá la novedad'
+                : !hasShift ? 'Asigná el turno antes de enviar'
+                    : null;
+
+    // ── Bono de la alerta ───────────────────────────────────────────────
+    // El sello lo congela la API cuando la novedad queda aprobada Y con turno,
+    // y vuelve dentro del documento que llega por el socket `document_updated`.
+    // Por eso aparece solo al completarse el circuito: validar → turno → envío.
+    //
+    // Se muestra únicamente cuando bonifica. Un sello con `appliesBonus: false`
+    // es una decisión legítima ("esta alerta no bonifica") y no tiene valor que
+    // mostrar; ponerle una estrella en cero sería ruido.
+    const bonusSeal = noveltyState?.bonus;
+    const hasBonus = bonusSeal?.appliesBonus === true;
+
+    const bonusWorth = Number(bonusSeal?.bonusWorth) || 1;
+    const bonusAccumulation = Number(bonusSeal?.accumulationRequired) || 1;
+
+    // La proporción tal como la escribe el reglamento: "3x1" se lee "tres
+    // alertas por un bono". Con acumulación y valor en 1 no se escribe nada: es
+    // el caso normal y etiquetarlo lo haría parecer una excepción. Mismo
+    // criterio que ratioLabel() en libs/bonus/bonusLabels.lib.js de la API.
+    const bonusRatio = (bonusAccumulation === 1 && bonusWorth === 1)
+        ? ''
+        : `${bonusAccumulation}x${bonusWorth}`;
+
+    const bonusShiftLabel = bonusSeal?.workShift === 'night' ? 'turno noche'
+        : bonusSeal?.workShift === 'day' ? 'turno día'
+            : null;
+
+    const bonusDetail = [
+        `Bonifica X${bonusWorth}`,
+        bonusRatio ? `se acumulan ${bonusAccumulation} por bono` : null,
+        bonusShiftLabel,
+    ].filter(Boolean).join(' · ');
 
     // ── Descarga del video ──────────────────────────────────────────────
     // shareJarvis manda el video SIEMPRE que exista; el único caso en que el
@@ -603,9 +669,13 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
 
-                            <div className='p-[.8rem_0rem] flex items-stretch '>
+                            {/* Trazabilidad de la novedad: quién la reportó, quién la
+                                validó, si se envió al grupo y cuánto bonifica.
+                                Los chips se reparten la fila y bajan de línea
+                                cuando no entran, en vez de apretarse. */}
+                            <div className='novelty-chip-row'>
 
-                                {/*operador*/}
+                                {/* Operador — quien reportó la novedad */}
                                 <div className='novelty-chip novelty-chip--operador'>
                                     {
                                         noveltyState?.sharedByUser?.user?.id?.img ?
@@ -615,14 +685,14 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                 <FiUser className='w-[22px] h-[22px]' stroke='white' />
                                             </div>
                                     }
-                                    <div className='novelty-chip-text flex flex-col p-[0px_15px_0px_0px]'>
+                                    <div className='novelty-chip-text flex flex-col'>
                                         <p className='text-[11px]'>operador</p>
                                         <p className='font-semibold text-[12px] text-primary-800'>{noveltyState?.sharedByUser?.user.nameUser}</p>
                                     </div>
                                 </div>
 
 
-                                {/*envio*/}
+                                {/* Coordinador — quien validó, con el pulgar del resultado */}
                                 {
                                     typeof validationValue === 'boolean' ?
                                         (
@@ -636,7 +706,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             <FiShield className='w-[22px] h-[22px]' stroke='white' />
                                                         </div>
                                                 }
-                                                <div className='novelty-chip-text flex flex-col p-[0px_15px_0px_0px]'>
+                                                <div className='novelty-chip-text flex flex-col'>
                                                     <p className='text-[11px]'>Coordinador</p>
                                                     <p className='font-semibold text-[12px] text-primary-800'>{noveltyState?.isValidate?.for}</p>
                                                 </div>
@@ -663,15 +733,40 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
 
 
-                                {/*validador*/}
+                                {/* Envío al grupo de Amazonas365 */}
                                 {
                                     noveltyState.givenToTheGroup ?
                                         (
 
                                             <div className='novelty-chip novelty-chip--envio'>
-                                                <p className='novelty-chip-text font-semibold text-[12px] text-primary-800 p-[0px_5px_0px_15px] truncate'>Enviado a amazonas365</p>
+                                                <p className='novelty-chip-text font-semibold text-[12px] text-primary-800 truncate'>Enviado a amazonas365</p>
                                                 <div className='novelty-chip-icon w-[40px] h-[40px] min-w-[40px] flex justify-center items-center bg-[#18e018]'>
                                                     <FaWhatsapp className='w-[20px] h-[20px]' style={{ color: 'white' }} />
+                                                </div>
+                                            </div>
+                                        )
+                                        :
+                                        (
+                                            null
+                                        )
+                                }
+
+                                {/* Bono — cuánto vale esta alerta.
+                                    Aparece recién cuando la API selló la novedad, que es
+                                    al quedar aprobada y con turno asignado. */}
+                                {
+                                    hasBonus ?
+                                        (
+                                            <div className='novelty-chip novelty-chip--bono' title={bonusDetail}>
+                                                <span className='novelty-chip-icon novelty-bono-star'>
+                                                    <FiStar className='w-[22px] h-[22px]' />
+                                                </span>
+                                                <div className='novelty-chip-text flex flex-col'>
+                                                    <p className='text-[11px]'>Bono</p>
+                                                    <p className='novelty-bono-value'>
+                                                        X{bonusWorth}
+                                                        {bonusRatio ? <span className='novelty-bono-ratio'>{bonusRatio}</span> : null}
+                                                    </p>
                                                 </div>
                                             </div>
                                         )
@@ -741,8 +836,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         shift: 'day'
                                                     });
                                                 }}
-                                                disabled={isReadOnly && !isValidated}
-                                                title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                                disabled={!canSetShift}
+                                                title={shiftHint ?? 'Marcar como turno día'}
                                             >
                                                 <FiSun className='btnPublic-img' />
                                                 <p className='__textGrayForList'>Turno día</p>
@@ -754,8 +849,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                         shift: 'night'
                                                     });
                                                 }}
-                                                disabled={isReadOnly}
-                                                title={isReadOnly ? 'Sin permiso para validar' : 'Invalidar novedad'}
+                                                disabled={!canSetShift}
+                                                title={shiftHint ?? 'Marcar como turno noche'}
                                             >
                                                 <FiMoon className='btnPublic-img' />
                                                 <p className='__textGrayForList'>Turno noche</p>
@@ -774,9 +869,10 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                     e.preventDefault();
                                                                     downloadBlob(noveltyState.videoUrl, noveltyState.title);
                                                                 }}
-                                                                title={autoSendFailed
+                                                                disabled={!canShare}
+                                                                title={shareHint ?? (autoSendFailed
                                                                     ? 'El envío automático falló: descarga el video para subirlo al grupo'
-                                                                    : 'Al grupo se envió la imagen: descarga el video para subirlo a mano'}
+                                                                    : 'Al grupo se envió la imagen: descarga el video para subirlo a mano')}
                                                             >
                                                                 <FiDownload className='btnPublic-img' />
                                                                 <p className='__textGrayForList'>Descargar video</p>
@@ -799,7 +895,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             }
                                                             }
                                                             disabled={!canShare || isSharing}
-                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar al grupo de Amazonas Activo'}
+                                                            title={shareHint ?? 'Enviar al grupo de Amazonas Activo'}
                                                         >
                                                             <FiSend className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Enviar video</p>
@@ -819,7 +915,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                                     e.preventDefault();
                                                                     downloadBlob(noveltyState.imageToShare, noveltyState.title);
                                                                 }}
-                                                                title='Descargar imagen de la alerta'
+                                                                disabled={!canShare}
+                                                                title={shareHint ?? 'Descargar imagen de la alerta'}
                                                             >
                                                                 <FiDownload className='btnPublic-img' />
                                                                 <p className='__textGrayForList'>Descargar imagen</p>
@@ -844,7 +941,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
                                                             }
                                                             }
                                                             disabled={!canShare || isSharing}
-                                                            title={isReadOnly ? 'Sin permiso para enviar' : 'Enviar solo imagen de la alerta'}
+                                                            title={shareHint ?? 'Enviar solo imagen de la alerta'}
                                                         >
                                                             <FiSend className='btnPublic-img' />
                                                             <p className='__textGrayForList'>Enviar imagen</p>

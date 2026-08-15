@@ -10,6 +10,59 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-15
+- **El sello de bonificación se congela al validar, no al crear (con
+  api_jarvis365).** El sellado estaba escrito en el POST de novedades pero
+  comentado, y arrastraba dos consultas a la base —el menú y el
+  establecimiento— cuyo único consumidor eran esas líneas muertas. Se movió a
+  `updateNovelties`: la regla vigente se copia dentro de la novedad cuando un
+  validador la aprueba, que es cuando recién se sabe que va a contar.
+
+  - **Hacen falta las dos cosas: aprobada y con turno.** El turno viaja en su
+    *propio* PUT (los botones "Turno día"/"Turno noche"), separado del de
+    validar, y pueden llegar en cualquier orden. Como el turno define el valor
+    del punto, sellar apenas se aprueba —con el turno todavía en `null`—
+    congelaba el valor diurno para siempre aunque después se marcara noche. Se
+    mira el estado que queda *después* del update y sella la acción que
+    completa el par.
+  - **Sellar no es pagar.** El corte exige aprobación además del sello
+    (`countsForBonus`), así que una novedad invalidada más tarde deja de contar
+    sola. Sin eso, sellar al validar habría dejado bonos fantasma.
+  - **`shift` no se tocó.** Sigue siendo la propiedad de siempre; jarvis-reportes
+    depende de ella. El sello guarda su propio `workShift` derivado, no la
+    reemplaza.
+  - Si el sello falla, la validación sigue su curso: validar es la operación
+    importante, el bono es secundario.
+
+- **Los botones de una novedad se habilitan en cadena.** Aprobar/Rechazar está
+  siempre disponible; el turno solo si quedó aprobada; descargar/enviar solo si
+  además tiene turno. Rechazar corta la cadena: una novedad invalidada no lleva
+  turno ni se manda al grupo.
+
+  - `canShare` comparaba `shift !== null`, y una novedad anterior a ese campo lo
+    tiene en `undefined` —que pasa ese chequeo—, así que se podía enviar al grupo
+    sin turno y la alerta quedaba sin sellar. Ahora se compara contra `'day'` y
+    `'night'`.
+  - "Turno día" tenía la condición invertida (`isReadOnly && !isValidated`): un
+    usuario sin permiso podía marcar el turno en cuanto la novedad estuviera
+    aprobada.
+  - Los dos botones de descarga no tenían `disabled` en absoluto.
+  - Los tooltips dicen *por qué* está bloqueado en vez de dejar un botón muerto.
+
+- **El valor del bono se ve en la novedad.** Un cuarto chip en la fila de
+  trazabilidad, al lado de "Enviado a amazonas365": estrella de contorno dorado
+  sin fondo —el bono es un dato de valor, no un actor del circuito, y no compite
+  con los avatares— y el multiplicador. Si hay acumulación se muestra la
+  proporción del reglamento ("3x1"); en 1x1 no, que es el caso normal.
+
+  - El dato llega solo: la API lo devuelve en el documento del socket
+    `document_updated`.
+  - La fila se reorganizó: antes era un flex sin separación donde cada chip
+    compensaba con su propio padding asimétrico. Ahora el `gap` lo pone la fila,
+    el respiro lateral vive una sola vez en `.novelty-chip-text`, y el reparto
+    pasó de `flex: 1 1 0` a `1 1 160px` para que con cuatro chips bajen de línea
+    en vez de apretarse.
+
 ## 2026-08-13
 - **Categorías de alerta administrables (con api_jarvis365).** Hasta ahora las
   doce categorías con las que se agrupan las alertas estaban escritas dentro del

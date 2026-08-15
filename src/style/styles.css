@@ -6189,8 +6189,10 @@ body .lobby-aside-filterError {
     align-items: center;
     gap: 4px;
     border-radius: 0;
-    /* Cada chip (operador / coordinador / envío) ocupa el mismo ancho en la fila */
-    flex: 1 1 0;
+    /* Los chips (operador / coordinador / envío / bono) se reparten la fila por
+       igual, pero con una base de 160px: cuando no entran bajan de línea en vez
+       de apretarse hasta volverse ilegibles. */
+    flex: 1 1 160px;
     min-width: 0;
     cursor: pointer;
     overflow: hidden;
@@ -6242,8 +6244,12 @@ body .lobby-aside-filterError {
     animation: novelty-icon-pulse 0.5s ease-out;
 }
 
-/* Texto: sutil slide al hover */
+/* Texto: sutil slide al hover.
+   El respiro lateral vive acá y no en cada chip: antes cada uno traía su propio
+   padding asimétrico para compensar que la fila no tenía separación. */
 .novelty-chip .novelty-chip-text {
+    padding: 0 10px;
+    min-width: 0;
     transition: transform 0.3s ease, color 0.3s ease;
 }
 
@@ -6275,6 +6281,71 @@ body .lobby-aside-filterError {
 }
 .novelty-chip--envio:hover {
     background: linear-gradient(135deg, rgba(34,197,94,0.08), rgba(34,197,94,0.02));
+}
+
+/* Bono — dorado */
+.novelty-chip--bono {
+    --chip-glow: rgba(217, 164, 65, 0.35);
+}
+.novelty-chip--bono:hover {
+    background: linear-gradient(135deg, rgba(217,164,65,0.10), rgba(217,164,65,0.02));
+}
+
+/* La estrella va sin fondo, solo contorno: el bono es un dato de valor y no un
+   actor más del circuito, así que no compite con los avatares del operador y
+   del coordinador, que sí llevan disco de color. */
+.novelty-bono-star {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    background: none;
+}
+
+.novelty-bono-star svg {
+    stroke: #d9a441;      /* --brand-gold */
+    fill: none;
+    stroke-width: 2.2;
+}
+
+/* El valor en cobre oscuro y no en el dorado de la estrella: sobre blanco el
+   dorado no llega al contraste que necesita un texto de este tamaño. */
+.novelty-bono-value {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 1.2;
+    color: #8a5a2b;
+}
+
+/* La proporción del reglamento ("3x1", tres alertas por un bono) acompaña al
+   valor en menor jerarquía: lo explica, no lo reemplaza. Con acumulación y
+   valor en 1 no se renderiza. */
+.novelty-bono-ratio {
+    font-weight: 600;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: #7a5f30;
+    border: 1px solid rgba(217, 164, 65, 0.5);
+    border-radius: 3px;
+    padding: 0 4px;
+    white-space: nowrap;
+}
+
+/* Fila de trazabilidad — operador · coordinador · envío · bono.
+   Antes era un flex sin separación y cada chip compensaba con su propio
+   padding asimétrico. Ahora la fila pone el gap y los chips solo se ocupan de
+   su contenido. */
+.novelty-chip-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    padding: 0.8rem 0;
 }
 
 /* ============================================================
