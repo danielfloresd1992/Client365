@@ -6,7 +6,8 @@ import { FaBell, FaPlus, FaTags, FaStar } from 'react-icons/fa';
 import { getMenuAll, deleteMenu, lockMenu } from '../model/menu.model.js';
 import { myUserContext } from '@/contexts/userContext';
 import { setConfigModal } from '@/store/slices/globalModal.js';
-import useCategories from '../lib/useCategories.js';
+import useBonusCategories from '@/hook/useBonusCategories.js';
+import { listaDeCategorias } from '../lib/categoryMeta.js';
 import { norm } from '../lib/format.js';
 
 import SearchBar from './list/SearchBar.jsx';
@@ -83,16 +84,20 @@ function ListMenu({
     const [informeAbierto, setInformeAbierto] = useState(false);
     const dispatch                        = useDispatch();
 
-    // Se piden TODAS, incluidas las desactivadas: una alerta creada con una
-    // categoría que después se dio de baja tiene que seguir viéndose con su
-    // nombre y su ícono, no caer al grupo "Otras".
+    // La lista se agrupa y se filtra por la categoría OPERATIVA, que es fija y
+    // vive en el código (libs/alerts/categories.js). No se pide al servidor.
+    const categorias = listaDeCategorias();
+
+    // Lo que sí es administrable es el catálogo de BONIFICACIÓN, y es lo que
+    // gestiona el botón "Cat. bonificación". Se piden TODAS, incluidas las
+    // desactivadas: la pantalla de gestión necesita verlas para reactivarlas.
     const {
-        categorias,
+        categorias: categoriasDeBono,
         cargando: cargandoCategorias,
         sinCatalogo,
         catalogoVacio,
         recargar: recargarCategorias,
-    } = useCategories(true);
+    } = useBonusCategories(true);
 
     // Solo los administradores (admin === true) ven el botón de bloqueo
     const { dataSessionState } = useContext(myUserContext);
@@ -276,7 +281,7 @@ function ListMenu({
                                 border:       '1px solid #e6dcc6',
                             }}
                         >
-                            <FaTags size={12} /> Categorías
+                            <FaTags size={12} /> Cat. bonificación
                         </button>
 
                         <button
@@ -355,7 +360,7 @@ function ListMenu({
 
             {gestionAbierta && (
                 <CategoryManager
-                    categorias={categorias}
+                    categorias={categoriasDeBono}
                     cargando={cargandoCategorias}
                     sinCatalogo={sinCatalogo}
                     catalogoVacio={catalogoVacio}

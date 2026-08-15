@@ -5,7 +5,13 @@ import { FaTags, FaPlus, FaPen, FaTrashAlt, FaEye, FaEyeSlash, FaTimes, FaExclam
 
 import { setConfigModal } from '@/store/slices/globalModal.js';
 import { iconOf } from '../../lib/categoryIcons.js';
-import { createCategory, updateCategory, deleteCategory } from '../../model/menuCategory.model.js';
+// Se importan con alias para no repetir "bonus" en cada llamada de este
+// archivo, que ya trata de una sola cosa.
+import {
+    createBonusCategory as createCategory,
+    updateBonusCategory as updateCategory,
+    deleteBonusCategory as deleteCategory,
+} from '@/libs/ajaxClient/menu.fecth.js';
 import CategoryForm from './CategoryForm.jsx';
 
 /**
@@ -32,10 +38,9 @@ export default function CategoryManager({ categorias, cargando, sinCatalogo, cat
     const [editando, setEditando]   = useState(null);   // categoría | {} para nueva | null
     const [guardando, setGuardando] = useState(false);
 
-    // Lo que se ve en la lista son las categorías de respaldo, no documentos
-    // reales: no tienen `_id`, así que editarlas o borrarlas no tiene a qué
-    // apuntar. Pasa mientras la API no esté desplegada o antes de la siembra.
-    const filasDeRespaldo = sinCatalogo || catalogoVacio;
+    // Sin el endpoint desplegado no hay nada real que editar ni borrar: las
+    // acciones se deshabilitan en lugar de fallar al pulsarlas.
+    const filasDeRespaldo = sinCatalogo;
 
     /** Muestra un error usando el mensaje del servidor cuando lo hay. */
     const avisarError = (error, titulo) => {
@@ -138,7 +143,7 @@ export default function CategoryManager({ categorias, cargando, sinCatalogo, cat
                     </span>
 
                     <div style={{ minWidth: 0, flex: 1 }}>
-                        <p style={{ margin: 0, fontWeight: 800, fontSize: '16px', color: '#1f2937' }}>Categorías de alerta</p>
+                        <p style={{ margin: 0, fontWeight: 800, fontSize: '16px', color: '#1f2937' }}>Categorías de bonificación</p>
                         <p style={{ margin: 0, fontSize: '11px', color: '#6b7280' }}>
                             Con las que se agrupan y filtran las alertas
                         </p>
@@ -191,14 +196,14 @@ export default function CategoryManager({ categorias, cargando, sinCatalogo, cat
                                 <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#92400e' }}>
                                     {sinCatalogo
                                         ? 'El catálogo todavía no está disponible en el servidor'
-                                        : 'El catálogo está vacío'}
+                                        : 'Todavía no hay ninguna categoría de bonificación'}
                                 </p>
                                 <p style={{ margin: '3px 0 0', fontSize: '12px', color: '#a16207' }}>
                                     {sinCatalogo
-                                        ? 'Se muestran las categorías de siempre y las alertas funcionan con normalidad, '
-                                          + 'pero no se pueden crear ni editar hasta que se actualice la API.'
-                                        : 'Estas son las categorías de siempre, todavía sin guardar en el servidor. '
-                                          + 'Podés crear categorías nuevas; para dejar estas doce cargadas hay que correr la siembra en la API.'}
+                                        ? 'No se pueden crear ni editar hasta que se actualice la API. Las alertas '
+                                          + 'funcionan con normalidad: la categoría de bonificación es opcional.'
+                                        : 'Creá la primera con el botón de arriba. Después vas a poder elegirla al '
+                                          + 'crear o editar una alerta.'}
                                 </p>
                             </div>
                         </div>

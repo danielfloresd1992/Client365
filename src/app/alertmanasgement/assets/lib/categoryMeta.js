@@ -1,73 +1,42 @@
 import { iconOf } from './categoryIcons.js';
+import { CATEGORIAS_OPERATIVAS, listaDeCategorias } from '@/libs/alerts/categories.js';
 
 /**
- * Metadatos visuales de las categorías de alerta y del multiplicador de bono.
+ * Las categorías OPERATIVAS de una alerta y sus metadatos visuales.
  *
  * Se comparten entre la lista (ícono del círculo, pills de filtro, encabezado de
  * cada grupo) y cualquier otra vista que necesite representar una categoría.
  *
  *
- * ANTES ERA UN MAPA FIJO
+ * ES UNA LISTA FIJA, Y ES A PROPÓSITO
  *
- * Las categorías y sus colores estaban escritos acá. Ahora vienen de la API
- * (`GET /menu/categories`), así que se pueden crear y editar desde la pantalla
- * sin volver a publicar el front.
+ * Durante un tiempo estas categorías se administraron desde la pantalla y se
+ * guardaban en la base. Se volvió atrás porque rompía la compatibilidad con dos
+ * sistemas que leen `Menu.category` con nombres escritos a mano y que se
+ * despliegan por separado: reportes365 agrupa por esa cadena las páginas del
+ * reporte, y Jarvis-express365 la tiene en sus JSON.
+ *
+ * Una categoría creada acá sería una que ninguno de los dos entiende, y el
+ * síntoma no sería un error visible: la alerta no aparecería donde corresponde.
+ *
+ * Lo que SÍ se administra es la categoría de bonificación
+ * (`Menu.bonusCategory`), que se calcula puertas adentro. Vive en el catálogo
+ * del servidor y se gestiona con `useBonusCategories`.
  *
  *
- * POR QUÉ SIGUE HABIENDO UN MAPA ESCRITO A MANO
+ * POR QUÉ EL MAPA VIVE EN UNA VARIABLE DE MÓDULO
  *
- * `RESPALDO` son las 12 categorías de siempre, y se usa mientras el catálogo no
- * haya llegado: en el primer pintado, y también si la API todavía no tiene el
- * endpoint —se despliega a mano, así que hay una ventana real en la que
- * responde 404—. Sin este respaldo, en esa ventana la lista quedaría gris y sin
- * íconos, que es peor que verse como se veía antes.
- *
- *
- * POR QUÉ EL CATÁLOGO VIVE EN UNA VARIABLE DE MÓDULO
- *
- * `metaOf(value)` se llama desde tres componentes distintos y en cada tarjeta de
- * la lista. Pasarles el catálogo por props obligaría a enhebrarlo por toda la
- * jerarquía para un dato que es el mismo para todos.
- *
- * Quien carga el catálogo (el hook `useCategories`) además lo guarda en su
- * estado, así que el repintado ocurre por la vía normal de React; esta variable
- * es solo el atajo de lectura.
+ * `metaOf(value)` se llama desde cuatro componentes distintos y en cada tarjeta
+ * de la lista. Pasarlo por props obligaría a enhebrarlo por toda la jerarquía
+ * para un dato que es el mismo para todos y que además nunca cambia.
  */
 
-/** Las 12 de siempre. Solo se usan hasta que llega el catálogo real. */
-const RESPALDO = {
-    client:        { icon: 'users',     bg: '#dbeafe', color: '#1d4ed8', es: 'Cliente' },
-    delay:         { icon: 'clock',     bg: '#fef9c3', color: '#854d0e', es: 'Demoras' },
-    door:          { icon: 'door',      bg: '#f3e8ff', color: '#7e22ce', es: 'Puerta' },
-    employee:      { icon: 'user-tie',  bg: '#d1fae5', color: '#065f46', es: 'Empleados' },
-    failed:        { icon: 'tools',     bg: '#fee2e2', color: '#991b1b', es: 'Fallas' },
-    food:          { icon: 'utensils',  bg: '#fff7ed', color: '#9a3412', es: 'Comidas' },
-    incident:      { icon: 'warning',   bg: '#ffedd5', color: '#c2410c', es: 'Incidencias' },
-    localIncident: { icon: 'building',  bg: '#e0f2fe', color: '#0369a1', es: 'Incidencias en el local' },
-    merchandise:   { icon: 'box',       bg: '#fdf4ff', color: '#7c3aed', es: 'Mercancía' },
-    protocol:      { icon: 'clipboard', bg: '#ecfdf5', color: '#047857', es: 'Protocolos' },
-    trash:         { icon: 'trash',     bg: '#f1f5f9', color: '#475569', es: 'Basura' },
-    perimeter:     { icon: 'shield',    bg: '#fef2f2', color: '#b91c1c', es: 'Perimetral' },
-};
-
-/** Se usa cuando la categoría no está ni en el catálogo ni en el respaldo. */
+/** Se usa cuando la categoría guardada no está en la lista. */
 const CATEGORY_FALLBACK = { Icon: iconOf('bell'), bg: '#f3f4f6', color: '#374151', text: '' };
 
-/** El catálogo vigente, por clave. Arranca con el respaldo. */
-let catalogo = new Map(Object.entries(RESPALDO));
-
-
-/**
- * Reemplaza el catálogo con lo que devolvió la API.
- *
- * Lo llama el hook `useCategories` al terminar de cargar. Si la lista viene
- * vacía no se toca nada: una respuesta vacía significa que el catálogo aún no
- * se sembró, y dejar la pantalla sin ningún ícono sería perder información.
- */
-const setCategoryCatalog = (categorias) => {
-    if (!Array.isArray(categorias) || categorias.length === 0) return;
-    catalogo = new Map(categorias.map(c => [c.value, c]));
-};
+/** El catálogo, por clave. Es fijo: no hay nada que reemplazar en tiempo de
+ *  ejecución. */
+const catalogo = new Map(Object.entries(CATEGORIAS_OPERATIVAS));
 
 
 /**
@@ -90,4 +59,4 @@ const metaOf = (category) => {
 };
 
 
-export { RESPALDO, CATEGORY_FALLBACK, metaOf, setCategoryCatalog };
+export { CATEGORIAS_OPERATIVAS, CATEGORY_FALLBACK, metaOf, listaDeCategorias };

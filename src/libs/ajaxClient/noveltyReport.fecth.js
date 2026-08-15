@@ -4,11 +4,20 @@ import axiosInstance from '@/libs/ajaxClient/axios.fetch';
  * Conteo de novedades del DÍA OPERATIVO (08:00 → 07:00), agrupado por
  * franquicia → local. GET /noveltyReport/today (misma fuente de verdad que
  * el PDF del reporte).
+ *
+ * @param {{ category?: string, bonusCategory?: string }} [filtros]
+ *        Opcionales y combinables. Sin ellos devuelve el reporte completo,
+ *        que es el mismo que se manda al grupo.
  * @returns data cruda del endpoint: { franchises, totals, ... }
  */
-export const getNoveltyReportToday = async () => {
+export const getNoveltyReportToday = async ({ category, bonusCategory } = {}) => {
     try {
-        const response = await axiosInstance.get('/noveltyReport/today');
+        const params = new URLSearchParams();
+        if (category) params.set('category', category);
+        if (bonusCategory) params.set('bonusCategory', bonusCategory);
+
+        const query = params.toString();
+        const response = await axiosInstance.get(`/noveltyReport/today${query ? `?${query}` : ''}`);
         return response.data;
     }
     catch (error) {
@@ -21,9 +30,11 @@ export const getNoveltyReportToday = async () => {
  * Variante aplanada para paneles en vivo (dashboard, AlertInputLive):
  * { byId: { idLocal → {total, positivas, negativas, ignoradas, enviadas} },
  *   totals }
+ *
+ * @param {{ category?: string, bonusCategory?: string }} [filtros]
  */
-export const getDayCountsByLocal = async () => {
-    const data = await getNoveltyReportToday();
+export const getDayCountsByLocal = async (filtros = {}) => {
+    const data = await getNoveltyReportToday(filtros);
     const byId = {};
     (data?.franchises ?? []).forEach(franchise => {
         (franchise.locals ?? []).forEach(local => {

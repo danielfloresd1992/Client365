@@ -8,22 +8,27 @@ import { getDayCountsByLocal } from '@/libs/ajaxClient/noveltyReport.fecth';
  * cuando el socket anuncia novedades nuevas o actualizadas
  * ('created_Alert' / 'document_updated' — crear, validar o enviar).
  *
+ * Acepta los filtros del panel. Al cambiar cualquiera se vuelve a pedir el
+ * conteo: el filtrado se resuelve en el servidor, porque el endpoint devuelve
+ * totales ya agregados y no la lista de novedades que habría que recontar acá.
+ *
+ * @param {{ category?: string, bonusCategory?: string, debounceMs?: number }} [opciones]
  * @returns {{ byId, totals } | null}  null mientras carga; ante error del
  *          endpoint devuelve { byId: {}, totals: null } (no cuelga la UI).
  */
-export default function useDayCounts(debounceMs = 2000) {
+export default function useDayCounts({ category, bonusCategory, debounceMs = 2000 } = {}) {
 
     const [dayCounts, setDayCounts] = useState(null);
     const timerRef = useRef(null);
 
     const load = useCallback(() => {
-        getDayCountsByLocal()
+        getDayCountsByLocal({ category, bonusCategory })
             .then(setDayCounts)
             .catch(err => {
                 console.error('Conteo de novedades del día:', err?.message ?? err);
                 setDayCounts({ byId: {}, totals: null });
             });
-    }, []);
+    }, [category, bonusCategory]);
 
     useEffect(() => {
         load();

@@ -6189,10 +6189,11 @@ body .lobby-aside-filterError {
     align-items: center;
     gap: 4px;
     border-radius: 0;
-    /* Los chips (operador / coordinador / envío / bono) se reparten la fila por
-       igual, pero con una base de 160px: cuando no entran bajan de línea en vez
-       de apretarse hasta volverse ilegibles. */
-    flex: 1 1 160px;
+    /* Cada chip (operador / coordinador / envío / bono) ocupa el mismo ancho en
+       la fila. Base 0 a propósito: son segmentos de una misma barra, así que se
+       reparten el ancho y el texto trunca, en lugar de partirse en varias
+       líneas y dejar de leerse como una unidad. */
+    flex: 1 1 0;
     min-width: 0;
     cursor: pointer;
     overflow: hidden;
@@ -6245,12 +6246,19 @@ body .lobby-aside-filterError {
 }
 
 /* Texto: sutil slide al hover.
-   El respiro lateral vive acá y no en cada chip: antes cada uno traía su propio
-   padding asimétrico para compensar que la fila no tenía separación. */
+   El respiro va del lado OPUESTO al icono, que es por donde el segmento toca al
+   siguiente. Entre el icono y su texto alcanza el gap de 4px del chip: alejarlos
+   más los desarma como unidad. */
 .novelty-chip .novelty-chip-text {
-    padding: 0 10px;
+    padding-right: 15px;
     min-width: 0;
     transition: transform 0.3s ease, color 0.3s ease;
+}
+
+/* En el chip de envío el icono va a la derecha, así que el respiro se invierte. */
+.novelty-chip--envio .novelty-chip-text {
+    padding-right: 5px;
+    padding-left: 15px;
 }
 
 .novelty-chip:hover .novelty-chip-text {
@@ -6337,15 +6345,19 @@ body .lobby-aside-filterError {
 }
 
 /* Fila de trazabilidad — operador · coordinador · envío · bono.
-   Antes era un flex sin separación y cada chip compensaba con su propio
-   padding asimétrico. Ahora la fila pone el gap y los chips solo se ocupan de
-   su contenido. */
+   Es UNA barra de segmentos pegados, no cuatro piezas sueltas: por eso los
+   chips no llevan radio ni separación entre sí. Un `gap` acá los desarma
+   visualmente y la fila deja de leerse como una sola unidad. */
 .novelty-chip-row {
     display: flex;
-    flex-wrap: wrap;
     align-items: stretch;
-    gap: 8px;
     padding: 0.8rem 0;
+}
+
+/* Lo único que separa un segmento del siguiente es una línea fina: alcanza
+   para distinguirlos sin romper la continuidad de la barra. */
+.novelty-chip + .novelty-chip {
+    border-left: 1px solid rgba(15, 23, 42, 0.08);
 }
 
 /* ============================================================

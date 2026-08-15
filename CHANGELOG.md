@@ -11,6 +11,45 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 ---
 
 ## 2026-08-15
+- **Las categorías de alerta vuelven a ser una lista fija, y la administrable
+  pasa a ser la de bonificación (con api_jarvis365).** Se revierte lo del
+  13/08. Hacer administrable `Menu.category` rompía la compatibilidad con dos
+  sistemas que la leen con nombres escritos a mano y se despliegan por
+  separado: **reportes365** agrupa por esa cadena las páginas del reporte —y
+  trata `delay` de forma especial según el nombre de la alerta—, y
+  **Jarvis-express365** la tiene hardcodeada en sus JSON. Una categoría creada
+  desde la pantalla era una que ninguno de los dos entendía, y el síntoma no
+  era un error: la alerta simplemente no aparecía donde correspondía.
+
+  - La lista fija vive en `libs/alerts/categories.js`, fuera de la pantalla,
+    porque la usan `/alertmanasgement` y `/dashboard`.
+  - `Menu` suma `bonusCategory`, **opcional**: las alertas que ya existen
+    quedan sin ella y siguen funcionando, sin migración.
+  - Toda la maquinaria de administrar categorías (el botón, el gestor, el
+    formulario y su CRUD) se mudó entera al catálogo de bonificación, que se
+    calcula puertas adentro y no lo lee ningún sistema externo.
+  - El formulario de la alerta ahora tiene **los dos selectores**: son
+    independientes, dos alertas de categorías operativas distintas pueden
+    bonificar por el mismo concepto.
+
+- **Dos filtros por categoría en `/dashboard`.** Uno por categoría operativa y
+  otro por categoría de bonificación, combinables.
+
+  - El filtrado ocurre en el **servidor**: el endpoint devuelve totales ya
+    agregados por local, no la lista de novedades, así que no hay nada que
+    recontar en el cliente.
+  - Las categorías no viven en la novedad sino en su alerta (`Menu`), así que
+    el servicio primero resuelve qué alertas entran y después filtra por
+    `menuRef`. En dos pasos y no con un `$lookup`: el catálogo de alertas es
+    chico y estable, y una consulta que devuelve ids sale mucho más barata que
+    cruzar todas las novedades del día.
+  - Los filtros son **opcionales**: sin ellos el reporte es el de siempre, que
+    es el que usan el job de WhatsApp y el PDF.
+  - Con un filtro activo aparece un botón **"Filtrado ✕"**. Los filtros afectan
+    a todo el conteo —la cinta de contadores, la gráfica y el panorama beben
+    del mismo `dayCounts`—, así que sin ese aviso la pantalla mostraría
+    totales parciales como si fueran los del día completo.
+
 - **El sello de bonificación se congela al validar, no al crear (con
   api_jarvis365).** El sellado estaba escrito en el POST de novedades pero
   comentado, y arrastraba dos consultas a la base —el menú y el

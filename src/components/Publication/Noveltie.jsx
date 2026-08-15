@@ -671,8 +671,8 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
 
                             {/* Trazabilidad de la novedad: quién la reportó, quién la
                                 validó, si se envió al grupo y cuánto bonifica.
-                                Los chips se reparten la fila y bajan de línea
-                                cuando no entran, en vez de apretarse. */}
+                                Es UNA barra de segmentos pegados: se reparten el
+                                ancho por igual y solo los separa una línea fina. */}
                             <div className='novelty-chip-row'>
 
                                 {/* Operador — quien reportó la novedad */}
