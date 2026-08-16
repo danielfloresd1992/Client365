@@ -19,8 +19,6 @@ import FotosSection from './form/sections/FotosSection.jsx';
 import TiempoEspecialSection from './form/sections/TiempoEspecialSection.jsx';
 import DatosAdicionalesSection from './form/sections/DatosAdicionalesSection.jsx';
 import GerentesSection from './form/sections/GerentesSection.jsx';
-import BonoSection from './form/sections/BonoSection.jsx';
-import { bonusSystemVacio } from '../lib/bonusLabels.js';
 import ReporteSection from './form/sections/ReporteSection.jsx';
 
 /**
@@ -84,8 +82,6 @@ function Form({
 
         // Sistema de bonificación. Nace APAGADO: crear una alerta y que
         // empiece a pagar sin que nadie lo decida sería lo contrario de lo
-        // que se quiere. Ver assets/lib/bonusLabels.js.
-        bonusSystem: bonusSystemVacio(),
 
         useOnlyForTheReportingDocument: false,
         useOfLiveAlertForTheCustomer: false,
@@ -183,21 +179,6 @@ function Form({
         if (!menu.photos.length || menu.photos.length === 0) {
             return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'Debe indicar al menos 1 foto requerida.', isCallback: null, type: 'error' }));
         }
-        // El sistema de bonificación solo se valida si está encendido.
-        if (menu.bonusSystem?.isEnabled) {
-            if (!menu.bonusSystem.regulationCode?.trim()) {
-                return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'Ingrese el código del reglamento para la bonificación.', isCallback: null, type: 'error' }));
-            }
-            // Sin regla general Y sin excepciones, la bonificación está
-            // encendida pero no aplica en ningún lado. Se avisa acá porque
-            // guardado se ve idéntico a una alerta bien configurada.
-            const sinExcepciones = !(menu.bonusSystem.franchiseExceptions?.length)
-                && !(menu.bonusSystem.localExceptions?.length);
-            if (menu.bonusSystem.defaultRule?.bonifies === false && sinExcepciones) {
-                return dispatch(setConfigModal({ modalOpen: true, title: 'Validación', description: 'La bonificación está encendida pero no aplica en ningún establecimiento: activá la regla general o agregá al menos una excepción.', isCallback: null, type: 'error' }));
-            }
-        }
-
         if (menu._id === null) {
             createMenu(menu, (err, data) => {
                 if (err) return showRequestError(err);
@@ -326,7 +307,6 @@ function Form({
                             <TiempoEspecialSection   menu={menu} setMenu={setMenu} />
                             <DatosAdicionalesSection menu={menu} setMenu={setMenu} />
                             <GerentesSection         menu={menu} setMenu={setMenu} />
-                            <BonoSection             menu={menu} setMenu={setMenu} local={local} franchises={franchises} />
                             <ReporteSection          menu={menu} setMenu={setMenu} />
                         </form>
                     </div>

@@ -1,7 +1,6 @@
 'use client';
 import { FaTrash, FaFileAlt, FaBroadcastTower, FaLock, FaLockOpen } from 'react-icons/fa';
 import { metaOf } from '../../lib/categoryMeta.js';
-import BonusSummary from './BonusSummary.jsx';
 import PersonRow from './PersonRow.jsx';
 import FlagChip from './FlagChip.jsx';
 
@@ -22,7 +21,6 @@ import FlagChip from './FlagChip.jsx';
 export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmin = false, onToggleLock = () => {} }) {
     const { Icon, bg, color } = metaOf(item.category);
 
-    const bonusActive = Boolean(item.bonusSystem?.isEnabled);
 
     // Bloqueo administrativo: con true el backend rechaza editar y borrar (423)
     const isLocked = Boolean(item.isLocked);
@@ -41,7 +39,7 @@ export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmi
                 padding:       '12px 12px',
                 borderRadius:  '12px',
                 background:    isSelected ? '#f0fdf4' : '#fff',
-                border:        isSelected ? '2px solid #29c50c' : bonusActive ? '2px solid #16a34a' : '1px solid #eee7d6',
+                border:        isSelected ? '2px solid #29c50c' : '1px solid #eee7d6',
                 boxSizing:     'border-box',
                 cursor:        'pointer',
                 boxShadow:     '0 1px 2px rgba(0,0,0,0.03)',
@@ -168,13 +166,6 @@ export default function AlertCard({ item, isSelected, onSelect, onDelete, isAdmi
                     <FaTrash size={13} />
                 </button>
             </div>
-
-            {/* Cómo bonifica. Va en su propia fila y no como insignia en la de
-                arriba: son cuatro datos —valor, proporción, alcance y
-                excepciones— y comprimirlos en una píldora los volvería
-                ilegibles justo en la lista, que es donde se comparan alertas
-                entre sí. No se pinta nada cuando no bonifica. */}
-            <BonusSummary bonusSystem={item.bonusSystem} />
 
             {/* Autoría (debajo de es/en): quién creó + últimas ediciones */}
             {hasAuthorship && (

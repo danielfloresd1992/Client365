@@ -466,7 +466,7 @@ function Noveltie({ data, idNoveltie, isNotLobby }) {
     // La proporción tal como la escribe el reglamento: "3x1" se lee "tres
     // alertas por un bono". Con acumulación y valor en 1 no se escribe nada: es
     // el caso normal y etiquetarlo lo haría parecer una excepción. Mismo
-    // criterio que ratioLabel() en libs/bonus/bonusLabels.lib.js de la API.
+    // criterio con el que el reglamento escribe las proporciones.
     const bonusRatio = (bonusAccumulation === 1 && bonusWorth === 1)
         ? ''
         : `${bonusAccumulation}x${bonusWorth}`;

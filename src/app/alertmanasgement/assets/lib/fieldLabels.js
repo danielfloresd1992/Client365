@@ -22,7 +22,6 @@ const FIELD_LABELS = {
     isDescriptionPerson:              'Descripción de persona',
     photos:                           'Fotos',
     car:                              'Vehículo',
-    bonusSystem:                      'Bonificación',
     useOnlyForTheReportingDocument:   'Uso en reporte',
     useOfLiveAlertForTheCustomer:     'Alerta en vivo',
     noSubtitleInTheReport:            'Sin subtítulo',

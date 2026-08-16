@@ -1,7 +1,7 @@
 'use client';
 import {
     FaTag, FaFileAlt, FaAlignLeft, FaLanguage, FaClipboardList, FaClock,
-    FaCamera, FaCog, FaUserTie, FaStar, FaFileContract,
+    FaCamera, FaCog, FaUserTie, FaFileContract,
 } from 'react-icons/fa';
 import { slug } from '../../lib/format.js';
 
@@ -22,7 +22,6 @@ const NAV_SECTIONS = [
     { full: 'Configuración especial de tiempo',                             short: 'T. especial', Icon: FaCog },
     { full: 'Datos adicionales',                                            short: 'Adicionales', Icon: FaClipboardList },
     { full: 'Configuración de Gerentes o MAnagers en título y referencias', short: 'Gerentes',    Icon: FaUserTie },
-    { full: 'Regla de bonificación',                                        short: 'Bono',        Icon: FaStar },
     { full: 'Configuración de reporte y alerta en vivo',                    short: 'Reporte',     Icon: FaFileContract },
 ];
 
