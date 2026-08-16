@@ -10,6 +10,59 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-16
+- **Se rehace el sistema de bonificación: el dinero pasa a ser global y lo que
+  varía por alerta es la cantidad de bonos (con api_jarvis365).** El sistema
+  anterior guardaba el precio en cada alerta, dentro de `Menu.bonusSystem`.
+  Cambiar cuánto vale un bono —que el reglamento fija una sola vez— obligaba a
+  editar decenas de documentos, y el valor de una alerta no podía distinguir
+  turno diurno de nocturno, que es justo lo que el reglamento sí distingue.
+
+  El modelo nuevo separa las dos cosas que estaban mezcladas:
+
+  - **El dinero es global.** `BonusSettings` guarda cuánto vale un bono en
+    dólares y la tasa del BCV, con historial de quién las cambió. Son dos
+    números para todo el sistema.
+  - **La cantidad la decide una regla.** `BonusRule` dice cuántas alertas hacen
+    falta y cuántos bonos otorgan, con valores separados para diurno y
+    nocturno. Vive en su propio documento porque el reglamento repite las
+    mismas condiciones en decenas de alertas: se define una vez y muchas la
+    comparten, así que corregirla las corrige a todas. Lleva alcance por marca
+    o establecimiento (`all` / `only` / `except`) y excepciones puntuales,
+    donde la del local le gana a la de su franquicia.
+  - **Las alertas suman y el resto no se pierde.** Una regla de 4 alertas por
+    bono deja 0,25 en cada una; seis alertas son 1,5 bonos, no 1.
+  - **Lo aprobado se congela.** `Noveltie.bonus` guarda cuánto bonificó la
+    novedad y cuánto valía el bono en ese momento. Corregir una regla rige de
+    ahí en adelante y nunca recalcula lo ya pagado. La tasa **no** se congela:
+    se aplica al liquidar, y toda la liquidación va al mismo cambio.
+  - `resolveBonusForNovelty()` resuelve todo eso y es **pura**: no consulta la
+    base ni mira el reloj. El turno sale de la misma cascada que ya usa
+    `dayRoster.service.js`, y es el del **operador** que reportó, no el de la
+    novedad — el bono es suyo.
+
+- **`/user/bonos` pasa a ser el panel de administración del sistema.** Dos
+  pestañas, separadas por lo que se hace en cada una y no por el tema:
+
+  - **Configuración de referencias** — los valores globales, las reglas y qué
+    alerta usa cuál. El valor del bono y la tasa se unificaron en una sola
+    pieza que se lee como la ecuación que son, con el resultado en bolívares
+    calculado sobre lo que se está escribiendo: separadas, esa cuenta la tenía
+    que hacer de memoria el que mira la pantalla. Las reglas y las alertas van
+    lado a lado porque el trabajo es ir y venir entre ellas.
+  - **Panel informativo** — qué hay cargado, de dónde sale el monto (con la
+    cuenta hecha con los valores de hoy y una regla real) y qué falta. No edita
+    nada y no consulta nada propio.
+
+- **La bonificación sale de `/alertmanasgement`.** El formulario de alertas ya
+  no la administra: se retiró `BonoSection`, el resumen de la lista y el
+  informe. Ahora la asignación vive en `/user/bonos`, junto al resto del
+  sistema.
+
+  _Autor: Claude Code (Opus 5)._
+
+---
+
 ## 2026-08-15
 - **Las categorías de alerta vuelven a ser una lista fija, y la administrable
   pasa a ser la de bonificación (con api_jarvis365).** Se revierte lo del

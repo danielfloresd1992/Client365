@@ -40,7 +40,12 @@ export const NAV_SECTIONS: NavSection[] = [
                 "icon": "users"
             },
             {
-                "name": "Bonificación",
+                "name": "Sistema de bonificación",
+                "path": "/user/bonos",
+                "icon": "bell"
+            },
+            {
+                "name": "Bonos por empleado",
                 "path": "/user/bonificacion",
                 "icon": "bell"
             }
