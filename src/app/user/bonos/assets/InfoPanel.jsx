@@ -72,7 +72,7 @@ const calcular = (ajustes, reglas = [], alertas = []) => {
         pendientes.push({
             gravedad: 'alta',
             texto: 'No hay ninguna regla creada, así que hoy no bonifica ninguna alerta.',
-            comoSeArregla: 'Se crean en «Reglas de bonificación», dentro de Configuración de referencias.',
+            comoSeArregla: 'Se crean en el mapa, con «+ Regla».',
         });
     }
 
@@ -104,7 +104,7 @@ const calcular = (ajustes, reglas = [], alertas = []) => {
         pendientes.push({
             gravedad: 'media',
             texto: `${sinRevisar.length} de ${alertas.length} alertas sin revisar.`,
-            comoSeArregla: 'Hoy no bonifican, pero nadie decidió que no debieran hacerlo. Se revisan en «Bonificación de las alertas».',
+            comoSeArregla: 'Hoy no bonifican, pero nadie decidió que no debieran hacerlo. Se les tiende un cable desde el mapa.',
         });
     }
 
@@ -112,7 +112,7 @@ const calcular = (ajustes, reglas = [], alertas = []) => {
         pendientes.push({
             gravedad: 'baja',
             texto: `${sinUsar.length} regla${sinUsar.length === 1 ? '' : 's'} activa${sinUsar.length === 1 ? '' : 's'} que no usa ninguna alerta.`,
-            comoSeArregla: 'No molestan, pero alargan el selector. Conviene asignarlas o darlas de baja.',
+            comoSeArregla: 'No molestan, pero llenan el mapa de reglas vacías. Conviene asignarles alertas o darlas de baja.',
         });
     }
 

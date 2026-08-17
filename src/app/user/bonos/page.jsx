@@ -13,17 +13,15 @@ import InfoPanel from './assets/InfoPanel';
  *
  * Dos pestañas, separadas por lo que se hace en cada una y no por el tema:
  *
- *   Configuración de referencias  donde se configura: los valores globales, las
- *                                 reglas y qué alerta usa cuál.
+ *   Configuración de referencias  donde se configura: los valores globales y
+ *                                 la bonificación de cada alerta.
  *
  *   Panel informativo             donde se consulta: qué hay cargado, de dónde
  *                                 sale el monto y qué falta. No edita nada.
  *
- * Las reglas vivían en una pestaña propia y se juntaron con el resto. Estaban
- * del otro lado de un clic de las alertas a las que se les asignan, que es
- * justo lo que uno hace de a ratos y volviendo: crear una regla, asignarla, ver
- * que el valor no era el que se quería. Separadas, cada asignación costaba dos
- * cambios de pestaña.
+ * La configuración se entra POR ALERTA: se elige una y ahí se define cuánto
+ * otorga, dónde y sus excepciones. Cada una tiene lo suyo, así que tocar una no
+ * mueve el valor de ninguna otra.
  *
  *
  * POR QUÉ LOS DATOS VIVEN ACÁ
@@ -85,9 +83,7 @@ export default function BonosPage() {
             </header>
 
             <div className='flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 bg-gray-50'>
-                {/* Más ancho que antes: adentro hay dos listas lado a lado, y
-                    con 1100px la de alertas quedaba sin sitio para el selector. */}
-                <div className='max-w-[1400px]'>
+                <div className='max-w-[1100px]'>
 
                     {pestaña === 'referencias' && (
                         <ConfigPanel
@@ -103,8 +99,9 @@ export default function BonosPage() {
                             guardando={reglasBonos.guardando}
                             puedeEditar={esAdmin}
                             onGuardarRegla={reglasBonos.guardarRegla}
-                            onBorrarRegla={reglasBonos.borrarRegla}
                             onAsignarRegla={reglasBonos.asignarRegla}
+                            onCambiarAlcance={reglasBonos.cambiarAlcance}
+                            onBorrarRegla={reglasBonos.borrarRegla}
                         />
                     )}
 

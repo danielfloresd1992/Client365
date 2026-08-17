@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
-import { getBonusCategories } from '@/libs/ajaxClient/menu.fecth.js';
+import { getBonusCategories } from '@/libs/ajaxClient/bonus.fecth';
 
 /**
  * Carga el catálogo de categorías de BONIFICACIÓN.

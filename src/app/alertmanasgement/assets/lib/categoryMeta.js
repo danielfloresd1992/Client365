@@ -1,4 +1,4 @@
-import { iconOf } from './categoryIcons.js';
+import { iconOf } from '@/libs/alerts/categoryIcons.js';
 import { CATEGORIAS_OPERATIVAS, listaDeCategorias } from '@/libs/alerts/categories.js';
 
 /**
@@ -20,8 +20,8 @@ import { CATEGORIAS_OPERATIVAS, listaDeCategorias } from '@/libs/alerts/categori
  * síntoma no sería un error visible: la alerta no aparecería donde corresponde.
  *
  * Lo que SÍ se administra es la categoría de bonificación
- * (`Menu.bonusCategory`), que se calcula puertas adentro. Vive en el catálogo
- * del servidor y se gestiona con `useBonusCategories`.
+ * (`BonusRule.bonusCategory`), que se calcula puertas adentro. Vive en el
+ * catálogo del servidor y se gestiona en /user/bonos.
  *
  *
  * POR QUÉ EL MAPA VIVE EN UNA VARIABLE DE MÓDULO

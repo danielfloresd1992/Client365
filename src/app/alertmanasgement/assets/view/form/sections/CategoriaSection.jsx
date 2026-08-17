@@ -1,28 +1,27 @@
 'use client';
 import { FaTag } from 'react-icons/fa';
 import InputBorderBlue from '@/components/inpust/InputBorderBlue';
-import useBonusCategories from '@/hook/useBonusCategories.js';
 import { listaDeCategorias } from '../../../lib/categoryMeta.js';
 import SectionHeader from '../SectionHeader.jsx';
 
 /**
- * Las DOS categorías de la alerta, que son cosas distintas:
+ * La categoría OPERATIVA de la alerta: 'delay', 'food'… dice de qué se trata.
  *
- *   · La OPERATIVA ('delay', 'food'…) dice de qué se trata la alerta. Sale de
- *     una lista FIJA escrita en el código y no se administra, porque
- *     reportes365 y Jarvis-express365 la leen con nombres escritos a mano y se
- *     despliegan por separado. Una categoría nueva sería una que ninguno de
- *     los dos entiende. Ver la nota en categoryMeta.js.
+ * Sale de una lista FIJA escrita en el código y no se administra, porque
+ * reportes365 y Jarvis-express365 la leen con nombres escritos a mano y se
+ * despliegan por separado. Una categoría nueva sería una que ninguno de los dos
+ * entiende, y el síntoma no sería un error: la alerta simplemente no aparecería
+ * donde corresponde. Ver la nota en categoryMeta.js.
  *
- *   · La de BONIFICACIÓN dice con qué criterio agrupa en los cortes de bono.
- *     Ésa sí viene del catálogo del servidor y se crea desde esta misma
- *     pantalla, porque se calcula puertas adentro.
  *
- * Son independientes: dos alertas de categorías operativas distintas pueden
- * bonificar por el mismo concepto, y al revés.
+ * ACÁ NO SE CONFIGURA NADA DE BONIFICACIÓN
+ *
+ * Ni la categoría de bono ni la regla. Todo eso vive en /user/bonos, junto al
+ * valor del bono y la tasa: tener la mitad de la configuración en el formulario
+ * de la alerta y la otra mitad en otra pantalla era la forma más fácil de que
+ * una alerta quedara a medio configurar sin que nadie lo notara.
  */
 export default function CategoriaSection({ menu, setMenu }) {
-    const { categorias: categoriasDeBono, sinCatalogo } = useBonusCategories(false);
 
     // ── Categoría operativa ──────────────────────────────────────────
     const actual = menu.category;
@@ -33,20 +32,6 @@ export default function CategoriaSection({ menu, setMenu }) {
     // vacío y guardar el formulario por otra razón le borraría la categoría.
     if (actual && !opciones.some(o => o.value === actual)) {
         opciones.unshift({ value: actual, text: `${actual} (fuera de la lista)` });
-    }
-
-    // ── Categoría de bonificación ────────────────────────────────────
-    // Es opcional, así que la primera opción es no tener ninguna.
-    const actualBono = menu.bonusCategory || '';
-    const opcionesBono = [
-        { value: '', text: sinCatalogo ? 'Catálogo no disponible' : 'Sin categoría de bonificación' },
-        ...categoriasDeBono.map(c => ({ value: c.value, text: c.es })),
-    ];
-
-    // Igual que arriba: si la que tiene guardada se desactivó, se agrega para
-    // no perderla al guardar por cualquier otro motivo.
-    if (actualBono && !opcionesBono.some(o => o.value === actualBono)) {
-        opcionesBono.push({ value: actualBono, text: `${actualBono} (desactivada)` });
     }
 
     return (
@@ -67,21 +52,6 @@ export default function CategoriaSection({ menu, setMenu }) {
                     childSelect={opciones}
                     eventChengue={text => {
                         setMenu({ ...menu, category: text });
-                    }}
-                />
-
-                <InputBorderBlue
-                    textLabel='Categoría de bonificación'
-                    type='select'
-                    name='bonusCategory'
-                    value={actualBono}
-                    childSelect={opcionesBono}
-                    eventChengue={text => {
-                        // Vacío se guarda como null y no como '': el modelo la
-                        // declara opcional con default null, y así una alerta
-                        // sin bonificación se ve igual la haya tocado alguien
-                        // o no.
-                        setMenu({ ...menu, bonusCategory: text || null });
                     }}
                 />
 

@@ -94,6 +94,7 @@ export const reglaNueva = () => ({
     regulationCode: '',
     alertsRequired: 1,
     bonusAwarded: { day: 1, night: 1 },
+    bonusCategory: null,
     scope: { mode: 'all', franchises: [], locals: [] },
     overrides: [],
     active: true,
@@ -111,6 +112,7 @@ export const reglaParaFormulario = (regla) => ({
     ...regla,
     description: regla.description || '',
     regulationCode: regla.regulationCode || '',
+    bonusCategory: regla.bonusCategory || null,
     alertsRequired: regla.alertsRequired ?? 1,
     bonusAwarded: {
         day: regla.bonusAwarded?.day ?? 1,

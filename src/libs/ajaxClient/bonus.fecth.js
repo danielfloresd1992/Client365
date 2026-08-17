@@ -48,6 +48,64 @@ export const getBonusSettingsHistory = async () => {
 
 
 // ══════════════════════════════════════════════════════════════════════
+// CATEGORÍAS
+// ══════════════════════════════════════════════════════════════════════
+// Con qué criterio se agrupan las REGLAS en los cortes.
+//
+// Vivían en /menu/bonus-categories y categorizaban la alerta. Se mudaron acá con
+// el resto del sistema: ahora categorizan la regla, que es donde el criterio de
+// bonificación ya estaba definido.
+
+
+/**
+ * El catálogo.
+ *
+ * @param incluirInactivas - true para la pantalla de gestión, que necesita ver
+ *                           las desactivadas para poder reactivarlas. El
+ *                           selector las pide sin esto: ofrecer una categoría
+ *                           dada de baja es justo lo que se quería evitar.
+ */
+export const getBonusCategories = async (incluirInactivas = false) => {
+    const { data } = await axiosInstance.get(
+        `/bonus/categories${incluirInactivas ? '?includeInactive=true' : ''}`,
+    );
+    return data?.categories || [];
+};
+
+
+/** Crea una categoría. La clave la deriva el servidor del nombre en español. */
+export const createBonusCategory = async (body) => {
+    const { data } = await axiosInstance.post('/bonus/categories', body);
+    return data?.category;
+};
+
+
+/**
+ * Edita etiquetas, apariencia, orden o el estado activo.
+ *
+ * La clave (`value`) no se manda nunca y el servidor no la acepta: es con lo que
+ * las reglas apuntan a su categoría, y cambiarla las dejaría agrupando por algo
+ * que no existe.
+ */
+export const updateBonusCategory = async (id, body) => {
+    const { data } = await axiosInstance.put(`/bonus/categories/id=${id}`, body);
+    return data?.category;
+};
+
+
+/**
+ * Borra una categoría.
+ *
+ * El servidor responde 409 si alguna regla la usa; ahí hay que desactivarla en
+ * lugar de borrarla. Quien llame debe leer `error.response.data.inUse`.
+ */
+export const deleteBonusCategory = async (id) => {
+    const { data } = await axiosInstance.delete(`/bonus/categories/id=${id}`);
+    return data;
+};
+
+
+// ══════════════════════════════════════════════════════════════════════
 // REGLAS
 // ══════════════════════════════════════════════════════════════════════
 // Cuántos bonos otorga una alerta, dónde y cuántas hacen falta. Muchas alertas
@@ -82,6 +140,23 @@ export const createBonusRule = async (body) => {
  */
 export const updateBonusRule = async (id, body) => {
     const response = await axiosInstance.put(`/bonus/rules/id=${id}`, body);
+    return response.data?.rule;
+};
+
+
+/**
+ * Cambia SOLO dónde aplica una regla.
+ *
+ * Endpoint aparte y no el PUT completo por una razón concreta: aquél REEMPLAZA
+ * la regla entera y rellena con valores por defecto lo que no venga. Mandar
+ * `{ name, scope }` dejaría `alertsRequired` en 1, los bonos en 1/1, la
+ * categoría en null y las excepciones vacías — sin un solo error, y la regla
+ * pasaría a pagar otra cosa.
+ *
+ * @param {{ mode: 'all'|'only'|'except', franchises: string[], locals: string[] }} scope
+ */
+export const patchBonusRuleScope = async (id, scope) => {
+    const response = await axiosInstance.patch(`/bonus/rules/id=${id}/scope`, scope);
     return response.data?.rule;
 };
 
@@ -127,7 +202,6 @@ export const getMenusForBonus = async () => {
         es: m.es,
         en: m.en,
         category: m.category || null,
-        bonusCategory: m.bonusCategory || null,
         bonusRule: m.bonusRule || null,
         bonusReviewed: m.bonusReviewed === true,
     }));

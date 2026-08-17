@@ -21,7 +21,7 @@
  * corresponde.
  *
  * Lo que SÍ se administra es la categoría de BONIFICACIÓN
- * (`Menu.bonusCategory`), que se calcula puertas adentro y no la consume ningún
+ * (`BonusRule.bonusCategory`), que se calcula puertas adentro y no la consume ningún
  * sistema externo. Ésa vive en el servidor.
  */
 

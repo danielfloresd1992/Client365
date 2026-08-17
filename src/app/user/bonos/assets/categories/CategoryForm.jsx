@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { FaCheck, FaTimes } from 'react-icons/fa';
-import { GRUPOS_DE_ICONO, iconOf } from '../../lib/categoryIcons.js';
+import { GRUPOS_DE_ICONO, iconOf } from '@/libs/alerts/categoryIcons.js';
 
 /**
  * Alta y edición de una categoría.

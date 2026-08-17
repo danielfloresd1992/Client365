@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import {
-    getBonusRules, createBonusRule, updateBonusRule, deleteBonusRule,
+    getBonusRules, createBonusRule, updateBonusRule, deleteBonusRule, patchBonusRuleScope,
     getMenusForBonus, setMenuBonusRule, getScopeOptions,
 } from '@/libs/ajaxClient/bonus.fecth';
 
@@ -78,23 +78,24 @@ export default function useBonusRules() {
 
 
     /**
-     * Borra una regla. El servidor la rechaza con 409 si alguna alerta la usa,
-     * y ahí el mensaje explica que lo correcto es desactivarla.
+     * Borra una regla que quedó sin uso.
+     *
+     * `silencioso` es para la limpieza automática: al pasar una alerta a "no
+     * bonifica", su configuración queda huérfana y se borra sola. Ahí un 409
+     * —porque otra alerta todavía la usa, cosa que pasa con lo cargado antes de
+     * este modelo— no es un problema que reportar: es el servidor haciendo
+     * exactamente su trabajo, y la configuración se queda donde está.
      */
-    const borrarRegla = useCallback(async (id) => {
-        setGuardando(true);
+    const borrarRegla = useCallback(async (id, { silencioso = false } = {}) => {
         try {
             await deleteBonusRule(id);
             setReglas(previas => (previas ?? []).filter(r => String(r._id) !== String(id)));
-            avisar('successfull', 'Regla eliminada', 'No la usaba ninguna alerta.');
+            if (!silencioso) avisar('successfull', 'Configuración eliminada', 'No la usaba ninguna alerta.');
             return true;
         }
         catch (error) {
-            avisar('error', 'No se pudo eliminar', mensajeDeError(error, 'Ha ocurrido un error.'));
+            if (!silencioso) avisar('error', 'No se pudo eliminar', mensajeDeError(error, 'Ha ocurrido un error.'));
             return false;
-        }
-        finally {
-            setGuardando(false);
         }
     }, [avisar]);
 
@@ -134,6 +135,37 @@ export default function useBonusRules() {
     }, [alertas, avisar]);
 
 
+    /**
+     * Cambia dónde aplica una regla.
+     *
+     * Va por su propio endpoint y no por el de guardar la regla: aquél reemplaza
+     * el documento entero, así que mandar solo el alcance dejaría los bonos, la
+     * categoría y las excepciones en sus valores por defecto — sin error, y la
+     * regla pasaría a pagar otra cosa.
+     *
+     * Se pinta al confirmar el servidor y no antes: el alcance decide en qué
+     * establecimientos se paga, y mostrarlo cambiado antes de que se guarde es
+     * peor que la espera de un segundo.
+     */
+    const cambiarAlcance = useCallback(async (ruleId, scope) => {
+        setGuardando(true);
+        try {
+            const guardada = await patchBonusRuleScope(ruleId, scope);
+            setReglas(previas => (previas ?? []).map(r => (
+                String(r._id) === String(ruleId) ? { ...r, ...guardada } : r
+            )));
+            return true;
+        }
+        catch (error) {
+            avisar('error', 'No se pudo cambiar el alcance', mensajeDeError(error, 'Ha ocurrido un error.'));
+            return false;
+        }
+        finally {
+            setGuardando(false);
+        }
+    }, [avisar]);
+
+
     return {
         reglas,
         alertas,
@@ -143,5 +175,6 @@ export default function useBonusRules() {
         guardarRegla,
         borrarRegla,
         asignarRegla,
+        cambiarAlcance,
     };
 }

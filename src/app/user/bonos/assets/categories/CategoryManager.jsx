@@ -4,14 +4,14 @@ import { useDispatch } from 'react-redux';
 import { FaTags, FaPlus, FaPen, FaTrashAlt, FaEye, FaEyeSlash, FaTimes, FaExclamationTriangle } from 'react-icons/fa';
 
 import { setConfigModal } from '@/store/slices/globalModal.js';
-import { iconOf } from '../../lib/categoryIcons.js';
+import { iconOf } from '@/libs/alerts/categoryIcons.js';
 // Se importan con alias para no repetir "bonus" en cada llamada de este
 // archivo, que ya trata de una sola cosa.
 import {
     createBonusCategory as createCategory,
     updateBonusCategory as updateCategory,
     deleteBonusCategory as deleteCategory,
-} from '@/libs/ajaxClient/menu.fecth.js';
+} from '@/libs/ajaxClient/bonus.fecth';
 import CategoryForm from './CategoryForm.jsx';
 
 /**
