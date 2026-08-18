@@ -8597,21 +8597,23 @@ body .jarvis-cell-highlight::after {
 /* ══════════════════════════════════════════════════════════════════════
    EL BRILLO DE LA ESTRELLA DEL MENÚ
    ══════════════════════════════════════════════════════════════════════
-   Un destello que cruza la estrella dorada de /bonus una vez por segundo.
+   Un destello que cruza la estrella dorada de /bonus cada dos segundos.
 
    Se anima `transform` y nada más: es lo único que el navegador puede mover
    sin recalcular el layout, y esto corre siempre, en todas las pantallas.
 
-   El recorrido dura una fracción del ciclo y el resto es espera. Un destello
-   continuo se vuelve ruido de fondo en dos minutos; uno que aparece y se va
-   sigue llamando la atención. */
+   El recorrido ocupa una fracción del ciclo y el resto es espera. El destello
+   en sí dura lo mismo que antes —unos 240 ms— y lo que se alargó es la pausa:
+   un brillo continuo se vuelve ruido de fondo en dos minutos, y estirar el
+   barrido en vez de la espera lo habría vuelto un fundido lento en lugar de
+   un destello. */
 @keyframes estrellaBrillo {
     0%        { transform: rotate(18deg) translateX(0); }
-    22%, 100% { transform: rotate(18deg) translateX(52px); }
+    12%, 100% { transform: rotate(18deg) translateX(52px); }
 }
 
 .estrella-brillo {
-    animation: estrellaBrillo 1s linear infinite;
+    animation: estrellaBrillo 2s linear infinite;
     transform-origin: 12px 12px;
 }
 
