@@ -348,6 +348,12 @@ function NodoAlerta({ alerta }) {
     return (
         <div data-nodo='alerta' className='bg-white border-[1.5px] border-gray-300 rounded-xl px-3 py-2.5'>
             <span className='block text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
+            {/* El nombre en inglés, más chico: es como está en los JSON de
+                Jarvis-express y como lo ve el operador en la app. Solo si es
+                distinto del español — repetirlo no dice nada. */}
+            {alerta?.en && alerta.en !== alerta.es && (
+                <span className='block text-[11px] text-gray-500 leading-tight mt-0.5'>{alerta.en}</span>
+            )}
             <div className='flex flex-wrap items-center gap-1.5 mt-1.5'>
                 {categoria && (
                     <span className='text-[10px] font-bold rounded px-1.5 py-0.5'
