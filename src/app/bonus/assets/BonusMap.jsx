@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { CATEGORIAS_OPERATIVAS } from '@/libs/alerts/categories';
 import { iconOf } from '@/libs/alerts/categoryIcons.js';
+import useBonusCategories from '@/hook/useBonusCategories.js';
 import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './bonusRuleFormat';
 
 /**
@@ -44,6 +45,12 @@ export default function BonusMap({
     const [cables, setCables] = useState([]);
 
     const porId = useMemo(() => new Map((reglas || []).map(r => [String(r._id), r])), [reglas]);
+
+    // El catálogo de categorías, para pintar ícono y color en cada regla. Con
+    // las inactivas: una regla cuya categoría se dio de baja tiene que seguir
+    // mostrándola, no quedar en blanco.
+    const { categorias } = useBonusCategories(true);
+    const categoriaDe = useMemo(() => new Map(categorias.map(c => [c.value, c])), [categorias]);
 
     // La primera alerta con asignaciones se abre sola: un mapa vacío no dice
     // qué hacer. Si ninguna tiene, la primera del catálogo.
@@ -222,6 +229,7 @@ export default function BonusMap({
                             <Rotulo>Reglas de bonificación</Rotulo>
                             {(reglas || []).map(r => (
                                 <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
+                                    categoria={categoriaDe.get(r.bonusCategory) || null}
                                     conectada={asignaciones.some(a => String(a.rule) === String(r._id))}
                                     onEditar={() => onEditarRegla(r)} />
                             ))}
@@ -256,6 +264,14 @@ export default function BonusMap({
 
 
 // ══════════════════════════════════════════════════════════════════════
+
+/**
+ * El alto mínimo de las tres cajas del mapa, cerca del ancho de su columna para
+ * que se lean como cuadrados y no como renglones. Es UNA constante para las
+ * tres a propósito: si crecieran distinto, los cables entrarían y saldrían a
+ * alturas distintas y el mapa dejaría de leerse como una fila.
+ */
+const CAJA = 'min-h-[190px] flex flex-col';
 
 const Marco = ({ children }) => (
     <section className='bg-white rounded-xl shadow-sm border overflow-hidden'>{children}</section>
@@ -346,7 +362,7 @@ function SelectorDeAlerta({ alertas, activa, busqueda, onBuscar, onElegir }) {
 function NodoAlerta({ alerta }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
     return (
-        <div data-nodo='alerta' className='bg-white border-[1.5px] border-gray-300 rounded-xl px-3 py-2.5'>
+        <div data-nodo='alerta' className={`${CAJA} bg-white border-[1.5px] border-gray-300 rounded-xl px-4 py-3.5`}>
             <span className='block text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
             {/* El nombre en inglés, más chico: es como está en los JSON de
                 Jarvis-express y como lo ve el operador en la app. Solo si es
@@ -385,7 +401,7 @@ function NodoAlcance({ indice, asignacion, catalogo, puedeEditar, tirandoEsta, o
 
     return (
         <div data-nodo={`alcance-${indice}`}
-            className={`relative bg-white border-[1.5px] rounded-xl px-3 py-2.5 transition-shadow
+            className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-shadow
                         ${tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
@@ -417,14 +433,14 @@ function NodoAlcance({ indice, asignacion, catalogo, puedeEditar, tirandoEsta, o
 
 
 /** Una regla: destino de cables. Se ilumina si esta alerta la usa. */
-function NodoRegla({ regla, conectada, puedeEditar, onEditar }) {
+function NodoRegla({ regla, categoria, conectada, puedeEditar, onEditar }) {
     const dia = bonusPerAlert(regla, 'day');
     const noche = bonusPerAlert(regla, 'night');
     const inactiva = regla.active === false;
 
     return (
         <div data-nodo={`regla-${regla._id}`} data-tipo='regla' data-regla={String(regla._id)}
-            className={`border-2 rounded-xl p-3 transition-colors
+            className={`${CAJA} border-2 rounded-xl px-4 py-3.5 transition-colors
                         ${conectada ? 'bg-[#fdf6e7] border-[#d9a441]' : 'bg-white border-gray-200'}
                         ${inactiva ? 'opacity-60' : ''}`}>
             <div className='flex items-start gap-2'>
@@ -434,6 +450,11 @@ function NodoRegla({ regla, conectada, puedeEditar, onEditar }) {
                         className='shrink-0 text-[11px] font-bold text-[#8a5a2b] hover:underline'>Editar</button>
                 )}
             </div>
+            {/* La categoría de bonificación, con su ícono y su color del catálogo.
+                Va antes de la fórmula porque es lo que agrupa en el corte: se
+                lee "esta regla es de Higiene" antes que "es 3x1". */}
+            {categoria && <ChipCategoria categoria={categoria} />}
+
             <div className='flex flex-wrap items-center gap-1.5 mt-1.5'>
                 <span className='text-[10px] font-bold uppercase tracking-wider text-gray-500'>{formulaLabel(regla)}</span>
                 {inactiva && <span className='text-[10px] font-bold rounded px-1.5 py-0.5 bg-red-100 text-red-700'>Inactiva</span>}
@@ -445,6 +466,20 @@ function NodoRegla({ regla, conectada, puedeEditar, onEditar }) {
                         {'  '}{formatBonus(noche)} <span className='text-[10.5px] font-bold opacity-70'>noche</span></>}
             </span>
         </div>
+    );
+}
+
+
+/** La categoría de una regla: ícono y color tal como los guarda el catálogo. */
+function ChipCategoria({ categoria }) {
+    const Icono = iconOf(categoria.icon);
+    return (
+        <span className='inline-flex items-center gap-1.5 mt-2 rounded-md px-2 py-1 text-[10.5px] font-bold'
+            style={{ background: categoria.bg || '#fdf6e7', color: categoria.color || '#8a5a2b' }}>
+            <Icono size={12} />
+            {categoria.es}
+            {categoria.active === false && <span className='opacity-70'>· inactiva</span>}
+        </span>
     );
 }
 
