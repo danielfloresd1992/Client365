@@ -348,21 +348,55 @@ function NodoRegla({ regla, usos, puedeEditar, onEditar }) {
  * entera y dejaría los valores en su defecto sin avisar.
  */
 function NodoAlcance({ regla, catalogo, puedeEditar, guardando, onCambiar }) {
-    const scope = regla.scope || { mode: 'all', franchises: [], locals: [] };
 
-    const alternar = (clave, id) => {
-        const actual = (scope[clave] || []).map(String);
-        const siguiente = actual.includes(String(id))
-            ? actual.filter(x => x !== String(id))
-            : [...actual, String(id)];
-        onCambiar({ ...scope, [clave]: siguiente });
+    const guardado = useMemo(
+        () => regla.scope || { mode: 'all', franchises: [], locals: [] },
+        [regla.scope],
+    );
+
+    // Se trabaja sobre un borrador y no se guarda en cada clic.
+    //
+    // El modo se elige ANTES de tener a quién aplicarlo, así que entre tocar
+    // "Solo estos" y tildar el primer establecimiento hay un estado intermedio
+    // —modo 'only' sin ninguno— que el servidor rechaza, y con razón: es una
+    // regla que no aplicaría en ningún lado y no pagaría nunca. Mandarlo igual
+    // era pedir un 400 en cada clic.
+    const [borrador, setBorrador] = useState(guardado);
+
+    // Se resincroniza cuando el servidor confirma. La comparación va sobre el
+    // contenido y no sobre la identidad del objeto: llega uno nuevo en cada
+    // render del padre, y comparar referencias reiniciaría el borrador mientras
+    // se está eligiendo.
+    const firma = JSON.stringify(guardado);
+    useEffect(() => { setBorrador(JSON.parse(firma)); }, [firma]);
+
+    /** Un alcance que el servidor va a aceptar. Es la misma regla que valida él. */
+    const completo = (s) => s.mode !== 'only' || Boolean(s.franchises?.length || s.locals?.length);
+
+    const aplicar = (siguiente) => {
+        setBorrador(siguiente);
+        if (completo(siguiente)) onCambiar(siguiente);
     };
 
-    const tildado = (clave, id) => (scope[clave] || []).some(x => String(x) === String(id));
+    const alternar = (clave, id) => {
+        const actual = (borrador[clave] || []).map(String);
+        aplicar({
+            ...borrador,
+            [clave]: actual.includes(String(id))
+                ? actual.filter(x => x !== String(id))
+                : [...actual, String(id)],
+        });
+    };
+
+    const tildado = (clave, id) => (borrador[clave] || []).some(x => String(x) === String(id));
+
+    const elegidos = (borrador.franchises?.length || 0) + (borrador.locals?.length || 0);
+    const falta = !completo(borrador);
 
     return (
         <div data-nodo='alcance' data-tipo='alcance'
-            className='bg-white border-[1.5px] border-[#29c50c] rounded-xl overflow-hidden'>
+            className={`bg-white border-[1.5px] rounded-xl overflow-hidden transition-colors
+                        ${falta ? 'border-[#d9a441]' : 'border-[#29c50c]'}`}>
 
             <div className='px-3 py-2.5 border-b border-gray-100 flex flex-wrap gap-1'>
                 {[
@@ -371,34 +405,50 @@ function NodoAlcance({ regla, catalogo, puedeEditar, guardando, onCambiar }) {
                     { key: 'except', label: 'Todos menos' },
                 ].map(m => (
                     <button key={m.key} type='button' disabled={!puedeEditar || guardando}
-                        onClick={() => onCambiar({ ...scope, mode: m.key })}
-                        aria-pressed={scope.mode === m.key}
+                        onClick={() => aplicar({ ...borrador, mode: m.key })}
+                        aria-pressed={borrador.mode === m.key}
                         className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold transition-colors disabled:opacity-50
-                            ${scope.mode === m.key ? 'bg-[#29c50c] text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}>
+                            ${borrador.mode === m.key ? 'bg-[#29c50c] text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}>
                         {m.label}
                     </button>
                 ))}
             </div>
 
-            {scope.mode === 'all' ? (
+            {borrador.mode === 'all' ? (
                 <p className='px-3 py-4 text-[12px] text-gray-600'>
-                    La regla vale en todos los establecimientos. Un local que abra mañana queda cubierto solo.
+                    <strong className='block font-bold text-gray-800 text-[12.5px]'>Todos los establecimientos</strong>
+                    Es lo que vale por defecto. Un local que abra mañana queda cubierto solo, sin que nadie lo agregue.
                 </p>
             ) : (
-                <div className='max-h-[260px] overflow-y-auto p-2'>
-                    <Grupo titulo='Marcas' items={catalogo.franchises} clave='franchises'
-                        tildado={tildado} alternar={alternar} puedeEditar={puedeEditar} />
-                    <Grupo titulo='Establecimientos' items={catalogo.locals} clave='locals'
-                        tildado={tildado} alternar={alternar} puedeEditar={puedeEditar} />
+                <>
+                    <div className='max-h-[240px] overflow-y-auto p-2'>
+                        <Grupo titulo='Marcas' items={catalogo.franchises} clave='franchises'
+                            tildado={tildado} alternar={alternar} puedeEditar={puedeEditar} />
+                        <Grupo titulo='Establecimientos' items={catalogo.locals} clave='locals'
+                            tildado={tildado} alternar={alternar} puedeEditar={puedeEditar} />
 
-                    {!catalogo.franchises.length && !catalogo.locals.length && (
-                        <p className='px-2 py-3 text-[11.5px] text-gray-500'>No se pudo cargar la lista.</p>
-                    )}
-                </div>
+                        {!catalogo.franchises.length && !catalogo.locals.length && (
+                            <p className='px-2 py-3 text-[11.5px] text-gray-500'>No se pudo cargar la lista.</p>
+                        )}
+                    </div>
+
+                    {/* Qué falta, dicho acá y no cuando el servidor lo rechace. La
+                        elección del modo y la de los establecimientos son dos
+                        pasos, y entre uno y otro el alcance está a medias. */}
+                    <p className={`px-3 py-2 text-[11px] border-t border-gray-100
+                                   ${falta ? 'text-[#8a5a2b] bg-[#fdf6e7]' : 'text-gray-500'}`}>
+                        {falta
+                            ? 'Elegí al menos una marca o un establecimiento. Sin eso la regla no aplicaría en ningún lado.'
+                            : borrador.mode === 'only'
+                                ? `Solo en ${elegidos} ${elegidos === 1 ? 'elegido' : 'elegidos'}.`
+                                : `En todos menos ${elegidos} ${elegidos === 1 ? 'elegido' : 'elegidos'}.`}
+                    </p>
+                </>
             )}
         </div>
     );
 }
+
 
 function Grupo({ titulo, items, clave, tildado, alternar, puedeEditar }) {
     if (!items?.length) return null;

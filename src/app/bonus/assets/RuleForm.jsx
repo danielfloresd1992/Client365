@@ -44,6 +44,9 @@ export default function RuleForm({ valor, guardando, onGuardar, onCancelar, onBo
 
     const puedeGuardar = problemas.length === 0;
 
+    // Cuántas alertas la usan. Viene del listado, que lo cuenta en el servidor.
+    const enUso = regla.inUse ?? 0;
+
     // La categoría guardada puede estar desactivada: se agrega a mano para que
     // el selector no salga vacío y guardar por otro motivo no se la lleve.
     const opciones = regla.bonusCategory && !categorias.some(c => c.value === regla.bonusCategory)
@@ -148,11 +151,25 @@ export default function RuleForm({ valor, guardando, onGuardar, onCancelar, onBo
                     Cancelar
                 </button>
 
-                {regla._id && onBorrar && (
-                    <button type='button' onClick={() => onBorrar(regla)} disabled={guardando}
-                        className='h-10 px-4 ml-auto rounded-xl text-[13px] font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50'>
-                        Eliminar
-                    </button>
+                {/* Borrar solo se ofrece cuando de verdad se puede.
+                    Una regla EN USO el servidor la rechaza con 409, y con razón:
+                    borrarla dejaría a sus alertas apuntando a un documento que no
+                    existe y saldrían de los cortes sin dar ningún error. Ofrecer
+                    un botón que va a fallar convierte una guarda correcta en algo
+                    que parece un problema del sistema. */}
+                {regla._id && onBorrar && (enUso === 0
+                    ? (
+                        <button type='button' onClick={() => onBorrar(regla)} disabled={guardando}
+                            className='h-10 px-4 ml-auto rounded-xl text-[13px] font-semibold text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50'>
+                            Eliminar
+                        </button>
+                    )
+                    : (
+                        <span className='ml-auto text-[11.5px] text-gray-500 max-w-[42ch]'>
+                            No se puede eliminar: la usan {enUso} alerta{enUso === 1 ? '' : 's'}.
+                            Para que dejen de bonificar, destildá <strong className='font-semibold text-gray-700'>Regla activa</strong>.
+                        </span>
+                    )
                 )}
             </div>
 
