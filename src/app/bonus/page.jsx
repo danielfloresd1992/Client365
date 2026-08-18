@@ -99,9 +99,8 @@ export default function BonosPage() {
                             guardando={reglasBonos.guardando}
                             puedeEditar={esAdmin}
                             onGuardarRegla={reglasBonos.guardarRegla}
-                            onAsignarRegla={reglasBonos.asignarRegla}
-                            onCambiarAlcance={reglasBonos.cambiarAlcance}
                             onBorrarRegla={reglasBonos.borrarRegla}
+                            onEscribirAsignaciones={reglasBonos.escribirAsignaciones}
                         />
                     )}
 

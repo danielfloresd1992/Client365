@@ -58,35 +58,6 @@ export const mismoEnAmbosTurnos = (regla) =>
     Number(regla?.bonusAwarded?.day) === Number(regla?.bonusAwarded?.night);
 
 
-/**
- * Dónde aplica la regla, en una línea.
- *
- * @param catalogo { franchises, locals } para poder nombrarlos en vez de
- *                 mostrar ObjectIds, que no le dicen nada a nadie.
- */
-export const scopeLabel = (regla, catalogo = { franchises: [], locals: [] }) => {
-    const alcance = regla?.scope;
-    if (!alcance || alcance.mode === 'all') return 'En todos los establecimientos';
-
-    const nombre = (lista, id) => lista.find(x => String(x._id) === String(id))?.name;
-
-    const nombres = [
-        ...(alcance.franchises || []).map(id => nombre(catalogo.franchises, id)),
-        ...(alcance.locals || []).map(id => nombre(catalogo.locals, id)),
-    ].filter(Boolean);
-
-    if (nombres.length === 0) return alcance.mode === 'only' ? 'Sin alcance definido' : 'En todos los establecimientos';
-
-    const prefijo = alcance.mode === 'only' ? 'Solo' : 'Todos menos';
-    // Más de tres nombres no entran en una línea y dejan de ser legibles.
-    const texto = nombres.length > 3
-        ? `${nombres.slice(0, 3).join(', ')} y ${nombres.length - 3} más`
-        : nombres.join(', ');
-
-    return `${prefijo} ${texto}`;
-};
-
-
 /** Una regla vacía, la que abre el formulario al crear. */
 export const reglaNueva = () => ({
     name: '',
@@ -95,7 +66,6 @@ export const reglaNueva = () => ({
     alertsRequired: 1,
     bonusAwarded: { day: 1, night: 1 },
     bonusCategory: null,
-    scope: { mode: 'all', franchises: [], locals: [] },
     overrides: [],
     active: true,
 });
@@ -117,11 +87,6 @@ export const reglaParaFormulario = (regla) => ({
     bonusAwarded: {
         day: regla.bonusAwarded?.day ?? 1,
         night: regla.bonusAwarded?.night ?? 1,
-    },
-    scope: {
-        mode: regla.scope?.mode || 'all',
-        franchises: regla.scope?.franchises || [],
-        locals: regla.scope?.locals || [],
     },
     overrides: (regla.overrides || []).map(o => ({
         franchise: o.franchise || null,

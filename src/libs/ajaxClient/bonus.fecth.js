@@ -145,23 +145,6 @@ export const updateBonusRule = async (id, body) => {
 
 
 /**
- * Cambia SOLO dónde aplica una regla.
- *
- * Endpoint aparte y no el PUT completo por una razón concreta: aquél REEMPLAZA
- * la regla entera y rellena con valores por defecto lo que no venga. Mandar
- * `{ name, scope }` dejaría `alertsRequired` en 1, los bonos en 1/1, la
- * categoría en null y las excepciones vacías — sin un solo error, y la regla
- * pasaría a pagar otra cosa.
- *
- * @param {{ mode: 'all'|'only'|'except', franchises: string[], locals: string[] }} scope
- */
-export const patchBonusRuleScope = async (id, scope) => {
-    const response = await axiosInstance.patch(`/bonus/rules/id=${id}/scope`, scope);
-    return response.data?.rule;
-};
-
-
-/**
  * Borra una regla.
  *
  * El servidor responde 409 si alguna alerta la usa; ahí hay que desactivarla en
@@ -174,14 +157,21 @@ export const deleteBonusRule = async (id) => {
 
 
 /**
- * Le asigna la regla a una alerta, o se la quita con `null`.
+ * Escribe las asignaciones de una alerta: la lista COMPLETA de {regla, alcance}.
+ *
+ * Es una lista porque la misma alerta puede ir con reglas distintas según el
+ * establecimiento. Y es la lista completa y no un delta para que el servidor
+ * pueda validar el conjunto —dos asignaciones generales serían ambiguas—.
+ * Lista vacía es válida: "esta alerta no bonifica".
  *
  * Endpoint propio y no el PUT general de menú: aquél exige SUPER usuario y esto
  * lo hace un administrador. Además marca `bonusReviewed`, que es lo que separa
  * "no bonifica" de "nadie la miró todavía".
+ *
+ * @param {Array<{ rule: string, scope: { mode, franchises, locals } }>} bonusRules
  */
-export const setMenuBonusRule = async (menuId, bonusRule) => {
-    const response = await axiosInstance.put(`/bonus/menu/id=${menuId}`, { bonusRule });
+export const setMenuBonusRules = async (menuId, bonusRules) => {
+    const response = await axiosInstance.put(`/bonus/menu/id=${menuId}`, { bonusRules });
     return response.data?.menu;
 };
 
@@ -202,7 +192,17 @@ export const getMenusForBonus = async () => {
         es: m.es,
         en: m.en,
         category: m.category || null,
-        bonusRule: m.bonusRule || null,
+        // Las asignaciones, con la regla como ID (sin popular): la pantalla las
+        // cruza con la lista de reglas que ya tiene, y así el catálogo de
+        // alertas no arrastra copias de cada regla.
+        bonusRules: (m.bonusRules || []).map(a => ({
+            rule: String(a.rule?._id ?? a.rule),
+            scope: {
+                mode: a.scope?.mode || 'all',
+                franchises: (a.scope?.franchises || []).map(String),
+                locals: (a.scope?.locals || []).map(String),
+            },
+        })),
         bonusReviewed: m.bonusReviewed === true,
     }));
 };

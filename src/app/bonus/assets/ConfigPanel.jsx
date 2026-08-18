@@ -18,20 +18,20 @@ import { reglaNueva, reglaParaFormulario } from './bonusRuleFormat';
  *
  * EL MAPA ES LA PANTALLA
  *
- * No hay una lista de alertas con un selector al lado: hay cajas y cables. Una
- * regla en el centro, las alertas que la usan a la izquierda, y a dónde aplica a
- * la derecha. Tender un cable asigna, arrastrarlo reasigna, soltarlo afuera
- * desconecta — y cada gesto es una escritura contra los endpoints que ya
- * existen.
+ * No hay una lista de alertas con un selector al lado: hay cajas y cables. La
+ * alerta a la izquierda, DÓNDE aplica en el medio —una caja por asignación— y
+ * la regla de cada una a la derecha. Arrastrar un cable reapunta la asignación,
+ * soltarlo afuera la borra, y cada gesto manda la lista completa al servidor,
+ * que la valida junta.
  *
- * La razón de fondo es que el reglamento se lee así: una condición y las alertas
- * que la cumplen. Una lista alfabética con un desplegable por fila obligaba a
- * recomponer esa forma en la cabeza, alerta por alerta.
+ * Se entra por la alerta y no por la regla porque la misma alerta puede ir con
+ * reglas distintas según el establecimiento — y eso solo se ve poniendo la
+ * alerta primero y desplegando sus alcances.
  */
 export default function ConfigPanel({
     ajustes, cargandoAjustes, guardandoAjustes, onGuardarAjustes,
     reglas, alertas, alcance, cargando, guardando, puedeEditar,
-    onGuardarRegla, onBorrarRegla, onAsignarRegla, onCambiarAlcance,
+    onGuardarRegla, onBorrarRegla, onEscribirAsignaciones,
 }) {
 
     // null = viendo el mapa. Un objeto = editando esa regla (sin `_id` si es nueva).
@@ -105,8 +105,7 @@ export default function ConfigPanel({
                 cargando={cargando}
                 guardando={guardando}
                 puedeEditar={puedeEditar}
-                onAsignarRegla={onAsignarRegla}
-                onCambiarAlcance={onCambiarAlcance}
+                onEscribirAsignaciones={onEscribirAsignaciones}
                 onEditarRegla={regla => setEditando(reglaParaFormulario(regla))}
                 onNuevaRegla={() => setEditando(reglaNueva())}
             />

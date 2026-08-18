@@ -56,7 +56,7 @@ const calcular = (ajustes, reglas = [], alertas = []) => {
     const exchangeRate = typeof ajustes?.exchangeRate === 'number' ? ajustes.exchangeRate : null;
 
     const activas = reglas.filter(r => r.active !== false);
-    const bonifican = alertas.filter(a => a.bonusRule);
+    const bonifican = alertas.filter(a => a.bonusRules?.length);
     const sinRevisar = alertas.filter(a => !a.bonusReviewed);
 
     // Reglas dadas de baja que todavía tienen alertas apuntándoles. Importa más

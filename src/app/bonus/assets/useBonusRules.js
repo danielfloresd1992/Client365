@@ -3,8 +3,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { setConfigModal } from '@/store/slices/globalModal';
 import {
-    getBonusRules, createBonusRule, updateBonusRule, deleteBonusRule, patchBonusRuleScope,
-    getMenusForBonus, setMenuBonusRule, getScopeOptions,
+    getBonusRules, createBonusRule, updateBonusRule, deleteBonusRule,
+    getMenusForBonus, setMenuBonusRules, getScopeOptions,
 } from '@/libs/ajaxClient/bonus.fecth';
 
 /**
@@ -101,69 +101,62 @@ export default function useBonusRules() {
 
 
     /**
-     * Le asigna la regla a una alerta, o se la quita con `null`.
+     * Escribe las asignaciones de una alerta: la lista completa de {regla, alcance}.
      *
-     * Se pinta antes de que responda el servidor porque son decenas de alertas
-     * seguidas y esperar cada una haría el trabajo insoportable. Si falla, la
-     * fila vuelve a como estaba: dejarla mostrando algo que no se guardó sería
-     * peor que la demora.
+     * Es UNA operación para todo lo que toca las asignaciones —tender un cable,
+     * moverlo, soltarlo, cambiar el alcance de una asignación— porque el
+     * servidor recibe la lista completa y la valida junta. Cada gesto del mapa
+     * arma la lista siguiente y la manda entera.
+     *
+     * Se pinta al confirmar el servidor y no antes: las asignaciones deciden
+     * qué regla paga y dónde, y mostrar un cambio que después se rechaza es peor
+     * que la espera de un segundo. El 400 más probable es un alcance a medias
+     * —modo 'only' sin ningún establecimiento— y el mapa lo evita antes de
+     * llegar acá.
+     *
+     * @param {string} menuId
+     * @param {Array<{ rule: string, scope: object }>} bonusRules
      */
-    const asignarRegla = useCallback(async (menuId, ruleId) => {
-        const anterior = alertas?.find(a => String(a._id) === String(menuId));
-
-        setAlertas(previas => previas.map(a => (String(a._id) === String(menuId)
-            ? { ...a, bonusRule: ruleId, bonusReviewed: true }
-            : a)));
-
-        try {
-            await setMenuBonusRule(menuId, ruleId);
-
-            // El contador de uso quedó viejo en las dos reglas involucradas.
-            setReglas(previas => (previas ?? []).map(r => {
-                const id = String(r._id);
-                if (id === String(ruleId)) return { ...r, inUse: (r.inUse || 0) + 1 };
-                if (id === String(anterior?.bonusRule)) return { ...r, inUse: Math.max(0, (r.inUse || 0) - 1) };
-                return r;
-            }));
-            return true;
-        }
-        catch (error) {
-            setAlertas(previas => previas.map(a => (String(a._id) === String(menuId) ? anterior : a)));
-            avisar('error', 'No se pudo asignar', mensajeDeError(error, 'Ha ocurrido un error.'));
-            return false;
-        }
-    }, [alertas, avisar]);
-
-
-    /**
-     * Cambia dónde aplica una regla.
-     *
-     * Va por su propio endpoint y no por el de guardar la regla: aquél reemplaza
-     * el documento entero, así que mandar solo el alcance dejaría los bonos, la
-     * categoría y las excepciones en sus valores por defecto — sin error, y la
-     * regla pasaría a pagar otra cosa.
-     *
-     * Se pinta al confirmar el servidor y no antes: el alcance decide en qué
-     * establecimientos se paga, y mostrarlo cambiado antes de que se guarde es
-     * peor que la espera de un segundo.
-     */
-    const cambiarAlcance = useCallback(async (ruleId, scope) => {
+    const escribirAsignaciones = useCallback(async (menuId, bonusRules) => {
         setGuardando(true);
         try {
-            const guardada = await patchBonusRuleScope(ruleId, scope);
-            setReglas(previas => (previas ?? []).map(r => (
-                String(r._id) === String(ruleId) ? { ...r, ...guardada } : r
-            )));
+            const menu = await setMenuBonusRules(menuId, bonusRules);
+
+            setAlertas(previas => (previas ?? []).map(a => (String(a._id) === String(menuId)
+                ? {
+                    ...a,
+                    bonusRules: (menu?.bonusRules ?? bonusRules).map(x => ({
+                        rule: String(x.rule?._id ?? x.rule),
+                        scope: {
+                            mode: x.scope?.mode || 'all',
+                            franchises: (x.scope?.franchises || []).map(String),
+                            locals: (x.scope?.locals || []).map(String),
+                        },
+                    })),
+                    bonusReviewed: true,
+                }
+                : a)));
+
+            // El uso se vuelve a contar sobre las alertas ya actualizadas: una
+            // alerta con la misma regla en dos alcances cuenta una vez.
+            setReglas(previas => (previas ?? []).map(r => ({
+                ...r,
+                inUse: (alertas ?? []).filter(a => (String(a._id) === String(menuId)
+                    ? bonusRules.some(x => String(x.rule) === String(r._id))
+                    : (a.bonusRules || []).some(x => String(x.rule) === String(r._id))
+                )).length,
+            })));
+
             return true;
         }
         catch (error) {
-            avisar('error', 'No se pudo cambiar el alcance', mensajeDeError(error, 'Ha ocurrido un error.'));
+            avisar('error', 'No se pudo guardar la asignación', mensajeDeError(error, 'Ha ocurrido un error.'));
             return false;
         }
         finally {
             setGuardando(false);
         }
-    }, [avisar]);
+    }, [alertas, avisar]);
 
 
     return {
@@ -174,7 +167,6 @@ export default function useBonusRules() {
         guardando,
         guardarRegla,
         borrarRegla,
-        asignarRegla,
-        cambiarAlcance,
+        escribirAsignaciones,
     };
 }
