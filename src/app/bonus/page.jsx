@@ -9,7 +9,7 @@ import ConfigPanel from './assets/ConfigPanel';
 import InfoPanel from './assets/InfoPanel';
 
 /**
- * /user/bonos — SISTEMA DE BONIFICACIÓN.
+ * /bonus — SISTEMA DE BONIFICACIÓN.
  *
  * Dos pestañas, separadas por lo que se hace en cada una y no por el tema:
  *

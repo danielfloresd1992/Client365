@@ -53,7 +53,12 @@ function NavRow({ item, active }: { item: NavItem; active: boolean }) {
             aria-current={active ? 'page' : undefined}
             className={`${ROW} ${active ? ROW_ACTIVE : ROW_INACTIVE}`}
         >
-            <span className={`${ICON_BOX} ${active ? 'brightness-0 invert' : ''}`}><NavigationIcon size={18} /></span>
+            {/* `brightness-0 invert` pinta el icono de blanco sobre el verde
+                activo. La estrella dorada queda fuera: trae su propio color, y
+                invertirla la dejaría como un borrón blanco igual al resto. */}
+            <span className={`${ICON_BOX} ${active && item.icon !== 'star' ? 'brightness-0 invert' : ''}`}>
+                <NavigationIcon size={18} />
+            </span>
             <span className={`${LABEL} ${active ? 'text-white' : ''}`}>{item.name}</span>
         </Link>
     );

@@ -1,3 +1,5 @@
+import type { ReactElement } from 'react';
+import type { IconProps } from '@/types/icon';
 import { createIcon } from './createIcon';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -75,3 +77,64 @@ export const StoreIcon = createIcon('StoreIcon', (
         <path d='M2 7h20' />
     </>
 ));
+
+/**
+ * ESTRELLA DORADA — el sistema de bonificación.
+ *
+ * Es el único icono del set que trae su propio color en vez de heredar
+ * `currentColor`, y es a propósito: el bono es lo que se le paga a alguien, y
+ * que su entrada del menú se distinga del resto es la señal.
+ *
+ * El brillo lo hace un destello que cruza la estrella una vez por segundo,
+ * recortado a su silueta. La animación vive en styles.css —`.estrella-brillo`—
+ * porque ahí está el `prefers-reduced-motion` que la apaga para quien pidió
+ * menos movimiento.
+ *
+ * Los `id` del degradado y el recorte llevan prefijo propio: se montan una sola
+ * vez en el dock, pero un id repetido en el documento haría que otro SVG tomara
+ * este relleno sin que nadie entienda por qué.
+ */
+export const StarIcon = ({ size = 24, ...props }: IconProps): ReactElement => (
+    <svg
+        xmlns='http://www.w3.org/2000/svg'
+        width={size}
+        height={size}
+        viewBox='0 0 24 24'
+        fill='none'
+        {...props}
+    >
+        <defs>
+            <linearGradient id='estrella-oro' x1='4' y1='2' x2='20' y2='22' gradientUnits='userSpaceOnUse'>
+                <stop offset='0' stopColor='#f4d03f' />
+                <stop offset='.55' stopColor='#d9a441' />
+                <stop offset='1' stopColor='#b8860b' />
+            </linearGradient>
+
+            {/* El destello: transparente en los bordes para que entre y salga
+                sin un corte duro. */}
+            <linearGradient id='estrella-destello' x1='0' y1='0' x2='1' y2='0'>
+                <stop offset='0' stopColor='#fff' stopOpacity='0' />
+                <stop offset='.5' stopColor='#fff' stopOpacity='.85' />
+                <stop offset='1' stopColor='#fff' stopOpacity='0' />
+            </linearGradient>
+
+            <clipPath id='estrella-silueta'>
+                <path d='M12 2.6l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.42l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.95z' />
+            </clipPath>
+        </defs>
+
+        <path
+            d='M12 2.6l2.9 5.88 6.49.95-4.7 4.58 1.11 6.46L12 17.42l-5.8 3.05 1.11-6.46-4.7-4.58 6.49-.95z'
+            fill='url(#estrella-oro)'
+            stroke='#a97514'
+            strokeWidth='1'
+            strokeLinejoin='round'
+        />
+
+        <g clipPath='url(#estrella-silueta)'>
+            <rect className='estrella-brillo' x='-14' y='-2' width='10' height='28'
+                fill='url(#estrella-destello)' transform='rotate(18 12 12)' />
+        </g>
+    </svg>
+);
+StarIcon.displayName = 'StarIcon';

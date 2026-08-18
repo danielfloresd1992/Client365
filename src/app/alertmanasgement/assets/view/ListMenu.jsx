@@ -82,7 +82,7 @@ function ListMenu({
     const categorias = listaDeCategorias();
 
     // La bonificación NO se administra desde acá. Ni la categoría ni la regla:
-    // todo eso vive en /user/bonos, en el mapa. Tenerlo repartido entre las dos
+    // todo eso vive en /bonus, en el mapa. Tenerlo repartido entre las dos
     // pantallas era la forma más fácil de que una alerta quedara a medio
     // configurar sin que nadie lo notara.
 

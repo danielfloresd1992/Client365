@@ -13,6 +13,7 @@ export type NavIconKey =
     | 'attendance'
     | 'users'
     | 'bell'
+    | 'star'
     | 'store'
     | 'gear'
     | 'logout';

@@ -16,7 +16,7 @@ import SectionHeader from '../SectionHeader.jsx';
  *
  * ACÁ NO SE CONFIGURA NADA DE BONIFICACIÓN
  *
- * Ni la categoría de bono ni la regla. Todo eso vive en /user/bonos, junto al
+ * Ni la categoría de bono ni la regla. Todo eso vive en /bonus, junto al
  * valor del bono y la tasa: tener la mitad de la configuración en el formulario
  * de la alerta y la otra mitad en otra pantalla era la forma más fácil de que
  * una alerta quedara a medio configurar sin que nadie lo notara.

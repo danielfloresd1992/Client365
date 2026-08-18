@@ -21,7 +21,7 @@ import { CATEGORIAS_OPERATIVAS, listaDeCategorias } from '@/libs/alerts/categori
  *
  * Lo que SÍ se administra es la categoría de bonificación
  * (`BonusRule.bonusCategory`), que se calcula puertas adentro. Vive en el
- * catálogo del servidor y se gestiona en /user/bonos.
+ * catálogo del servidor y se gestiona en /bonus.
  *
  *
  * POR QUÉ EL MAPA VIVE EN UNA VARIABLE DE MÓDULO

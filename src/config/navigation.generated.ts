@@ -38,16 +38,6 @@ export const NAV_SECTIONS: NavSection[] = [
                 "name": "Gestión de perfiles",
                 "path": "/user/config",
                 "icon": "users"
-            },
-            {
-                "name": "Sistema de bonificación",
-                "path": "/user/bonos",
-                "icon": "bell"
-            },
-            {
-                "name": "Bonos por empleado",
-                "path": "/user/bonificacion",
-                "icon": "bell"
             }
         ]
     },
@@ -63,6 +53,16 @@ export const NAV_SECTIONS: NavSection[] = [
                 "name": "Establecimientos",
                 "path": "/clients&manasgement",
                 "icon": "store"
+            }
+        ]
+    },
+    {
+        "label": "Bonificación",
+        "items": [
+            {
+                "name": "Sistema de bonificación",
+                "path": "/bonus",
+                "icon": "star"
             }
         ]
     }

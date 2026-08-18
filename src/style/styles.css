@@ -8592,3 +8592,31 @@ body .jarvis-cell-highlight::after {
     body .jarvis-row-highlight::after,
     body .jarvis-cell-highlight::after { animation: none; opacity: 1; }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+   EL BRILLO DE LA ESTRELLA DEL MENÚ
+   ══════════════════════════════════════════════════════════════════════
+   Un destello que cruza la estrella dorada de /bonus una vez por segundo.
+
+   Se anima `transform` y nada más: es lo único que el navegador puede mover
+   sin recalcular el layout, y esto corre siempre, en todas las pantallas.
+
+   El recorrido dura una fracción del ciclo y el resto es espera. Un destello
+   continuo se vuelve ruido de fondo en dos minutos; uno que aparece y se va
+   sigue llamando la atención. */
+@keyframes estrellaBrillo {
+    0%        { transform: rotate(18deg) translateX(0); }
+    22%, 100% { transform: rotate(18deg) translateX(52px); }
+}
+
+.estrella-brillo {
+    animation: estrellaBrillo 1s linear infinite;
+    transform-origin: 12px 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* Sin movimiento: la estrella se queda dorada y quieta, que es lo que
+       importa. El brillo era el adorno, no la información. */
+    .estrella-brillo { animation: none; opacity: 0; }
+}
