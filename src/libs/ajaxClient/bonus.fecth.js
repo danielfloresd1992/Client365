@@ -232,6 +232,9 @@ export const getScopeOptions = async () => {
             _id: l._id,
             name: l.name || l.es || 'Sin nombre',
             franchise: l?.franchiseReference?.franchise?._id || null,
+            // Cómo se monitorea: 'perimeter', 'analytical' o las dos. Es lo que
+            // separa los perimetrales de los analíticos en el selector de alcance.
+            typeMonitoring: l.typeMonitoring || null,
         })),
         franchises: [...porMarca.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };

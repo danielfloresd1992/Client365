@@ -46,9 +46,9 @@ export default function BonusMap({
 
     const porId = useMemo(() => new Map((reglas || []).map(r => [String(r._id), r])), [reglas]);
 
-    // El catálogo de categorías, para pintar ícono y color en cada regla. Con
-    // las inactivas: una regla cuya categoría se dio de baja tiene que seguir
-    // mostrándola, no quedar en blanco.
+    // El catálogo de categorías, para pintar ícono y color en cada regla y en
+    // el cable que le llega. Con las inactivas: una regla cuya categoría se dio
+    // de baja tiene que seguir mostrándola, no quedar en blanco.
     const { categorias } = useBonusCategories(true);
     const categoriaDe = useMemo(() => new Map(categorias.map(c => [c.value, c])), [categorias]);
 
@@ -92,15 +92,21 @@ export default function BonusMap({
         asignaciones.forEach((asig, i) => {
             const dAlc = caja(`[data-nodo="alcance-${i}"]`);
             const d1 = curva(dAlerta, dAlc);
-            if (d1) nuevos.push({ id: `a-${i}`, d: d1 });
+            if (d1) nuevos.push({ id: `a-${i}`, d: d1, color: COLOR_ALCANCE });
 
             // El cable que se está arrastrando no se dibuja fijo: lo dibuja la goma.
             if (tirando?.indice === i) return;
             const d2 = curva(dAlc, caja(`[data-nodo="regla-${asig.rule}"]`));
-            if (d2) nuevos.push({ id: `r-${i}`, d: d2 });
+            if (d2) {
+                // El color de la categoría de la regla a la que apunta. Sin
+                // categoría, el gris neutro: un color inventado mentiría.
+                const regla = porId.get(String(asig.rule));
+                const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
+                nuevos.push({ id: `r-${i}`, d: d2, color: cat?.color || COLOR_NEUTRO });
+            }
         });
         setCables(nuevos);
-    }, [activa, asignaciones, tirando?.indice]);
+    }, [activa, asignaciones, tirando?.indice, porId, categoriaDe]);
 
     useEffect(() => { trazar(); }, [trazar]);
     useEffect(() => {
@@ -273,6 +279,15 @@ export default function BonusMap({
  */
 const CAJA = 'min-h-[190px] flex flex-col';
 
+/**
+ * Los colores de los cables. Cada cable toma el de la caja a la que APUNTA: el
+ * que llega al alcance va en su verde, el que llega a la regla va en el color
+ * de la categoría de esa regla — así se lee de un vistazo a qué categoría va
+ * cada asignación sin leer la caja.
+ */
+const COLOR_ALCANCE = '#29c50c';
+const COLOR_NEUTRO = '#9aa6b5';
+
 const Marco = ({ children }) => (
     <section className='bg-white rounded-xl shadow-sm border overflow-hidden'>{children}</section>
 );
@@ -301,13 +316,20 @@ function Cables({ cables, tirando, lienzo }) {
     return (
         <svg className='absolute inset-0 w-full h-full pointer-events-none z-0 overflow-visible' aria-hidden='true'>
             <defs>
-                <marker id='punta-bono' viewBox='0 0 10 10' refX='9' refY='5'
-                    markerWidth='6.5' markerHeight='6.5' orient='auto-start-reverse'>
-                    <path d='M0,0 L10,5 L0,10 z' fill='#9aa6b5' />
-                </marker>
+                {/* Un marcador por color en juego. Sería más limpio uno solo con
+                    `fill='context-stroke'`, pero Chrome lo trae desde la 110 y
+                    Safari desde la 17.4: en un navegador viejo la punta saldría
+                    negra. Con un marcador por color funciona en todos. */}
+                {[...new Set(cables.map(c => c.color))].map(color => (
+                    <marker key={color} id={`punta-${color.replace('#', '')}`} viewBox='0 0 10 10' refX='9' refY='5'
+                        markerWidth='6.5' markerHeight='6.5' orient='auto-start-reverse'>
+                        <path d='M0,0 L10,5 L0,10 z' fill={color} />
+                    </marker>
+                ))}
             </defs>
             {cables.map(c => (
-                <path key={c.id} d={c.d} fill='none' stroke='#9aa6b5' strokeWidth='2.5' markerEnd='url(#punta-bono)' />
+                <path key={c.id} d={c.d} fill='none' stroke={c.color} strokeWidth='2.5'
+                    markerEnd={`url(#punta-${c.color.replace('#', '')})`} />
             ))}
             {goma && <path d={goma} fill='none' stroke='#29c50c' strokeWidth='2.5' strokeDasharray='6 5' />}
         </svg>
@@ -559,7 +581,7 @@ function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar,
                     ) : (
                         <>
                             <Grupo titulo='Marcas' items={catalogo.franchises} clave='franchises' tildado={tildado} alternar={alternar} />
-                            <Grupo titulo='Establecimientos' items={catalogo.locals} clave='locals' tildado={tildado} alternar={alternar} />
+                            <Establecimientos catalogo={catalogo} tildado={tildado} alternar={alternar} />
                         </>
                     )}
                 </div>
@@ -575,6 +597,47 @@ function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar,
                 </div>
             </div>
         </div>
+    );
+}
+
+/**
+ * Los establecimientos, organizados como se piensan: los PERIMETRALES en un
+ * grupo propio, y los ANALÍTICOS por marca. Es la división que hace el
+ * reglamento —perimetrales y analíticos son tarifas distintas— y con la lista
+ * plana de setenta locales había que buscar uno por uno.
+ *
+ * `analytical and perimeter` cuenta como analítico: tiene analítica, y es
+ * ahí donde entra en el reglamento.
+ */
+function Establecimientos({ catalogo, tildado, alternar }) {
+    const grupos = useMemo(() => {
+        const perimetrales = [];
+        const porMarca = new Map();
+
+        for (const l of catalogo.locals || []) {
+            if (l.typeMonitoring === 'perimeter') { perimetrales.push(l); continue; }
+            const marca = l.franchise ? String(l.franchise) : '__sin';
+            if (!porMarca.has(marca)) porMarca.set(marca, []);
+            porMarca.get(marca).push(l);
+        }
+
+        const nombreDeMarca = id => (catalogo.franchises || []).find(f => String(f._id) === id)?.name || 'Sin marca';
+        const analiticos = [...porMarca.entries()]
+            .map(([id, locales]) => ({ titulo: nombreDeMarca(id), locales }))
+            .sort((a, b) => a.titulo.localeCompare(b.titulo));
+
+        return { perimetrales, analiticos };
+    }, [catalogo]);
+
+    return (
+        <>
+            {grupos.perimetrales.length > 0 && (
+                <Grupo titulo='Perimetrales' items={grupos.perimetrales} clave='locals' tildado={tildado} alternar={alternar} />
+            )}
+            {grupos.analiticos.map(g => (
+                <Grupo key={g.titulo} titulo={`Analíticos · ${g.titulo}`} items={g.locales} clave='locals' tildado={tildado} alternar={alternar} />
+            ))}
+        </>
     );
 }
 
