@@ -232,6 +232,10 @@ export const getScopeOptions = async () => {
             _id: l._id,
             name: l.name || l.es || 'Sin nombre',
             franchise: l?.franchiseReference?.franchise?._id || null,
+            // Se conserva entera y no solo el id: es la clave con la que agrupa
+            // `groupByFranchiseComprehensive`, el parser que ya usa el resto de
+            // la app. Aplanarla obligaría a reagrupar a mano acá.
+            franchiseReference: l.franchiseReference || null,
             // Cómo se monitorea: 'perimeter', 'analytical' o las dos. Es lo que
             // separa los perimetrales de los analíticos en el selector de alcance.
             typeMonitoring: l.typeMonitoring || null,

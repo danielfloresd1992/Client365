@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { CATEGORIAS_OPERATIVAS } from '@/libs/alerts/categories';
 import { iconOf } from '@/libs/alerts/categoryIcons.js';
 import useBonusCategories from '@/hook/useBonusCategories.js';
+import { agruparParaSelector } from '@/libs/parser/estableshment';
 import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './bonusRuleFormat';
 
 /**
@@ -601,33 +602,16 @@ function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar,
 }
 
 /**
- * Los establecimientos, organizados como se piensan: los PERIMETRALES en un
- * grupo propio, y los ANALÍTICOS por marca. Es la división que hace el
- * reglamento —perimetrales y analíticos son tarifas distintas— y con la lista
- * plana de setenta locales había que buscar uno por uno.
+ * Los establecimientos como se piensan: los PERIMETRALES en un grupo propio y
+ * los ANALÍTICOS por marca. Es la división que hace el reglamento —son tarifas
+ * distintas—, y con setenta locales en una lista plana había que buscar uno
+ * por uno.
  *
- * `analytical and perimeter` cuenta como analítico: tiene analítica, y es
- * ahí donde entra en el reglamento.
+ * El armado vive en libs/parser/estableshment.js, junto al agrupador por
+ * franquicia que ya usa el resto de la app.
  */
 function Establecimientos({ catalogo, tildado, alternar }) {
-    const grupos = useMemo(() => {
-        const perimetrales = [];
-        const porMarca = new Map();
-
-        for (const l of catalogo.locals || []) {
-            if (l.typeMonitoring === 'perimeter') { perimetrales.push(l); continue; }
-            const marca = l.franchise ? String(l.franchise) : '__sin';
-            if (!porMarca.has(marca)) porMarca.set(marca, []);
-            porMarca.get(marca).push(l);
-        }
-
-        const nombreDeMarca = id => (catalogo.franchises || []).find(f => String(f._id) === id)?.name || 'Sin marca';
-        const analiticos = [...porMarca.entries()]
-            .map(([id, locales]) => ({ titulo: nombreDeMarca(id), locales }))
-            .sort((a, b) => a.titulo.localeCompare(b.titulo));
-
-        return { perimetrales, analiticos };
-    }, [catalogo]);
+    const grupos = useMemo(() => agruparParaSelector(catalogo.locals), [catalogo.locals]);
 
     return (
         <>
