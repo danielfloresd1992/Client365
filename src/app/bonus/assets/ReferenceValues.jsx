@@ -90,9 +90,9 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
 
     const guardar = () => { if (hayCambios && !hayInvalido) onGuardar(cambios); };
 
-    const hayPie = (hayCambios && !hayInvalido)
-        || (hayInvalido && !cargando && !ajustes?.unreachable)
-        || Boolean(ajustes?.updatedAt);
+    // Los mensajes son pasajeros y solo aparecen cuando hay algo que decir.
+    const hayMensaje = (hayCambios && !hayInvalido)
+        || (hayInvalido && !cargando && !ajustes?.unreachable);
 
     return (
         <section className='bg-white rounded-xl shadow-sm border p-5'>
@@ -174,43 +174,50 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                 </Termino>
             </div>
 
-            {/* ── Estado ─────────────────────────────────────────────
+            {/* ── Lo que va a pasar ──────────────────────────────────
                 Sin nada que decir no se dibuja: una fila vacía deja un hueco
                 que se lee como si faltara algo. */}
-            {hayPie && (
-                <div className='flex flex-wrap items-center gap-x-4 gap-y-2 mt-4'>
-                    {/* Qué se va a mandar, dicho antes de mandarlo: el botón es uno
-                        solo para dos campos y sin esto no se ve cuál se tocó. */}
+            {hayMensaje && (
+                <div className='flex flex-wrap items-center gap-x-4 gap-y-1 mt-4'>
+                    {/* Qué se va a mandar, dicho antes de mandarlo: el botón es
+                        uno solo para dos campos y sin esto no se ve cuál se tocó. */}
                     {hayCambios && !hayInvalido && (
                         <p className='text-[11.5px] font-semibold text-[#1f9a08]'>
                             Se va a actualizar {Object.keys(cambios).length === 2
                                 ? 'el valor del bono y la tasa'
                                 : cambios.pointValue !== undefined ? 'el valor del bono' : 'la tasa'}.
                         </p>
-                )}
+                    )}
 
-                {/* No cuando el servidor no respondió: ahí los campos están
-                    vacíos por eso y no por lo que haya escrito nadie. */}
-                {hayInvalido && !cargando && !ajustes?.unreachable && (
-                    <p className='text-[11.5px] font-semibold text-red-600'>
-                        Los dos valores tienen que ser números mayores o iguales a cero.
-                    </p>
-                )}
+                    {/* No cuando el servidor no respondió: ahí los campos están
+                        vacíos por eso y no por lo que haya escrito nadie. */}
+                    {hayInvalido && !cargando && !ajustes?.unreachable && (
+                        <p className='text-[11.5px] font-semibold text-red-600'>
+                            Los dos valores tienen que ser números mayores o iguales a cero.
+                        </p>
+                    )}
+                </div>
+            )}
+
+            {/* ── Contexto de fondo ──────────────────────────────────
+                La nota y la última actualización comparten renglón: las dos se
+                leen de reojo y en filas separadas gastaban dos renglones para
+                decir algo secundario. En pantallas angostas la fecha baja sola,
+                pegada a la derecha. */}
+            <div className='flex flex-wrap items-baseline gap-x-4 gap-y-1 mt-3'>
+                <p className='text-[11px] text-gray-500 max-w-[80ch]'>
+                    {!puedeEditar
+                        ? 'Solo un administrador puede cambiar estos valores.'
+                        : 'La tasa se carga a mano con la publicada por el Banco Central. Ningún cambio recalcula lo ya pagado: cada novedad conserva el valor con el que se selló.'}
+                </p>
 
                 {ajustes?.updatedAt && (
-                    <p className='text-[11px] text-gray-400 ml-auto'>
+                    <p className='text-[11px] text-gray-400 ml-auto shrink-0'>
                         Última actualización: {new Date(ajustes.updatedAt).toLocaleString('es-VE')}
                         {ajustes.updatedBy?.nameUser ? ` · por ${ajustes.updatedBy.nameUser}` : ''}
                     </p>
                 )}
             </div>
-            )}
-
-            <p className='text-[11px] text-gray-500 mt-3 max-w-[80ch]'>
-                {!puedeEditar
-                    ? 'Solo un administrador puede cambiar estos valores.'
-                    : 'La tasa se carga a mano con la publicada por el Banco Central. Ningún cambio recalcula lo ya pagado: cada novedad conserva el valor con el que se selló.'}
-            </p>
 
             {ajustes?.unreachable && (
                 <p className='text-[11px] text-[#8a5a2b] bg-[#fdf6e7] border border-[#d9a441]/40 rounded-lg px-3 py-2 mt-3'>
