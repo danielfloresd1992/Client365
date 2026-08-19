@@ -117,44 +117,58 @@ export default function useBonusRules() {
      * @param {string} menuId
      * @param {Array<{ rule: string, scope: object }>} bonusRules
      */
-    const escribirAsignaciones = useCallback(async (menuId, bonusRules) => {
-        setGuardando(true);
+    /**
+     * Escribe las asignaciones de una alerta: su interruptor y su lista de
+     * {regla, alcance}.
+     *
+     * OPTIMISTA. Se pinta ANTES de que responda el servidor y se revierte si
+     * falla. Armar una alerta son varios gestos seguidos —marcarla, elegir
+     * dónde, elegir la regla— y esperar la respuesta en cada uno hace que el
+     * mapa parpadee y el trabajo se sienta trabado.
+     *
+     * Es seguro porque lo que el mapa manda ya está validado del lado del
+     * cliente con las mismas reglas del servidor: el único rechazo previsible
+     * sería un fallo de red, y ahí la fila vuelve a como estaba.
+     *
+     * @param {string} menuId
+     * @param {{ bonifies?: boolean|null, bonusRules: Array<{rule, scope}> }} cambios
+     */
+    const escribirAsignaciones = useCallback(async (menuId, cambios) => {
+        const { bonifies = null, bonusRules = [] } = cambios || {};
+
+        // Se guarda cómo estaba para poder volver si el servidor rechaza.
+        const anterior = (alertas ?? []).find(a => String(a._id) === String(menuId));
+
+        const conCambios = (lista) => (lista ?? []).map(a => (String(a._id) === String(menuId)
+            ? { ...a, bonifies, bonusRules, bonusReviewed: true }
+            : a));
+
+        // El uso de cada regla se recuenta sobre la lista ya cambiada: una
+        // alerta con la misma regla en dos alcances cuenta una vez.
+        const recontar = (lista) => (reglasPrevias) => (reglasPrevias ?? []).map(r => ({
+            ...r,
+            inUse: lista.filter(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id))).length,
+        }));
+
+        setAlertas(previas => {
+            const siguientes = conCambios(previas);
+            setReglas(recontar(siguientes));
+            return siguientes;
+        });
+
         try {
-            const menu = await setMenuBonusRules(menuId, bonusRules);
-
-            setAlertas(previas => (previas ?? []).map(a => (String(a._id) === String(menuId)
-                ? {
-                    ...a,
-                    bonusRules: (menu?.bonusRules ?? bonusRules).map(x => ({
-                        rule: String(x.rule?._id ?? x.rule),
-                        scope: {
-                            mode: x.scope?.mode || 'all',
-                            franchises: (x.scope?.franchises || []).map(String),
-                            locals: (x.scope?.locals || []).map(String),
-                        },
-                    })),
-                    bonusReviewed: true,
-                }
-                : a)));
-
-            // El uso se vuelve a contar sobre las alertas ya actualizadas: una
-            // alerta con la misma regla en dos alcances cuenta una vez.
-            setReglas(previas => (previas ?? []).map(r => ({
-                ...r,
-                inUse: (alertas ?? []).filter(a => (String(a._id) === String(menuId)
-                    ? bonusRules.some(x => String(x.rule) === String(r._id))
-                    : (a.bonusRules || []).some(x => String(x.rule) === String(r._id))
-                )).length,
-            })));
-
+            await setMenuBonusRules(menuId, bonusRules, bonifies);
             return true;
         }
         catch (error) {
+            // Vuelve exactamente a como estaba, incluido el conteo de uso.
+            setAlertas(previas => {
+                const siguientes = (previas ?? []).map(a => (String(a._id) === String(menuId) ? anterior : a));
+                setReglas(recontar(siguientes));
+                return siguientes;
+            });
             avisar('error', 'No se pudo guardar la asignación', mensajeDeError(error, 'Ha ocurrido un error.'));
             return false;
-        }
-        finally {
-            setGuardando(false);
         }
     }, [alertas, avisar]);
 

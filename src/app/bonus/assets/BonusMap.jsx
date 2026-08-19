@@ -34,14 +34,17 @@ import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './
  * evita el 400 de "alcance a medias": no se manda nada hasta que esté completo.
  */
 export default function BonusMap({
-    reglas, alertas, alcance, cargando, guardando, puedeEditar,
+    reglas, alertas, alcance, cargando, puedeEditar,
     onEscribirAsignaciones, onEditarRegla, onNuevaRegla,
 }) {
 
-    const [activaId, setActivaId] = useState(null);
-    const [busqueda, setBusqueda] = useState('');
-    const [tirando, setTirando] = useState(null);   // { indice, x, y }  índice de la asignación arrastrada
-    const [editandoAlcance, setEditandoAlcance] = useState(null);   // índice de la asignación cuyo alcance se edita
+    // Qué alertas están puestas en el lienzo. Es estado de PANTALLA, no de
+    // datos: agregar una la trae al mapa, quitarla la saca de la vista y no
+    // toca su configuración.
+    const [enLienzo, setEnLienzo] = useState(null);
+    const [eligiendo, setEligiendo] = useState(false);
+    const [tirando, setTirando] = useState(null);        // { menuId, indice, x, y }
+    const [editandoAlcance, setEditandoAlcance] = useState(null);
     const lienzo = useRef(null);
     const [cables, setCables] = useState([]);
 
@@ -53,27 +56,24 @@ export default function BonusMap({
     const { categorias } = useBonusCategories(true);
     const categoriaDe = useMemo(() => new Map(categorias.map(c => [c.value, c])), [categorias]);
 
-    // La primera alerta con asignaciones se abre sola: un mapa vacío no dice
-    // qué hacer. Si ninguna tiene, la primera del catálogo.
-    const activa = useMemo(() => {
-        const lista = alertas || [];
-        return lista.find(a => String(a._id) === String(activaId))
-            || lista.find(a => a.bonusRules?.length)
-            || lista[0]
-            || null;
-    }, [alertas, activaId]);
+    // Al abrir, el lienzo trae lo que ya está configurado. Después manda lo que
+    // el usuario agregue: no se recalcula sola, o agregar una alerta nueva
+    // reordenaría el mapa bajo el cursor.
+    useEffect(() => {
+        if (enLienzo !== null || !alertas) return;
+        setEnLienzo((alertas.filter(a => a.bonusRules?.length || a.bonifies === true).map(a => String(a._id))));
+    }, [alertas, enLienzo]);
 
-    // Memoizado: `|| []` crearía un array nuevo en cada render y dispararía
-    // el recálculo de cables sin que nada haya cambiado.
-    const asignaciones = useMemo(() => activa?.bonusRules || [], [activa]);
+    const puestas = useMemo(
+        () => (enLienzo || []).map(id => (alertas || []).find(a => String(a._id) === id)).filter(Boolean),
+        [enLienzo, alertas],
+    );
 
 
-    // ── Los cables se calculan sobre las posiciones REALES ────────────
-    // Con las cajas medidas y no con coordenadas fijas, el trazo sigue bien
-    // cuando un nombre envuelve en dos líneas o cambia el ancho de la ventana.
+    // ── Los cables, sobre las posiciones reales de las cajas ──────────
     const trazar = useCallback(() => {
         const base = lienzo.current?.getBoundingClientRect();
-        if (!base || !activa) return setCables([]);
+        if (!base) return setCables([]);
 
         const caja = (sel) => {
             const n = lienzo.current.querySelector(sel);
@@ -87,27 +87,28 @@ export default function BonusMap({
             return `M ${de.x2} ${de.y} C ${de.x2 + dx} ${de.y}, ${a.x1 - dx} ${a.y}, ${a.x1} ${a.y}`;
         };
 
-        const dAlerta = caja('[data-nodo="alerta"]');
         const nuevos = [];
+        puestas.forEach(alerta => {
+            const mid = String(alerta._id);
+            const dAlerta = caja(`[data-nodo="alerta-${mid}"]`);
 
-        asignaciones.forEach((asig, i) => {
-            const dAlc = caja(`[data-nodo="alcance-${i}"]`);
-            const d1 = curva(dAlerta, dAlc);
-            if (d1) nuevos.push({ id: `a-${i}`, d: d1, color: COLOR_ALCANCE });
+            (alerta.bonusRules || []).forEach((asig, i) => {
+                const dAlc = caja(`[data-nodo="alcance-${mid}-${i}"]`);
+                const d1 = curva(dAlerta, dAlc);
+                if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: COLOR_ALCANCE });
 
-            // El cable que se está arrastrando no se dibuja fijo: lo dibuja la goma.
-            if (tirando?.indice === i) return;
-            const d2 = curva(dAlc, caja(`[data-nodo="regla-${asig.rule}"]`));
-            if (d2) {
-                // El color de la categoría de la regla a la que apunta. Sin
-                // categoría, el gris neutro: un color inventado mentiría.
-                const regla = porId.get(String(asig.rule));
-                const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
-                nuevos.push({ id: `r-${i}`, d: d2, color: cat?.color || COLOR_NEUTRO });
-            }
+                // El que se arrastra no se dibuja fijo: lo dibuja la goma.
+                if (tirando?.menuId === mid && tirando?.indice === i) return;
+                const d2 = curva(dAlc, caja(`[data-nodo="regla-${asig.rule}"]`));
+                if (d2) {
+                    const regla = porId.get(String(asig.rule));
+                    const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
+                    nuevos.push({ id: `r-${mid}-${i}`, d: d2, color: cat?.color || COLOR_NEUTRO });
+                }
+            });
         });
         setCables(nuevos);
-    }, [activa, asignaciones, tirando?.indice, porId, categoriaDe]);
+    }, [puestas, tirando, porId, categoriaDe]);
 
     useEffect(() => { trazar(); }, [trazar]);
     useEffect(() => {
@@ -120,81 +121,93 @@ export default function BonusMap({
     }, [trazar]);
 
 
-    // ── Escritura: cada gesto arma la lista siguiente y la manda entera ──
-    const escribir = (siguientes) => onEscribirAsignaciones(activa._id, siguientes);
+    // ── Escritura ─────────────────────────────────────────────────────
+    // Cada gesto arma el estado siguiente de ESA alerta y lo manda. Las demás
+    // no se tocan: el mapa es una vista de relaciones, no un formulario único.
+    const escribir = (alerta, bonusRules, bonifies = true) =>
+        onEscribirAsignaciones(alerta._id, { bonifies, bonusRules });
 
-    /** Cambia con qué regla va la asignación `i`. */
-    const reapuntar = (i, ruleId) => escribir(asignaciones.map((a, j) => (j === i ? { ...a, rule: ruleId } : a)));
+    const reapuntar = (alerta, i, ruleId) =>
+        escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, rule: ruleId } : a)));
 
-    /** Borra la asignación `i`. */
-    const quitar = (i) => escribir(asignaciones.filter((_, j) => j !== i));
+    const quitar = (alerta, i) =>
+        escribir(alerta, (alerta.bonusRules || []).filter((_, j) => j !== i));
 
-    /** Cambia el alcance de la asignación `i`. */
-    const cambiarAlcance = (i, scope) => escribir(asignaciones.map((a, j) => (j === i ? { ...a, scope } : a)));
+    const cambiarAlcance = (alerta, i, scope) =>
+        escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, scope } : a)));
+
+    /** El interruptor. Apagarlo deja las asignaciones donde están: es reversible. */
+    const alternarBonifica = (alerta) =>
+        onEscribirAsignaciones(alerta._id, {
+            bonifies: !(alerta.bonifies === true),
+            bonusRules: alerta.bonusRules || [],
+        });
 
     /**
-     * Suma una asignación con esa regla. El alcance se pregunta después, salvo
-     * que sea la primera: la primera es general por defecto —es lo normal— y
-     * así una alerta simple queda lista con un solo gesto.
+     * Suma una asignación. La primera es general —es lo normal, y así una
+     * alerta simple queda lista de un gesto—; las siguientes preguntan dónde
+     * antes de mandarse, porque una segunda general sería ambigua.
      */
-    const sumar = async (ruleId) => {
-        const yaHayGeneral = asignaciones.some(a => a.scope?.mode === 'all');
-        const nueva = { rule: ruleId, scope: { mode: yaHayGeneral ? 'only' : 'all', franchises: [], locals: [] } };
+    const sumar = (alerta, ruleId) => {
+        const actuales = alerta.bonusRules || [];
+        const hayGeneral = actuales.some(a => a.scope?.mode === 'all');
+        const nueva = { rule: ruleId, scope: { mode: hayGeneral ? 'only' : 'all', franchises: [], locals: [] } };
 
-        if (!yaHayGeneral) return escribir([...asignaciones, nueva]);
-
-        // Con una general ya puesta, la nueva tiene que ser por local o marca —
-        // y no se manda hasta que se elija dónde. Se abre el editor de alcance
-        // sobre una asignación PROVISORIA, en memoria.
-        setEditandoAlcance({ provisoria: nueva });
+        if (!hayGeneral) return escribir(alerta, [...actuales, nueva]);
+        setEditandoAlcance({ alerta, provisoria: nueva });
     };
 
 
     // ── Arrastre ──────────────────────────────────────────────────────
-    const empezar = (e, indice) => {
+    const empezar = (e, menuId, indice) => {
         if (!puedeEditar) return;
         e.preventDefault();
         lienzo.current.setPointerCapture(e.pointerId);
-        setTirando({ indice, x: e.clientX, y: e.clientY });
+        setTirando({ menuId, indice, x: e.clientX, y: e.clientY });
     };
 
     const soltar = async (e) => {
         if (!tirando) return;
         const destino = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-tipo="regla"]');
-        const { indice } = tirando;
+        const { menuId, indice } = tirando;
         setTirando(null);
 
-        // Sobre una regla, la asignación pasa a apuntar ahí. Fuera, se borra.
-        if (destino) await reapuntar(indice, destino.dataset.regla);
-        else await quitar(indice);
+        const alerta = puestas.find(a => String(a._id) === menuId);
+        if (!alerta) return;
+
+        if (destino) await reapuntar(alerta, indice, destino.dataset.regla);
+        else await quitar(alerta, indice);
     };
 
 
     if (cargando) return <Marco><p className='px-5 py-10 text-[13px] text-gray-500'>Cargando el mapa…</p></Marco>;
-
-    if (!(alertas || []).length) {
-        return <Marco><p className='px-5 py-10 text-[13px] text-gray-500'>No hay alertas en el catálogo.</p></Marco>;
-    }
 
     const activasReglas = (reglas || []).filter(r => r.active !== false);
 
     return (
         <>
             <Marco>
-                {/* ── Qué alerta se está mapeando ────────────────────── */}
                 <div className='px-5 pt-4 pb-3 border-b border-gray-100 flex flex-wrap items-center gap-2'>
-                    <span className='text-[10px] font-bold uppercase tracking-wider text-gray-500 mr-1'>Alerta</span>
-                    <SelectorDeAlerta alertas={alertas} activa={activa} busqueda={busqueda}
-                        onBuscar={setBusqueda} onElegir={id => { setActivaId(id); setBusqueda(''); }} />
+                    <div className='min-w-0'>
+                        <h2 className='text-[15px] font-bold text-gray-800 leading-tight'>Mapa de bonificación</h2>
+                        <p className='text-[11.5px] text-gray-500'>
+                            {puestas.length} alerta{puestas.length === 1 ? '' : 's'} en el mapa · {(reglas || []).length} regla{(reglas || []).length === 1 ? '' : 's'}
+                        </p>
+                    </div>
                     {puedeEditar && (
-                        <button type='button' onClick={onNuevaRegla}
-                            className='ml-auto h-8 px-3 rounded-lg text-[11.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
-                            + Regla
-                        </button>
+                        <div className='ml-auto flex gap-2'>
+                            <button type='button' onClick={() => setEligiendo(true)}
+                                className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors'>
+                                + Alerta
+                            </button>
+                            <button type='button' onClick={onNuevaRegla}
+                                className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
+                                + Regla
+                            </button>
+                        </div>
                     )}
                 </div>
 
-                {/* ── El lienzo ──────────────────────────────────────── */}
                 <div ref={lienzo} className='relative bg-gray-50 p-5 overflow-x-auto select-none'
                     onPointerMove={e => tirando && setTirando(t => ({ ...t, x: e.clientX, y: e.clientY }))}
                     onPointerUp={soltar}
@@ -202,42 +215,43 @@ export default function BonusMap({
 
                     <Cables cables={cables} tirando={tirando} lienzo={lienzo} />
 
-                    <div className='relative z-[1] grid gap-y-3 gap-x-16 items-start min-w-[860px]
-                                    grid-cols-[minmax(210px,1fr)_minmax(230px,1fr)_minmax(210px,1fr)]'>
+                    {/* Las alertas con sus alcances a la izquierda, las reglas
+                        en una columna compartida a la derecha: una regla que
+                        usan tres alertas se ve una vez, con tres cables. */}
+                    <div className='relative z-[1] grid gap-x-16 items-start min-w-[900px] grid-cols-[minmax(0,2.1fr)_minmax(220px,1fr)]'>
 
-                        {/* Alerta */}
-                        <div className='flex flex-col gap-3'>
-                            <Rotulo>Alerta · Menu.model</Rotulo>
-                            <NodoAlerta alerta={activa} />
-                        </div>
+                        <div className='flex flex-col gap-5'>
+                            <Rotulo>Alertas · Menu.model  →  dónde aplica</Rotulo>
 
-                        {/* Alcances: uno por asignación */}
-                        <div className='flex flex-col gap-3'>
-                            <Rotulo>Dónde aplica</Rotulo>
-                            {asignaciones.map((asig, i) => (
-                                <NodoAlcance key={i} indice={i} asignacion={asig} catalogo={alcance}
-                                    puedeEditar={puedeEditar} tirandoEsta={tirando?.indice === i}
-                                    onTirar={e => empezar(e, i)}
-                                    onEditar={() => setEditandoAlcance({ indice: i })} />
+                            {puestas.map(alerta => (
+                                <FilaDeAlerta
+                                    key={alerta._id}
+                                    alerta={alerta}
+                                    catalogo={alcance}
+                                    reglas={activasReglas}
+                                    puedeEditar={puedeEditar}
+                                    tirando={tirando}
+                                    onTirar={(e, i) => empezar(e, String(alerta._id), i)}
+                                    onEditarAlcance={i => setEditandoAlcance({ alerta, indice: i })}
+                                    onSumar={ruleId => sumar(alerta, ruleId)}
+                                    onAlternar={() => alternarBonifica(alerta)}
+                                    onSacar={() => setEnLienzo(l => l.filter(x => x !== String(alerta._id)))}
+                                />
                             ))}
-                            {puedeEditar && activasReglas.length > 0 && (
-                                <ElegirRegla reglas={activasReglas} onElegir={sumar}
-                                    etiqueta={asignaciones.length ? '+ Otra regla en otro lugar' : '+ Asignar una regla'} />
-                            )}
-                            {!asignaciones.length && (
-                                <p className='text-[11.5px] text-gray-500'>
-                                    {activa?.bonusReviewed ? 'Se decidió que no bonifica.' : 'Sin asignar todavía.'}
+
+                            {!puestas.length && (
+                                <p className='text-[12.5px] text-gray-500 py-6'>
+                                    El mapa está vacío. Tocá «+ Alerta» para traer una y empezar a conectarla.
                                 </p>
                             )}
                         </div>
 
-                        {/* Reglas */}
                         <div className='flex flex-col gap-3'>
                             <Rotulo>Reglas de bonificación</Rotulo>
                             {(reglas || []).map(r => (
                                 <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
                                     categoria={categoriaDe.get(r.bonusCategory) || null}
-                                    conectada={asignaciones.some(a => String(a.rule) === String(r._id))}
+                                    conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
                                     onEditar={() => onEditarRegla(r)} />
                             ))}
                             {!(reglas || []).length && (
@@ -248,24 +262,66 @@ export default function BonusMap({
                 </div>
             </Marco>
 
+            {eligiendo && (
+                <ElegirAlerta alertas={alertas} enLienzo={enLienzo || []}
+                    onCerrar={() => setEligiendo(false)}
+                    onElegir={id => { setEnLienzo(l => [...l, String(id)]); setEligiendo(false); }} />
+            )}
+
             {editandoAlcance && (
                 <EditorDeAlcance
                     catalogo={alcance}
-                    inicial={editandoAlcance.provisoria?.scope ?? asignaciones[editandoAlcance.indice]?.scope}
-                    yaHayGeneral={asignaciones.some((a, j) => a.scope?.mode === 'all' && j !== editandoAlcance.indice)}
-                    guardando={guardando}
+                    inicial={editandoAlcance.provisoria?.scope
+                        ?? (editandoAlcance.alerta.bonusRules || [])[editandoAlcance.indice]?.scope}
+                    yaHayGeneral={(editandoAlcance.alerta.bonusRules || [])
+                        .some((a, j) => a.scope?.mode === 'all' && j !== editandoAlcance.indice)}
                     onCerrar={() => setEditandoAlcance(null)}
                     onGuardar={async (scope) => {
-                        if (editandoAlcance.provisoria) {
-                            await escribir([...asignaciones, { ...editandoAlcance.provisoria, scope }]);
-                        } else {
-                            await cambiarAlcance(editandoAlcance.indice, scope);
-                        }
+                        const { alerta, provisoria, indice } = editandoAlcance;
+                        if (provisoria) await escribir(alerta, [...(alerta.bonusRules || []), { ...provisoria, scope }]);
+                        else await cambiarAlcance(alerta, indice, scope);
                         setEditandoAlcance(null);
                     }}
                 />
             )}
         </>
+    );
+}
+
+
+/**
+ * Una alerta con sus alcances, en una fila.
+ *
+ * La caja de la alerta a la izquierda y sus asignaciones a la derecha, alineadas
+ * arriba. Cada fila es independiente: agregar o tocar una alerta no mueve nada
+ * de las demás — el mapa es una vista de relaciones, no un formulario único.
+ */
+function FilaDeAlerta({
+    alerta, catalogo, reglas, puedeEditar, tirando,
+    onTirar, onEditarAlcance, onSumar, onAlternar, onSacar,
+}) {
+    const asignaciones = alerta.bonusRules || [];
+    const mid = String(alerta._id);
+
+    return (
+        <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
+            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} onAlternar={onAlternar} onSacar={onSacar} />
+
+            <div className='flex flex-col gap-3'>
+                {asignaciones.map((asig, i) => (
+                    <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
+                        puedeEditar={puedeEditar}
+                        tirandoEsta={tirando?.menuId === mid && tirando?.indice === i}
+                        onTirar={e => onTirar(e, i)}
+                        onEditar={() => onEditarAlcance(i)} />
+                ))}
+
+                {puedeEditar && reglas.length > 0 && (
+                    <ElegirRegla reglas={reglas} onElegir={onSumar}
+                        etiqueta={asignaciones.length ? '+ Otro lugar' : '+ Asignar una regla'} />
+                )}
+            </div>
+        </div>
     );
 }
 
@@ -304,7 +360,7 @@ function Cables({ cables, tirando, lienzo }) {
 
     let goma = null;
     if (tirando && base) {
-        const n = lienzo.current.querySelector(`[data-nodo="alcance-${tirando.indice}"]`);
+        const n = lienzo.current.querySelector(`[data-nodo="alcance-${tirando.menuId}-${tirando.indice}"]`);
         if (n) {
             const r = n.getBoundingClientRect();
             const x1 = r.right - base.left, y1 = r.top - base.top + r.height / 2;
@@ -338,55 +394,90 @@ function Cables({ cables, tirando, lienzo }) {
 }
 
 
-/** Buscar y elegir la alerta que se mapea. */
-function SelectorDeAlerta({ alertas, activa, busqueda, onBuscar, onElegir }) {
-    const [abierto, setAbierto] = useState(false);
+/**
+ * Traer una alerta al lienzo.
+ *
+ * Las que ya están puestas salen deshabilitadas: sumarlas de nuevo duplicaría
+ * su fila y el mapa mostraría dos veces la misma relación.
+ */
+function ElegirAlerta({ alertas, enLienzo, onCerrar, onElegir }) {
+    const [busqueda, setBusqueda] = useState('');
+    const puestas = useMemo(() => new Set(enLienzo.map(String)), [enLienzo]);
 
     const visibles = useMemo(() => {
         const texto = busqueda.trim().toLowerCase();
         return (alertas || [])
             .filter(a => !texto || `${a.es || ''} ${a.en || ''}`.toLowerCase().includes(texto))
             .sort((a, b) => (a.es || '').localeCompare(b.es || ''))
-            .slice(0, 40);
+            .slice(0, 60);
     }, [alertas, busqueda]);
 
     return (
-        <div className='relative flex-1 min-w-[240px] max-w-[460px]'>
-            <input type='search' value={abierto ? busqueda : (activa?.es || activa?.en || '')}
-                onFocus={() => setAbierto(true)}
-                onBlur={() => setTimeout(() => setAbierto(false), 150)}
-                onChange={e => onBuscar(e.target.value)}
-                placeholder='Buscar alerta…'
-                className='h-9 w-full px-3 rounded-lg border border-gray-300 text-[13px] font-semibold text-gray-800
-                           placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#29c50c]/40 focus:border-[#29c50c]' />
-            {abierto && (
-                <ul className='absolute z-20 mt-1 w-full max-h-[300px] overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg p-1'>
-                    {visibles.map(a => (
-                        <li key={a._id}>
-                            <button type='button' onMouseDown={() => onElegir(a._id)}
-                                className='w-full text-left flex items-center gap-2 px-3 py-2 rounded-md hover:bg-[#29c50c]/10 transition-colors'>
-                                {!a.bonusReviewed && <span className='w-1.5 h-1.5 rounded-full bg-[#d9a441]' title='Sin revisar' />}
-                                <span className='flex-1 text-[12.5px] text-gray-800'>{a.es || a.en}</span>
-                                <span className='text-[10.5px] text-gray-500'>
-                                    {a.bonusRules?.length ? `${a.bonusRules.length} regla${a.bonusRules.length === 1 ? '' : 's'}` : ''}
-                                </span>
-                            </button>
-                        </li>
-                    ))}
-                    {!visibles.length && <li className='px-3 py-4 text-[12px] text-gray-500'>Ninguna coincide.</li>}
+        <div className='fixed inset-0 z-50 grid place-items-center p-4 bg-slate-900/50' onClick={onCerrar}>
+            <div className='bg-white rounded-2xl shadow-xl w-full max-w-[520px] max-h-[80vh] flex flex-col'
+                onClick={e => e.stopPropagation()}>
+                <div className='px-5 pt-4 pb-3 border-b border-gray-100'>
+                    <h3 className='text-[15px] font-bold text-gray-800'>Traer una alerta al mapa</h3>
+                    <p className='text-[11.5px] text-gray-500 mt-0.5'>
+                        Se suma al lienzo sin tocar las que ya están.
+                    </p>
+                    <input type='search' value={busqueda} onChange={e => setBusqueda(e.target.value)}
+                        placeholder='Buscar alerta…' autoFocus
+                        className='h-9 w-full mt-3 px-3 rounded-lg border border-gray-300 text-[13px] text-gray-700
+                                   placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#29c50c]/40 focus:border-[#29c50c]' />
+                </div>
+
+                <ul className='flex-1 min-h-0 overflow-y-auto p-2'>
+                    {visibles.map(a => {
+                        const yaEsta = puestas.has(String(a._id));
+                        return (
+                            <li key={a._id}>
+                                <button type='button' disabled={yaEsta} onClick={() => onElegir(a._id)}
+                                    className='w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg
+                                               hover:bg-[#29c50c]/10 disabled:opacity-45 disabled:hover:bg-transparent
+                                               disabled:cursor-not-allowed transition-colors'>
+                                    {!a.bonusReviewed && <span className='w-1.5 h-1.5 rounded-full bg-[#d9a441]' title='Sin revisar' />}
+                                    <span className='flex-1 text-[12.5px] text-gray-800'>{a.es || a.en}</span>
+                                    <span className='text-[10.5px] text-gray-500'>
+                                        {yaEsta ? 'ya está en el mapa'
+                                            : a.bonusRules?.length ? `${a.bonusRules.length} regla${a.bonusRules.length === 1 ? '' : 's'}`
+                                            : ''}
+                                    </span>
+                                </button>
+                            </li>
+                        );
+                    })}
+                    {!visibles.length && <li className='px-3 py-6 text-[12.5px] text-gray-500'>Ninguna coincide.</li>}
                 </ul>
-            )}
+
+                <div className='px-5 py-3 border-t border-gray-100 flex justify-end'>
+                    <button type='button' onClick={onCerrar}
+                        className='h-9 px-4 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors'>
+                        Cerrar
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
 
 
 /** La alerta que se está mapeando. */
-function NodoAlerta({ alerta }) {
+function NodoAlerta({ alerta, puedeEditar, onAlternar, onSacar }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
+    const bonifica = alerta?.bonifies === true;
+
     return (
-        <div data-nodo='alerta' className={`${CAJA} bg-white border-[1.5px] border-gray-300 rounded-xl px-4 py-3.5`}>
-            <span className='block text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
+        <div data-nodo={`alerta-${alerta._id}`}
+            className={`${CAJA} bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-colors
+                        ${bonifica ? 'border-[#29c50c]' : 'border-gray-300'}`}>
+            <div className='flex items-start gap-2'>
+                <span className='flex-1 text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
+                {puedeEditar && (
+                    <button type='button' onClick={onSacar} title='Sacar del mapa — no toca su configuración'
+                        className='shrink-0 text-[11px] font-bold text-gray-400 hover:text-gray-700 transition-colors'>✕</button>
+                )}
+            </div>
             {/* El nombre en inglés, más chico: es como está en los JSON de
                 Jarvis-express y como lo ve el operador en la app. Solo si es
                 distinto del español — repetirlo no dice nada. */}
@@ -402,6 +493,25 @@ function NodoAlerta({ alerta }) {
                     <span className='text-[10px] font-bold rounded px-1.5 py-0.5 bg-[#fdf6e7] text-[#8a5a2b]'>Sin revisar</span>
                 )}
             </div>
+
+            {/* El interruptor. Separa "se decidió que no bonifica" de "todavía
+                no se configuró": sin él, una alerta a medio armar se ve igual
+                que una descartada. */}
+            <div className='mt-auto pt-3'>
+                {puedeEditar ? (
+                    <button type='button' onClick={onAlternar}
+                        className={`w-full h-8 rounded-lg text-[11.5px] font-bold transition-colors
+                            ${bonifica
+                                ? 'bg-[#29c50c] text-white hover:bg-[#1f9a08]'
+                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                        {bonifica ? 'Bonifica' : alerta?.bonifies === false ? 'No bonifica' : 'Sin decidir'}
+                    </button>
+                ) : (
+                    <span className='text-[11px] font-bold text-gray-500'>
+                        {bonifica ? 'Bonifica' : alerta?.bonifies === false ? 'No bonifica' : 'Sin decidir'}
+                    </span>
+                )}
+            </div>
         </div>
     );
 }
@@ -411,7 +521,7 @@ function NodoAlerta({ alerta }) {
  * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
  * regla — se arrastra para reapuntarla, o afuera para borrarla.
  */
-function NodoAlcance({ indice, asignacion, catalogo, puedeEditar, tirandoEsta, onTirar, onEditar }) {
+function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, tirandoEsta, onTirar, onEditar }) {
     const s = asignacion.scope || { mode: 'all' };
     const nombre = (lista, id) => lista.find(x => String(x._id) === String(id))?.name || '…';
     const nombres = [
@@ -423,7 +533,7 @@ function NodoAlcance({ indice, asignacion, catalogo, puedeEditar, tirandoEsta, o
         : s.mode === 'only' ? 'Solo en' : 'Todos menos';
 
     return (
-        <div data-nodo={`alcance-${indice}`}
+        <div data-nodo={`alcance-${alerta}-${indice}`}
             className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-shadow
                         ${tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
             <div className='flex items-start gap-2'>
@@ -541,7 +651,7 @@ function ElegirRegla({ reglas, etiqueta, onElegir }) {
  * No deja guardar un alcance a medias —'only' sin ningún elegido—: es lo que
  * el servidor rechaza, y con razón, porque no aplicaría en ningún lado.
  */
-function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar, onGuardar }) {
+function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, onCerrar, onGuardar }) {
     const [scope, setScope] = useState(inicial || { mode: 'all', franchises: [], locals: [] });
 
     const alternar = (clave, id) => setScope(s => {
@@ -553,7 +663,7 @@ function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar,
     const incompleto = scope.mode === 'only' && !scope.franchises?.length && !scope.locals?.length;
     // Una segunda asignación general sería ambigua: el servidor la rechaza.
     const generalDuplicada = scope.mode === 'all' && yaHayGeneral;
-    const puedeGuardar = !incompleto && !generalDuplicada && !guardando;
+    const puedeGuardar = !incompleto && !generalDuplicada;
 
     return (
         <div className='fixed inset-0 z-50 grid place-items-center p-4 bg-slate-900/50' onClick={onCerrar}>
@@ -593,7 +703,7 @@ function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, guardando, onCerrar,
                         className='ml-auto h-9 px-4 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors'>Cancelar</button>
                     <button type='button' disabled={!puedeGuardar} onClick={() => onGuardar(scope)}
                         className='h-9 px-4 rounded-lg text-[12.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] disabled:opacity-50 transition-colors'>
-                        {guardando ? 'Guardando…' : 'Guardar'}
+                        Guardar
                     </button>
                 </div>
             </div>

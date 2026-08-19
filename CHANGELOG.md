@@ -10,6 +10,27 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-18
+- **El mapa de bonificación pasa a mostrar varias alertas a la vez, y la alerta
+  gana un interruptor propio (con api_jarvis365).** El mapa mostraba una sola
+  alerta: elegir otra reemplazaba el lienzo entero, así que traer una alerta
+  nueva hacía desaparecer el resto del mapa. Ahora cada alerta es una fila
+  independiente —su caja, sus alcances y los cables hacia la columna compartida
+  de reglas—, se suman con «+ Alerta» y se sacan sin tocar su configuración: lo
+  que está en el lienzo es estado de pantalla, no de datos.
+- La escritura de asignaciones es **optimista**: se pinta antes de que responda
+  el servidor y se revierte si falla. Armar una alerta son varios gestos
+  seguidos —marcarla, elegir dónde, elegir la regla— y esperar la respuesta en
+  cada uno hacía parpadear el mapa.
+- **`Menu.bonifies`**, booleano de tres estados como `Noveltie.bonus.applies`:
+  `true` bonifica, `false` es una decisión tomada y corta antes de mirar
+  reglas, `null` es el default y no bloquea. Ese `null` es lo que permite
+  agregar el campo sin migrar nada: un `false` por defecto habría dejado de
+  pagar en silencio a todas las alertas ya configuradas. Sin el interruptor,
+  una alerta a medio armar (`bonusRules: []`) se veía igual que una descartada.
+
+---
+
 ## 2026-08-16
 - **Se rehace el sistema de bonificación: el dinero pasa a ser global y lo que
   varía por alerta es la cantidad de bonos (con api_jarvis365).** El sistema

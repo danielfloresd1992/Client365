@@ -103,7 +103,6 @@ export default function ConfigPanel({
                 alertas={alertas}
                 alcance={alcance}
                 cargando={cargando}
-                guardando={guardando}
                 puedeEditar={puedeEditar}
                 onEscribirAsignaciones={onEscribirAsignaciones}
                 onEditarRegla={regla => setEditando(reglaParaFormulario(regla))}

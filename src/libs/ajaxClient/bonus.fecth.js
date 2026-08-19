@@ -170,8 +170,8 @@ export const deleteBonusRule = async (id) => {
  *
  * @param {Array<{ rule: string, scope: { mode, franchises, locals } }>} bonusRules
  */
-export const setMenuBonusRules = async (menuId, bonusRules) => {
-    const response = await axiosInstance.put(`/bonus/menu/id=${menuId}`, { bonusRules });
+export const setMenuBonusRules = async (menuId, bonusRules, bonifies = null) => {
+    const response = await axiosInstance.put(`/bonus/menu/id=${menuId}`, { bonifies, bonusRules });
     return response.data?.menu;
 };
 
@@ -192,6 +192,8 @@ export const getMenusForBonus = async () => {
         es: m.es,
         en: m.en,
         category: m.category || null,
+        // El interruptor: true/false son decisiones, null es "no se decidió".
+        bonifies: m.bonifies ?? null,
         // Las asignaciones, con la regla como ID (sin popular): la pantalla las
         // cruza con la lista de reglas que ya tiene, y así el catálogo de
         // alertas no arrastra copias de cada regla.
