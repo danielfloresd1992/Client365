@@ -4,9 +4,13 @@ import { CATEGORIAS_OPERATIVAS } from '@/libs/alerts/categories';
 import { iconOf } from '@/libs/alerts/categoryIcons.js';
 import useBonusCategories from '@/hook/useBonusCategories.js';
 import useZoom from '@/hook/useZoom.js';
+import useConfirm from '@/hook/useConfirm.js';
 import ControlesDeZoom from '@/components/ZoomControls.jsx';
 import { agruparParaSelector } from '@/libs/parser/estableshment';
-import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './bonusRuleFormat';
+import {
+    bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos,
+    nombresDelAlcance, describirAlcance,
+} from './bonusRuleFormat';
 
 /**
  * EL MAPA DE UNA ALERTA.
@@ -52,7 +56,9 @@ import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './
  *                         un gesto; soltarlo al aire pregunta dónde aplica y
  *                         deja la caja armada esperando su regla.
  *   puerto del ALCANCE    ¿con qué regla? Soltarlo en otra regla reapunta la
- *                         asignación; afuera, la borra.
+ *                         asignación; afuera, la borra —y eso pregunta antes,
+ *                         porque soltar el cable a un centímetro de la caja es
+ *                         un accidente fácil y borra una referencia guardada.
  *
  * Así se arma una alerta de punta a punta sin salir del mapa: se tira el cable,
  * se define dónde, se lleva hasta la regla. Nada se manda a medias — una
@@ -86,6 +92,7 @@ export default function BonusMap({
     // El zoom del lienzo. Un mapa con muchas alertas no entra en pantalla, y
     // alejarlo para ver el conjunto es distinto de acercarlo para cablear fino.
     const zoom = useZoom({ nombre: 'mapa-de-bonificacion', min: 0.5, max: 1.5, paso: 0.1 });
+    const confirmar = useConfirm();
     const escala = zoom.escala;
 
     // El mismo nodo es el que se escala y el que sirve de origen para medir las
@@ -207,6 +214,29 @@ export default function BonusMap({
     const quitar = (alerta, i) =>
         escribir(alerta, (alerta.bonusRules || []).filter((_, j) => j !== i));
 
+    /**
+     * Quitar preguntando.
+     *
+     * Soltar el cable a un centímetro de la caja borra una referencia
+     * guardada, y desde el mapa no se ve qué se perdió: la caja del medio
+     * desaparece con su alcance adentro. El mensaje nombra las dos cosas que
+     * el gesto toca —la alerta y dónde dejaba de aplicar— y aclara lo que NO
+     * toca, que es la regla.
+     */
+    const quitarPreguntando = (alerta, i) => {
+        const asignacion = (alerta.bonusRules || [])[i];
+        if (!asignacion) return;
+
+        const regla = porId.get(String(asignacion.rule));
+        confirmar({
+            titulo: '¿Quitar esta asignación?',
+            descripcion: `«${alerta.es || alerta.en}» va a dejar de bonificar en `
+                + `${describirAlcance(asignacion.scope, alcance)}. `
+                + `La regla${regla ? ` «${regla.name}»` : ''} no se borra: sigue disponible para otras alertas.`,
+            alAceptar: () => quitar(alerta, i),
+        });
+    };
+
     const cambiarAlcance = (alerta, i, scope) =>
         escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, scope } : a)));
 
@@ -292,7 +322,7 @@ export default function BonusMap({
         }
 
         if (regla) await reapuntar(alerta, indice, regla);
-        else await quitar(alerta, indice);
+        else quitarPreguntando(alerta, indice);
     };
 
 
@@ -737,11 +767,7 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, tirandoDeEsta, o
  */
 function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, onTirar, onEditar }) {
     const s = asignacion.scope || { mode: 'all' };
-    const nombre = (lista, id) => lista.find(x => String(x._id) === String(id))?.name || '…';
-    const nombres = [
-        ...(s.franchises || []).map(id => nombre(catalogo.franchises, id)),
-        ...(s.locals || []).map(id => nombre(catalogo.locals, id)),
-    ];
+    const nombres = nombresDelAlcance(s, catalogo);
 
     const titulo = s.mode === 'all' ? 'Todos los establecimientos'
         : s.mode === 'only' ? 'Solo en' : 'Todos menos';

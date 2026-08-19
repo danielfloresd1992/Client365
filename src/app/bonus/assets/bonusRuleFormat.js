@@ -96,3 +96,32 @@ export const reglaParaFormulario = (regla) => ({
         note: o.note || '',
     })),
 });
+
+
+/**
+ * Los nombres que un alcance enumera, ya resueltos contra el catálogo.
+ *
+ * Un alcance guarda ids; para mostrarlo hay que ir a buscar los nombres, y eso
+ * lo necesitan tanto la caja del mapa como los mensajes que hablan de ella. Un
+ * id sin nombre sale como «…»: significa que el establecimiento se dio de baja
+ * después de asignarlo, y decirlo es mejor que mostrar un ObjectId.
+ */
+export const nombresDelAlcance = (scope, catalogo) => {
+    const nombre = (lista, id) => (lista || []).find(x => String(x._id) === String(id))?.name || '…';
+    return [
+        ...(scope?.franchises || []).map(id => nombre(catalogo?.franchises, id)),
+        ...(scope?.locals || []).map(id => nombre(catalogo?.locals, id)),
+    ];
+};
+
+
+/** El alcance dicho como una frase, para meterlo en medio de un texto. */
+export const describirAlcance = (scope, catalogo) => {
+    const modo = scope?.mode || 'all';
+    if (modo === 'all') return 'todos los establecimientos';
+
+    const nombres = nombresDelAlcance(scope, catalogo);
+    if (!nombres.length) return modo === 'only' ? 'ningún establecimiento' : 'todos los establecimientos';
+
+    return `${modo === 'only' ? 'solo' : 'todos menos'} ${nombres.join(', ')}`;
+};
