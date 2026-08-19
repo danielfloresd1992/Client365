@@ -3,6 +3,8 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { CATEGORIAS_OPERATIVAS } from '@/libs/alerts/categories';
 import { iconOf } from '@/libs/alerts/categoryIcons.js';
 import useBonusCategories from '@/hook/useBonusCategories.js';
+import useZoom from '@/hook/useZoom.js';
+import ControlesDeZoom from '@/components/ZoomControls.jsx';
 import { agruparParaSelector } from '@/libs/parser/estableshment';
 import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './bonusRuleFormat';
 
@@ -81,6 +83,18 @@ export default function BonusMap({
     const lienzo = useRef(null);
     const [cables, setCables] = useState([]);
 
+    // El zoom del lienzo. Un mapa con muchas alertas no entra en pantalla, y
+    // alejarlo para ver el conjunto es distinto de acercarlo para cablear fino.
+    const zoom = useZoom({ nombre: 'mapa-de-bonificacion', min: 0.5, max: 1.5, paso: 0.1 });
+    const escala = zoom.escala;
+
+    // El mismo nodo es el que se escala y el que sirve de origen para medir las
+    // cajas. Un ref de función los conecta a los dos sin envolver nada de más.
+    const montarLienzo = useCallback((nodo) => {
+        lienzo.current = nodo;
+        zoom.ref.current = nodo;
+    }, [zoom.ref]);
+
     const porId = useMemo(() => new Map((reglas || []).map(r => [String(r._id), r])), [reglas]);
 
     // El catálogo de categorías, para pintar ícono y color en cada regla y en
@@ -112,11 +126,18 @@ export default function BonusMap({
         const base = lienzo.current?.getBoundingClientRect();
         if (!base) return setCables([]);
 
+        // Los rects llegan en píxeles de pantalla, ya multiplicados por el
+        // zoom; el SVG dibuja en coordenadas de layout. Sin dividir, al 150%
+        // los cables saldrían medio ancho más lejos que las cajas que unen.
         const caja = (sel) => {
             const n = lienzo.current.querySelector(sel);
             if (!n) return null;
             const r = n.getBoundingClientRect();
-            return { x1: r.left - base.left, x2: r.right - base.left, y: r.top - base.top + r.height / 2 };
+            return {
+                x1: (r.left - base.left) / escala,
+                x2: (r.right - base.left) / escala,
+                y: (r.top - base.top + r.height / 2) / escala,
+            };
         };
         const curva = (de, a) => {
             if (!de || !a) return null;
@@ -158,7 +179,7 @@ export default function BonusMap({
             }
         });
         setCables(nuevos);
-    }, [puestas, tirando, armando, porId, categoriaDe]);
+    }, [puestas, tirando, armando, porId, categoriaDe, escala]);
 
     useEffect(() => { trazar(); }, [trazar]);
     useEffect(() => {
@@ -289,72 +310,83 @@ export default function BonusMap({
                             {puestas.length} alerta{puestas.length === 1 ? '' : 's'} en el mapa · {(reglas || []).length} regla{(reglas || []).length === 1 ? '' : 's'}
                         </p>
                     </div>
-                    {puedeEditar && (
-                        <div className='ml-auto flex gap-2'>
-                            <button type='button' onClick={() => setEligiendo(true)}
-                                className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors'>
-                                + Alerta
-                            </button>
-                            <button type='button' onClick={onNuevaRegla}
-                                className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
-                                + Regla
-                            </button>
-                        </div>
-                    )}
+                    <div className='ml-auto flex items-center gap-2'>
+                        <ControlesDeZoom zoom={zoom} />
+
+                        {puedeEditar && (
+                            <>
+                                <button type='button' onClick={() => setEligiendo(true)}
+                                    className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors'>
+                                    + Alerta
+                                </button>
+                                <button type='button' onClick={onNuevaRegla}
+                                    className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
+                                    + Regla
+                                </button>
+                            </>
+                        )}
+                    </div>
                 </div>
 
-                <div ref={lienzo} className='relative lienzo-punteado p-5 overflow-x-auto select-none'
+                {/* Dos capas y cada una hace una cosa: la de afuera desplaza,
+                    la de adentro escala. Si el zoom fuera sobre la que
+                    desplaza, se escalaría también su propio ancho y la tarjeta
+                    entera crecería en vez de aparecer una barra. */}
+                <div className='lienzo-punteado p-5 overflow-auto select-none'
                     onPointerMove={e => tirando && setTirando(t => ({ ...t, x: e.clientX, y: e.clientY }))}
                     onPointerUp={soltar}
                     onPointerCancel={() => setTirando(null)}>
 
-                    <Cables cables={cables} tirando={tirando} lienzo={lienzo} />
+                    <div ref={montarLienzo} className='relative'>
 
-                    {/* Las alertas con sus alcances a la izquierda, las reglas
-                        en una columna compartida a la derecha: una regla que
-                        usan tres alertas se ve una vez, con tres cables. */}
-                    <div className='relative z-[1] grid gap-x-16 items-start min-w-[900px] grid-cols-[minmax(0,2.1fr)_minmax(220px,1fr)]'>
+                        <Cables cables={cables} tirando={tirando} lienzo={lienzo} escala={escala} />
 
-                        <div className='flex flex-col gap-5'>
-                            <Rotulo>Alertas · Menu.model  →  dónde aplica</Rotulo>
+                        {/* Las alertas con sus alcances a la izquierda, las reglas
+                            en una columna compartida a la derecha: una regla que
+                            usan tres alertas se ve una vez, con tres cables. */}
+                        <div className='relative z-[1] grid gap-x-16 items-start min-w-[900px] grid-cols-[minmax(0,2.1fr)_minmax(220px,1fr)]'>
 
-                            {puestas.map(alerta => (
-                                <FilaDeAlerta
-                                    key={alerta._id}
-                                    alerta={alerta}
-                                    catalogo={alcance}
-                                    reglas={activasReglas}
-                                    puedeEditar={puedeEditar}
-                                    tirando={tirando}
-                                    armando={armando?.menuId === String(alerta._id) ? armando : null}
-                                    onTirarAlerta={e => empezar(e, 'alerta', String(alerta._id))}
-                                    onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
-                                    onEditarAlcance={i => setEditandoAlcance(
-                                        i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
-                                    onSumar={ruleId => sumar(alerta, ruleId)}
-                                    onAlternar={() => alternarBonifica(alerta)}
-                                    onSacar={() => sacar(alerta)}
-                                />
-                            ))}
+                            <div className='flex flex-col gap-5'>
+                                <Rotulo>Alertas · Menu.model  →  dónde aplica</Rotulo>
 
-                            {!puestas.length && (
-                                <p className='text-[12.5px] text-gray-500 py-6'>
-                                    El mapa está vacío. Tocá «+ Alerta» para traer una y empezar a conectarla.
-                                </p>
-                            )}
-                        </div>
+                                {puestas.map(alerta => (
+                                    <FilaDeAlerta
+                                        key={alerta._id}
+                                        alerta={alerta}
+                                        catalogo={alcance}
+                                        reglas={activasReglas}
+                                        puedeEditar={puedeEditar}
+                                        tirando={tirando}
+                                        armando={armando?.menuId === String(alerta._id) ? armando : null}
+                                        onTirarAlerta={e => empezar(e, 'alerta', String(alerta._id))}
+                                        onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
+                                        onEditarAlcance={i => setEditandoAlcance(
+                                            i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
+                                        onSumar={ruleId => sumar(alerta, ruleId)}
+                                        onAlternar={() => alternarBonifica(alerta)}
+                                        onSacar={() => sacar(alerta)}
+                                    />
+                                ))}
 
-                        <div className='flex flex-col gap-3'>
-                            <Rotulo>Reglas de bonificación</Rotulo>
-                            {(reglas || []).map(r => (
-                                <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
-                                    categoria={categoriaDe.get(r.bonusCategory) || null}
-                                    conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
-                                    onEditar={() => onEditarRegla(r)} />
-                            ))}
-                            {!(reglas || []).length && (
-                                <p className='text-[11.5px] text-gray-500'>Todavía no hay reglas. Creá la primera con «+ Regla».</p>
-                            )}
+                                {!puestas.length && (
+                                    <p className='text-[12.5px] text-gray-500 py-6'>
+                                        El mapa está vacío. Tocá «+ Alerta» para traer una y empezar a conectarla.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className='flex flex-col gap-3'>
+                                <Rotulo>Reglas de bonificación</Rotulo>
+                                {(reglas || []).map(r => (
+                                    <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
+                                        categoria={categoriaDe.get(r.bonusCategory) || null}
+                                        conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
+                                        onEditar={() => onEditarRegla(r)} />
+                                ))}
+                                {!(reglas || []).length && (
+                                    <p className='text-[11.5px] text-gray-500'>Todavía no hay reglas. Creá la primera con «+ Regla».</p>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -477,7 +509,7 @@ const Rotulo = ({ children }) => (
 
 
 /** La capa de cables. Va debajo de las cajas y no intercepta el puntero. */
-function Cables({ cables, tirando, lienzo }) {
+function Cables({ cables, tirando, lienzo, escala = 1 }) {
     const base = lienzo.current?.getBoundingClientRect();
 
     let goma = null;
@@ -486,9 +518,12 @@ function Cables({ cables, tirando, lienzo }) {
             ? `[data-nodo="alerta-${tirando.menuId}"]`
             : `[data-nodo="alcance-${tirando.menuId}-${tirando.indice}"]`);
         if (n) {
+            // Igual que en el trazado: pantalla ÷ escala = layout. `tirando`
+            // guarda el puntero en coordenadas de viewport, así que entra en
+            // la misma cuenta.
             const r = n.getBoundingClientRect();
-            const x1 = r.right - base.left, y1 = r.top - base.top + r.height / 2;
-            const x2 = tirando.x - base.left, y2 = tirando.y - base.top;
+            const x1 = (r.right - base.left) / escala, y1 = (r.top - base.top + r.height / 2) / escala;
+            const x2 = (tirando.x - base.left) / escala, y2 = (tirando.y - base.top) / escala;
             const dx = Math.max(30, (x2 - x1) / 2);
             goma = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
         }
