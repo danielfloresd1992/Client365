@@ -23,6 +23,24 @@ import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './
  * local aparecen más cajas.
  *
  *
+ * EL INTERRUPTOR DE LA ALERTA
+ *
+ * `Menu.bonifies` decide dos cosas a la vez, y por eso es un solo control:
+ * si la alerta bonifica, y si está en el mapa.
+ *
+ *     true    bonifica. Está en el mapa, en color.
+ *     false   apagada. SIGUE en el mapa, en grises, con su cableado intacto —
+ *             desaparecer una alerta con reglas armadas escondería trabajo
+ *             hecho y haría imposible volver a encenderla desde acá.
+ *     null    nunca se decidió. No está en el mapa salvo que tenga reglas de
+ *             antes; es el valor de todo lo cargado antes de este campo.
+ *
+ * Apagar NO borra nada: las asignaciones quedan donde están y encender vuelve
+ * a dejarlas en uso. Es lo que hace que el interruptor sea seguro de tocar.
+ *
+ * Solo los administradores lo ven como control; el resto lee el estado.
+ *
+ *
  * LOS CABLES SON EL FORMULARIO
  *
  * Cada caja tiene un puerto —el punto de su borde derecho— y de ahí nace su
@@ -71,9 +89,13 @@ export default function BonusMap({
     const { categorias } = useBonusCategories(true);
     const categoriaDe = useMemo(() => new Map(categorias.map(c => [c.value, c])), [categorias]);
 
-    // Al abrir, el lienzo trae lo que ya está configurado. Después manda lo que
-    // el usuario agregue: no se recalcula sola, o agregar una alerta nueva
-    // reordenaría el mapa bajo el cursor.
+    // Qué alertas trae el mapa al abrir:
+    //     bonifies true    encendida — es lo que el interruptor declara
+    //     con asignaciones aunque esté apagada o sin decidir, porque hay
+    //                      cableado armado y esconderlo sería esconder trabajo
+    //
+    // Después no se recalcula: manda lo que el usuario agregue o saque. Si se
+    // recalculara, encender una alerta reordenaría el mapa bajo el cursor.
     useEffect(() => {
         if (enLienzo !== null || !alertas) return;
         setEnLienzo((alertas.filter(a => a.bonusRules?.length || a.bonifies === true).map(a => String(a._id))));
@@ -107,10 +129,14 @@ export default function BonusMap({
             const mid = String(alerta._id);
             const dAlerta = caja(`[data-nodo="alerta-${mid}"]`);
 
+            // Apagada, todo su cableado va en gris: el color en este mapa
+            // significa "esto está pagando", y una alerta apagada no paga.
+            const apagada = alerta.bonifies !== true;
+
             (alerta.bonusRules || []).forEach((asig, i) => {
                 const dAlc = caja(`[data-nodo="alcance-${mid}-${i}"]`);
                 const d1 = curva(dAlerta, dAlc);
-                if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: COLOR_ALCANCE });
+                if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: apagada ? COLOR_APAGADO : COLOR_ALCANCE });
 
                 // El que se arrastra no se dibuja fijo: lo dibuja la goma.
                 if (tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === i) return;
@@ -118,7 +144,8 @@ export default function BonusMap({
                 if (d2) {
                     const regla = porId.get(String(asig.rule));
                     const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
-                    nuevos.push({ id: `r-${mid}-${i}`, d: d2, color: cat?.color || COLOR_NEUTRO });
+                    const color = apagada ? COLOR_APAGADO : (cat?.color || COLOR_NEUTRO);
+                    nuevos.push({ id: `r-${mid}-${i}`, d: d2, color });
                 }
             });
 
@@ -147,7 +174,10 @@ export default function BonusMap({
     // ── Escritura ─────────────────────────────────────────────────────
     // Cada gesto arma el estado siguiente de ESA alerta y lo manda. Las demás
     // no se tocan: el mapa es una vista de relaciones, no un formulario único.
-    const escribir = (alerta, bonusRules, bonifies = true) =>
+    // Cablear no enciende ni apaga: `bonifies` se conserva tal cual. Si no,
+    // tocar el cableado de una alerta apagada la volvería a encender sola, y
+    // el único que decide eso es el interruptor.
+    const escribir = (alerta, bonusRules, bonifies = alerta.bonifies ?? null) =>
         onEscribirAsignaciones(alerta._id, { bonifies, bonusRules });
 
     const reapuntar = (alerta, i, ruleId) =>
@@ -159,12 +189,37 @@ export default function BonusMap({
     const cambiarAlcance = (alerta, i, scope) =>
         escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, scope } : a)));
 
-    /** El interruptor. Apagarlo deja las asignaciones donde están: es reversible. */
+    /** El interruptor. Apagar deja las asignaciones donde están: es reversible. */
     const alternarBonifica = (alerta) =>
         onEscribirAsignaciones(alerta._id, {
             bonifies: !(alerta.bonifies === true),
             bonusRules: alerta.bonusRules || [],
         });
+
+    /**
+     * Traer una alerta al mapa la enciende. Es la misma decisión dicha de otra
+     * forma —«esta alerta va a bonificar»—, y así sigue ahí al recargar en vez
+     * de depender de que alguien se acuerde de prender el interruptor.
+     *
+     * Encendida y sin asignaciones no paga nada: la resolución corta en
+     * 'sin-regla'. El estado es "bonifica, falta cablearla", que es justo lo
+     * que el mapa tiene que dejar ver.
+     */
+    const traer = (alerta) => {
+        setEnLienzo(l => [...l, String(alerta._id)]);
+        if (alerta.bonifies !== true) escribir(alerta, alerta.bonusRules || [], true);
+    };
+
+    /**
+     * Sacarla del mapa la deja sin decidir. Solo se ofrece si no tiene
+     * asignaciones: con cableado armado volvería sola al recargar, y el gesto
+     * para dejar de pagar sin perder el trabajo es apagar, no sacar.
+     */
+    const sacar = (alerta) => {
+        setEnLienzo(l => l.filter(x => x !== String(alerta._id)));
+        setArmando(p => (p?.menuId === String(alerta._id) ? null : p));
+        escribir(alerta, [], null);
+    };
 
     /**
      * Suma una asignación. La primera es general —es lo normal, y así una
@@ -278,10 +333,7 @@ export default function BonusMap({
                                         i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
                                     onSumar={ruleId => sumar(alerta, ruleId)}
                                     onAlternar={() => alternarBonifica(alerta)}
-                                    onSacar={() => {
-                                        setEnLienzo(l => l.filter(x => x !== String(alerta._id)));
-                                        setArmando(p => (p?.menuId === String(alerta._id) ? null : p));
-                                    }}
+                                    onSacar={() => sacar(alerta)}
                                 />
                             ))}
 
@@ -311,7 +363,11 @@ export default function BonusMap({
             {eligiendo && (
                 <ElegirAlerta alertas={alertas} enLienzo={enLienzo || []}
                     onCerrar={() => setEligiendo(false)}
-                    onElegir={id => { setEnLienzo(l => [...l, String(id)]); setEligiendo(false); }} />
+                    onElegir={id => {
+                const a = (alertas || []).find(x => String(x._id) === String(id));
+                if (a) traer(a);
+                setEligiendo(false);
+            }} />
             )}
 
             {editandoAlcance && (
@@ -351,25 +407,27 @@ function FilaDeAlerta({
 }) {
     const asignaciones = alerta.bonusRules || [];
     const mid = String(alerta._id);
+    const apagada = alerta.bonifies !== true;
     const tirandoDe = (indice) => tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === indice;
 
     return (
         <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
-            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar}
+            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} apagada={apagada}
+                sinCablear={!asignaciones.length}
                 tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === mid}
                 onTirar={onTirarAlerta} onAlternar={onAlternar} onSacar={onSacar} />
 
             <div className='flex flex-col gap-3'>
                 {asignaciones.map((asig, i) => (
                     <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
-                        puedeEditar={puedeEditar} tirandoEsta={tirandoDe(i)}
+                        puedeEditar={puedeEditar} apagada={apagada} tirandoEsta={tirandoDe(i)}
                         onTirar={e => onTirar(e, i)}
                         onEditar={() => onEditarAlcance(i)} />
                 ))}
 
                 {armando && (
                     <NodoAlcance alerta={mid} indice='nueva' asignacion={{ scope: armando.scope }}
-                        catalogo={catalogo} puedeEditar={puedeEditar} armando tirandoEsta={tirandoDe('nueva')}
+                        catalogo={catalogo} puedeEditar={puedeEditar} apagada={apagada} armando tirandoEsta={tirandoDe('nueva')}
                         onTirar={e => onTirar(e, 'nueva')}
                         onEditar={() => onEditarAlcance('nueva')} />
                 )}
@@ -402,6 +460,12 @@ const CAJA = 'min-h-[190px] flex flex-col';
  */
 const COLOR_ALCANCE = '#29c50c';
 const COLOR_NEUTRO = '#9aa6b5';
+
+/** El gris de lo apagado: se ve el cable, se lee que no está en uso. */
+const COLOR_APAGADO = '#c3cad4';
+
+/** Lo apagado se muestra sin color, no se esconde. */
+const APAGADO = 'grayscale opacity-70';
 
 const Marco = ({ children }) => (
     <section className='bg-white rounded-xl shadow-sm border overflow-hidden'>{children}</section>
@@ -499,7 +563,7 @@ function ElegirAlerta({ alertas, enLienzo, onCerrar, onElegir }) {
                                     {!a.bonusReviewed && <span className='w-1.5 h-1.5 rounded-full bg-[#d9a441]' title='Sin revisar' />}
                                     <span className='flex-1 text-[12.5px] text-gray-800'>{a.es || a.en}</span>
                                     <span className='text-[10.5px] text-gray-500'>
-                                        {yaEsta ? 'ya está en el mapa'
+                                        {yaEsta ? (a.bonifies === true ? 'ya está en el mapa' : 'en el mapa, apagada')
                                             : a.bonusRules?.length ? `${a.bonusRules.length} regla${a.bonusRules.length === 1 ? '' : 's'}`
                                             : ''}
                                     </span>
@@ -543,55 +607,84 @@ function Puerto({ activo, titulo, onTirar }) {
 }
 
 
+/**
+ * El interruptor de la alerta. Solo lo ven los administradores; para el resto
+ * el estado se lee, no se toca.
+ *
+ * Son tres estados y la llave tiene dos posiciones, así que la posición dice si
+ * PAGA —lo único que cambia el dinero— y el rótulo distingue el apagado
+ * decidido del nunca decidido.
+ */
+function Interruptor({ valor, editable, onAlternar }) {
+    const encendido = valor === true;
+    const rotulo = encendido ? 'Bonifica' : valor === false ? 'Desactivado' : 'Sin decidir';
+
+    if (!editable) {
+        return (
+            <span className={`text-[11px] font-bold ${encendido ? 'text-[#1f9a08]' : 'text-gray-500'}`}>
+                {rotulo}
+            </span>
+        );
+    }
+
+    return (
+        <button type='button' role='switch' aria-checked={encendido} onClick={onAlternar}
+            title={encendido
+                ? 'Apagar: deja de bonificar, pero conserva el cableado'
+                : 'Encender: vuelve a bonificar con el cableado que ya tiene'}
+            className='w-full flex items-center gap-2 rounded-lg px-2 py-1.5 -mx-2 transition-colors
+                       hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#29c50c]'>
+            <span className={`relative w-9 h-5 shrink-0 rounded-full transition-colors
+                              ${encendido ? 'bg-[#29c50c]' : 'bg-gray-300'}`}>
+                <span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all
+                                  ${encendido ? 'left-[18px]' : 'left-0.5'}`} />
+            </span>
+            <span className={`text-[11.5px] font-bold ${encendido ? 'text-[#1f9a08]' : 'text-gray-600'}`}>
+                {rotulo}
+            </span>
+        </button>
+    );
+}
+
+
 /** La alerta que se está mapeando. Su puerto abre una asignación nueva. */
-function NodoAlerta({ alerta, puedeEditar, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
+function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
-    const bonifica = alerta?.bonifies === true;
 
     return (
         <div data-nodo={`alerta-${alerta._id}`}
             className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-colors
-                        ${bonifica ? 'border-[#29c50c]' : 'border-gray-300'}`}>
-            <div className='flex items-start gap-2'>
-                <span className='flex-1 text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
-                {puedeEditar && (
-                    <button type='button' onClick={onSacar} title='Sacar del mapa — no toca su configuración'
-                        className='shrink-0 text-[11px] font-bold text-gray-400 hover:text-gray-700 transition-colors'>✕</button>
-                )}
-            </div>
-            {/* El nombre en inglés, más chico: es como está en los JSON de
-                Jarvis-express y como lo ve el operador en la app. Solo si es
-                distinto del español — repetirlo no dice nada. */}
-            {alerta?.en && alerta.en !== alerta.es && (
-                <span className='block text-[11px] text-gray-500 leading-tight mt-0.5'>{alerta.en}</span>
-            )}
-            <div className='flex flex-wrap items-center gap-1.5 mt-1.5'>
-                {categoria && (
-                    <span className='text-[10px] font-bold rounded px-1.5 py-0.5'
-                        style={{ backgroundColor: categoria.bg, color: categoria.color }}>{categoria.es}</span>
-                )}
-                {!alerta?.bonusReviewed && (
-                    <span className='text-[10px] font-bold rounded px-1.5 py-0.5 bg-[#fdf6e7] text-[#8a5a2b]'>Sin revisar</span>
-                )}
-            </div>
+                        ${apagada ? 'border-gray-300' : 'border-[#29c50c]'}`}>
 
-            {/* El interruptor. Separa "se decidió que no bonifica" de "todavía
-                no se configuró": sin él, una alerta a medio armar se ve igual
-                que una descartada. */}
-            <div className='mt-auto pt-3'>
-                {puedeEditar ? (
-                    <button type='button' onClick={onAlternar}
-                        className={`w-full h-8 rounded-lg text-[11.5px] font-bold transition-colors
-                            ${bonifica
-                                ? 'bg-[#29c50c] text-white hover:bg-[#1f9a08]'
-                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
-                        {bonifica ? 'Bonifica' : alerta?.bonifies === false ? 'No bonifica' : 'Sin decidir'}
-                    </button>
-                ) : (
-                    <span className='text-[11px] font-bold text-gray-500'>
-                        {bonifica ? 'Bonifica' : alerta?.bonifies === false ? 'No bonifica' : 'Sin decidir'}
-                    </span>
+            {/* Solo la identidad se apaga; el interruptor queda a todo color o
+                no se vería con qué volver a encenderla. */}
+            <div className={apagada ? APAGADO : ''}>
+                <div className='flex items-start gap-2'>
+                    <span className='flex-1 text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
+                    {puedeEditar && sinCablear && (
+                        <button type='button' onClick={onSacar} title='Sacar del mapa: la deja sin decidir'
+                            className='shrink-0 text-[11px] font-bold text-gray-400 hover:text-gray-700 transition-colors'>✕</button>
+                    )}
+                </div>
+                {/* El nombre en inglés, más chico: es como está en los JSON de
+                    Jarvis-express y como lo ve el operador en la app. Solo si es
+                    distinto del español — repetirlo no dice nada. */}
+                {alerta?.en && alerta.en !== alerta.es && (
+                    <span className='block text-[11px] text-gray-500 leading-tight mt-0.5'>{alerta.en}</span>
                 )}
+                <div className='flex flex-wrap items-center gap-1.5 mt-1.5'>
+                    {categoria && (
+                        <span className='text-[10px] font-bold rounded px-1.5 py-0.5'
+                            style={{ backgroundColor: categoria.bg, color: categoria.color }}>{categoria.es}</span>
+                    )}
+                    {!alerta?.bonusReviewed && (
+                        <span className='text-[10px] font-bold rounded px-1.5 py-0.5 bg-[#fdf6e7] text-[#8a5a2b]'>Sin revisar</span>
+                    )}
+                </div>
+                </div>
+
+            <div className='mt-auto pt-3'>
+                <Interruptor valor={alerta?.bonifies} editable={puedeEditar} onAlternar={onAlternar} />
             </div>
 
             {puedeEditar && (
@@ -607,7 +700,7 @@ function NodoAlerta({ alerta, puedeEditar, tirandoDeEsta, onTirar, onAlternar, o
  * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
  * regla — se arrastra para reapuntarla, o afuera para borrarla.
  */
-function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, armando, tirandoEsta, onTirar, onEditar }) {
+function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, onTirar, onEditar }) {
     const s = asignacion.scope || { mode: 'all' };
     const nombre = (lista, id) => lista.find(x => String(x._id) === String(id))?.name || '…';
     const nombres = [
@@ -622,7 +715,8 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, armand
         <div data-nodo={`alcance-${alerta}-${indice}`}
             className={`${CAJA} relative bg-white rounded-xl px-4 py-3.5 transition-shadow border-[1.5px]
                         ${armando ? 'border-dashed' : ''}
-                        ${tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
+                        ${apagada ? `border-gray-300 ${APAGADO}`
+                            : tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
                 {puedeEditar && (

@@ -10,6 +10,25 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-19
+- **El interruptor de la alerta pasa a ser un toggle de administrador, y lo
+  apagado se muestra en grises en vez de desaparecer.** `Menu.bonifies` decide
+  dos cosas con un solo control: si la alerta bonifica y si está en el mapa.
+  Encendida va en color; apagada **sigue en el mapa**, en grises, con todo su
+  cableado intacto — hacerla desaparecer escondería trabajo ya hecho y dejaría
+  sin forma de volver a encenderla desde el mapa. Apagar no borra nada.
+- Traer una alerta con «+ Alerta» la enciende, así sigue ahí al recargar en vez
+  de depender de que alguien se acuerde de prender el interruptor. Encendida y
+  sin asignaciones no paga nada: la resolución corta en `sin-regla`.
+- Cablear ya **no** toca el interruptor. Antes cada gesto mandaba
+  `bonifies: true`, así que tocar el cableado de una alerta apagada la volvía a
+  encender sola.
+- El lienzo del mapa pasa a fondo punteado cada 5px, y «Configuración de
+  referencias» toma el 100% del ancho: acotado a 1100px el mapa quedaba con
+  scroll lateral propio.
+
+---
+
 ## 2026-08-18
 - **El mapa de bonificación pasa a mostrar varias alertas a la vez, y la alerta
   gana un interruptor propio (con api_jarvis365).** El mapa mostraba una sola
