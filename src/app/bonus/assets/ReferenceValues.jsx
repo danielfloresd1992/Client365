@@ -113,11 +113,12 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                 cobra alguien. Apilada en pantallas angostas, donde los
                 signos sueltos entre bloques estorban más de lo que ayudan.
 
-                Ancho acotado: son tres números cortos y estirarlos a todo el
-                ancho de la tarjeta los separa tanto que deja de leerse como
-                una sola cuenta. */}
-            <div className='mt-5 max-w-[900px] grid gap-x-3 gap-y-4
-                            sm:grid-cols-[minmax(120px,1fr)_auto_minmax(120px,1fr)_auto_minmax(130px,1fr)]'>
+                Ocupa todo el ancho de la tarjeta. Los dos factores llevan
+                menos peso que el resultado: son números de tres dígitos y lo
+                que se consulta de reojo es el total en bolívares, así que el
+                espacio de más va donde se mira. */}
+            <div className='mt-5 grid gap-x-3 gap-y-4
+                            sm:grid-cols-[minmax(120px,1fr)_auto_minmax(120px,1fr)_auto_minmax(160px,1.4fr)]'>
 
                 {CAMPOS.map((campo, i) => (
                     <Termino
