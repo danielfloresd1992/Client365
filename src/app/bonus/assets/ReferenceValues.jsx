@@ -90,14 +90,18 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
 
     const guardar = () => { if (hayCambios && !hayInvalido) onGuardar(cambios); };
 
+    const hayPie = (hayCambios && !hayInvalido)
+        || (hayInvalido && !cargando && !ajustes?.unreachable)
+        || Boolean(ajustes?.updatedAt);
+
     return (
         <section className='bg-white rounded-xl shadow-sm border p-5'>
 
-            <div className='flex items-start gap-3'>
+            <div className='flex flex-wrap items-start gap-3'>
                 <span className='shrink-0 grid place-items-center w-10 h-10 rounded-xl bg-[#d9a441]/15 text-[#8a5a2b]'>
                     <IconoEstrella />
                 </span>
-                <div className='min-w-0'>
+                <div className='min-w-0 flex-1'>
                     <h2 className='text-base font-bold text-gray-800 leading-tight'>Valores de referencia</h2>
                     <p className='text-[11.5px] text-gray-500 mt-0.5 max-w-[72ch]'>
                         Cuánto vale un bono y a qué cambio se paga. Son globales: valen igual para todas las alertas.
@@ -105,6 +109,22 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                         bonos que otorga, y eso lo deciden las reglas.
                     </p>
                 </div>
+
+                {/* Guardar al ras del título. La tarjeta ya es alta por la
+                    ecuación, y una fila propia solo para el botón sumaba
+                    sesenta píxeles de aire al pie. Va a la altura del ícono,
+                    que mide lo mismo. */}
+                {puedeEditar && (
+                    <button
+                        type='button'
+                        onClick={guardar}
+                        disabled={!hayCambios || hayInvalido || guardando || cargando}
+                        className='shrink-0 h-10 px-5 rounded-xl text-[12.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08]
+                                   active:scale-[.98] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                        {guardando ? 'Guardando…' : 'Guardar cambios'}
+                    </button>
+                )}
             </div>
 
             {/* ── La ecuación ────────────────────────────────────────────
@@ -154,28 +174,19 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                 </Termino>
             </div>
 
-            {/* ── Guardar y estado ──────────────────────────────────── */}
-            <div className='flex flex-wrap items-center gap-x-4 gap-y-2 mt-5'>
-                {puedeEditar && (
-                    <button
-                        type='button'
-                        onClick={guardar}
-                        disabled={!hayCambios || hayInvalido || guardando || cargando}
-                        className='h-10 px-5 rounded-xl text-[12.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08]
-                                   active:scale-[.98] transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-                    >
-                        {guardando ? 'Guardando…' : 'Guardar cambios'}
-                    </button>
-                )}
-
-                {/* Qué se va a mandar, dicho antes de mandarlo: el botón es uno
-                    solo para dos campos y sin esto no se ve cuál se tocó. */}
-                {hayCambios && !hayInvalido && (
-                    <p className='text-[11.5px] font-semibold text-[#1f9a08]'>
-                        Se va a actualizar {Object.keys(cambios).length === 2
-                            ? 'el valor del bono y la tasa'
-                            : cambios.pointValue !== undefined ? 'el valor del bono' : 'la tasa'}.
-                    </p>
+            {/* ── Estado ─────────────────────────────────────────────
+                Sin nada que decir no se dibuja: una fila vacía deja un hueco
+                que se lee como si faltara algo. */}
+            {hayPie && (
+                <div className='flex flex-wrap items-center gap-x-4 gap-y-2 mt-4'>
+                    {/* Qué se va a mandar, dicho antes de mandarlo: el botón es uno
+                        solo para dos campos y sin esto no se ve cuál se tocó. */}
+                    {hayCambios && !hayInvalido && (
+                        <p className='text-[11.5px] font-semibold text-[#1f9a08]'>
+                            Se va a actualizar {Object.keys(cambios).length === 2
+                                ? 'el valor del bono y la tasa'
+                                : cambios.pointValue !== undefined ? 'el valor del bono' : 'la tasa'}.
+                        </p>
                 )}
 
                 {/* No cuando el servidor no respondió: ahí los campos están
@@ -193,6 +204,7 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                     </p>
                 )}
             </div>
+            )}
 
             <p className='text-[11px] text-gray-500 mt-3 max-w-[80ch]'>
                 {!puedeEditar
