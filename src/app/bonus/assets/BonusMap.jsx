@@ -25,13 +25,23 @@ import { bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos } from './
  *
  * LOS CABLES SON EL FORMULARIO
  *
- * Arrastrar el cable de un alcance hasta otra regla cambia con qué regla va ese
- * alcance. Soltarlo fuera de una regla borra la asignación. Cada gesto arma la
- * lista siguiente de asignaciones y la manda entera al servidor, que la valida
- * junta — el arrastre es la forma, no un mecanismo aparte.
+ * Cada caja tiene un puerto —el punto de su borde derecho— y de ahí nace su
+ * cable. El gesto es el mismo en las dos, cambia lo que significa:
  *
- * Al soltar en una regla, la caja del medio pregunta dónde aplica. Es lo que
- * evita el 400 de "alcance a medias": no se manda nada hasta que esté completo.
+ *   puerto de la ALERTA   ¿dónde bonifica? Soltarlo en una regla la asigna de
+ *                         un gesto; soltarlo al aire pregunta dónde aplica y
+ *                         deja la caja armada esperando su regla.
+ *   puerto del ALCANCE    ¿con qué regla? Soltarlo en otra regla reapunta la
+ *                         asignación; afuera, la borra.
+ *
+ * Así se arma una alerta de punta a punta sin salir del mapa: se tira el cable,
+ * se define dónde, se lleva hasta la regla. Nada se manda a medias — una
+ * asignación sin regla no existe para el servidor, así que la caja intermedia
+ * vive solo en pantalla hasta que su cable llega a destino. Es lo que evita el
+ * 400 de "alcance a medias".
+ *
+ * Cada gesto arma la lista siguiente de asignaciones de ESA alerta y la manda
+ * entera; las demás filas no se tocan.
  */
 export default function BonusMap({
     reglas, alertas, alcance, cargando, puedeEditar,
@@ -43,8 +53,13 @@ export default function BonusMap({
     // toca su configuración.
     const [enLienzo, setEnLienzo] = useState(null);
     const [eligiendo, setEligiendo] = useState(false);
-    const [tirando, setTirando] = useState(null);        // { menuId, indice, x, y }
+    const [tirando, setTirando] = useState(null);        // { desde, menuId, indice, x, y }
     const [editandoAlcance, setEditandoAlcance] = useState(null);
+
+    // La asignación a medio armar: ya sabe DÓNDE, le falta la regla. Vive solo
+    // acá porque sin regla el servidor la rechaza — recién al soltar su cable
+    // en una regla se vuelve una asignación de verdad y se guarda.
+    const [armando, setArmando] = useState(null);   // { menuId, scope }
     const lienzo = useRef(null);
     const [cables, setCables] = useState([]);
 
@@ -98,7 +113,7 @@ export default function BonusMap({
                 if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: COLOR_ALCANCE });
 
                 // El que se arrastra no se dibuja fijo: lo dibuja la goma.
-                if (tirando?.menuId === mid && tirando?.indice === i) return;
+                if (tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === i) return;
                 const d2 = curva(dAlc, caja(`[data-nodo="regla-${asig.rule}"]`));
                 if (d2) {
                     const regla = porId.get(String(asig.rule));
@@ -106,9 +121,17 @@ export default function BonusMap({
                     nuevos.push({ id: `r-${mid}-${i}`, d: d2, color: cat?.color || COLOR_NEUTRO });
                 }
             });
+
+            // La que se está armando ya tiene su cable a la alerta; el de la
+            // derecha todavía no existe, y esa punta suelta es justo lo que se
+            // ve que falta.
+            if (armando?.menuId === mid) {
+                const d = curva(dAlerta, caja(`[data-nodo="alcance-${mid}-nueva"]`));
+                if (d) nuevos.push({ id: `a-${mid}-nueva`, d, color: COLOR_ALCANCE });
+            }
         });
         setCables(nuevos);
-    }, [puestas, tirando, porId, categoriaDe]);
+    }, [puestas, tirando, armando, porId, categoriaDe]);
 
     useEffect(() => { trazar(); }, [trazar]);
     useEffect(() => {
@@ -159,23 +182,40 @@ export default function BonusMap({
 
 
     // ── Arrastre ──────────────────────────────────────────────────────
-    const empezar = (e, menuId, indice) => {
+    const empezar = (e, desde, menuId, indice = null) => {
         if (!puedeEditar) return;
         e.preventDefault();
         lienzo.current.setPointerCapture(e.pointerId);
-        setTirando({ menuId, indice, x: e.clientX, y: e.clientY });
+        setTirando({ desde, menuId, indice, x: e.clientX, y: e.clientY });
     };
 
+    /** Dónde cayó el cable decide qué significó el gesto. */
     const soltar = async (e) => {
         if (!tirando) return;
-        const destino = document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-tipo="regla"]');
-        const { menuId, indice } = tirando;
+        const { desde, menuId, indice } = tirando;
         setTirando(null);
 
         const alerta = puestas.find(a => String(a._id) === menuId);
         if (!alerta) return;
+        const regla = document.elementFromPoint(e.clientX, e.clientY)
+            ?.closest('[data-tipo="regla"]')?.dataset.regla || null;
 
-        if (destino) await reapuntar(alerta, indice, destino.dataset.regla);
+        // Desde la alerta el cable nace sin destino: en una regla queda la
+        // asignación armada de un gesto; al aire, pregunta dónde aplica.
+        if (desde === 'alerta') {
+            if (regla) return sumar(alerta, regla);
+            return setEditandoAlcance({ alerta, sinRegla: true });
+        }
+
+        // La que se está armando solo se guarda si llegó a una regla; soltarla
+        // afuera la descarta, igual que soltar cualquier otro cable al aire.
+        if (indice === 'nueva') {
+            setArmando(null);
+            if (regla) await escribir(alerta, [...(alerta.bonusRules || []), { rule: regla, scope: armando.scope }]);
+            return;
+        }
+
+        if (regla) await reapuntar(alerta, indice, regla);
         else await quitar(alerta, indice);
     };
 
@@ -208,7 +248,7 @@ export default function BonusMap({
                     )}
                 </div>
 
-                <div ref={lienzo} className='relative bg-gray-50 p-5 overflow-x-auto select-none'
+                <div ref={lienzo} className='relative lienzo-punteado p-5 overflow-x-auto select-none'
                     onPointerMove={e => tirando && setTirando(t => ({ ...t, x: e.clientX, y: e.clientY }))}
                     onPointerUp={soltar}
                     onPointerCancel={() => setTirando(null)}>
@@ -231,11 +271,17 @@ export default function BonusMap({
                                     reglas={activasReglas}
                                     puedeEditar={puedeEditar}
                                     tirando={tirando}
-                                    onTirar={(e, i) => empezar(e, String(alerta._id), i)}
-                                    onEditarAlcance={i => setEditandoAlcance({ alerta, indice: i })}
+                                    armando={armando?.menuId === String(alerta._id) ? armando : null}
+                                    onTirarAlerta={e => empezar(e, 'alerta', String(alerta._id))}
+                                    onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
+                                    onEditarAlcance={i => setEditandoAlcance(
+                                        i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
                                     onSumar={ruleId => sumar(alerta, ruleId)}
                                     onAlternar={() => alternarBonifica(alerta)}
-                                    onSacar={() => setEnLienzo(l => l.filter(x => x !== String(alerta._id)))}
+                                    onSacar={() => {
+                                        setEnLienzo(l => l.filter(x => x !== String(alerta._id)));
+                                        setArmando(p => (p?.menuId === String(alerta._id) ? null : p));
+                                    }}
                                 />
                             ))}
 
@@ -277,10 +323,13 @@ export default function BonusMap({
                         .some((a, j) => a.scope?.mode === 'all' && j !== editandoAlcance.indice)}
                     onCerrar={() => setEditandoAlcance(null)}
                     onGuardar={async (scope) => {
-                        const { alerta, provisoria, indice } = editandoAlcance;
-                        if (provisoria) await escribir(alerta, [...(alerta.bonusRules || []), { ...provisoria, scope }]);
-                        else await cambiarAlcance(alerta, indice, scope);
+                        const { alerta, provisoria, sinRegla, indice } = editandoAlcance;
                         setEditandoAlcance(null);
+                        // Sin regla todavía: la caja queda en pantalla, cableada
+                        // a la alerta, hasta que su puerto llegue a una regla.
+                        if (sinRegla) return setArmando({ menuId: String(alerta._id), scope });
+                        if (provisoria) return escribir(alerta, [...(alerta.bonusRules || []), { ...provisoria, scope }]);
+                        await cambiarAlcance(alerta, indice, scope);
                     }}
                 />
             )}
@@ -297,24 +346,33 @@ export default function BonusMap({
  * de las demás — el mapa es una vista de relaciones, no un formulario único.
  */
 function FilaDeAlerta({
-    alerta, catalogo, reglas, puedeEditar, tirando,
-    onTirar, onEditarAlcance, onSumar, onAlternar, onSacar,
+    alerta, catalogo, reglas, puedeEditar, tirando, armando,
+    onTirarAlerta, onTirar, onEditarAlcance, onSumar, onAlternar, onSacar,
 }) {
     const asignaciones = alerta.bonusRules || [];
     const mid = String(alerta._id);
+    const tirandoDe = (indice) => tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === indice;
 
     return (
         <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
-            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} onAlternar={onAlternar} onSacar={onSacar} />
+            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar}
+                tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === mid}
+                onTirar={onTirarAlerta} onAlternar={onAlternar} onSacar={onSacar} />
 
             <div className='flex flex-col gap-3'>
                 {asignaciones.map((asig, i) => (
                     <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
-                        puedeEditar={puedeEditar}
-                        tirandoEsta={tirando?.menuId === mid && tirando?.indice === i}
+                        puedeEditar={puedeEditar} tirandoEsta={tirandoDe(i)}
                         onTirar={e => onTirar(e, i)}
                         onEditar={() => onEditarAlcance(i)} />
                 ))}
+
+                {armando && (
+                    <NodoAlcance alerta={mid} indice='nueva' asignacion={{ scope: armando.scope }}
+                        catalogo={catalogo} puedeEditar={puedeEditar} armando tirandoEsta={tirandoDe('nueva')}
+                        onTirar={e => onTirar(e, 'nueva')}
+                        onEditar={() => onEditarAlcance('nueva')} />
+                )}
 
                 {puedeEditar && reglas.length > 0 && (
                     <ElegirRegla reglas={reglas} onElegir={onSumar}
@@ -360,7 +418,9 @@ function Cables({ cables, tirando, lienzo }) {
 
     let goma = null;
     if (tirando && base) {
-        const n = lienzo.current.querySelector(`[data-nodo="alcance-${tirando.menuId}-${tirando.indice}"]`);
+        const n = lienzo.current.querySelector(tirando.desde === 'alerta'
+            ? `[data-nodo="alerta-${tirando.menuId}"]`
+            : `[data-nodo="alcance-${tirando.menuId}-${tirando.indice}"]`);
         if (n) {
             const r = n.getBoundingClientRect();
             const x1 = r.right - base.left, y1 = r.top - base.top + r.height / 2;
@@ -462,14 +522,35 @@ function ElegirAlerta({ alertas, enLienzo, onCerrar, onElegir }) {
 }
 
 
-/** La alerta que se está mapeando. */
-function NodoAlerta({ alerta, puedeEditar, onAlternar, onSacar }) {
+/**
+ * El punto del que nace un cable, en el borde derecho de una caja.
+ *
+ * Es el mismo control en la alerta y en el alcance a propósito: quien aprendió
+ * a tirar de uno ya sabe usar el otro, y que las dos cajas tengan puerto es lo
+ * que hace que el mapa se lea como un tablero y no como dos mitades.
+ */
+function Puerto({ activo, titulo, onTirar }) {
+    return (
+        <span role='button' tabIndex={0} onPointerDown={onTirar} title={titulo}
+            className={`absolute -right-2.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full
+                        bg-white border-2 cursor-grab active:cursor-grabbing z-[3] grid place-items-center
+                        transition-colors hover:border-[#29c50c]
+                        focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#29c50c]
+                        ${activo ? 'border-[#29c50c]' : 'border-gray-400'}`}>
+            <span className={`w-1.5 h-1.5 rounded-full ${activo ? 'bg-[#29c50c]' : 'bg-gray-400'}`} />
+        </span>
+    );
+}
+
+
+/** La alerta que se está mapeando. Su puerto abre una asignación nueva. */
+function NodoAlerta({ alerta, puedeEditar, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
     const bonifica = alerta?.bonifies === true;
 
     return (
         <div data-nodo={`alerta-${alerta._id}`}
-            className={`${CAJA} bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-colors
+            className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-colors
                         ${bonifica ? 'border-[#29c50c]' : 'border-gray-300'}`}>
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
@@ -512,6 +593,11 @@ function NodoAlerta({ alerta, puedeEditar, onAlternar, onSacar }) {
                     </span>
                 )}
             </div>
+
+            {puedeEditar && (
+                <Puerto activo={tirandoDeEsta} onTirar={onTirar}
+                    titulo='Arrastrá hasta una regla para asignarla, o soltá al aire para elegir primero dónde aplica' />
+            )}
         </div>
     );
 }
@@ -521,7 +607,7 @@ function NodoAlerta({ alerta, puedeEditar, onAlternar, onSacar }) {
  * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
  * regla — se arrastra para reapuntarla, o afuera para borrarla.
  */
-function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, tirandoEsta, onTirar, onEditar }) {
+function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, armando, tirandoEsta, onTirar, onEditar }) {
     const s = asignacion.scope || { mode: 'all' };
     const nombre = (lista, id) => lista.find(x => String(x._id) === String(id))?.name || '…';
     const nombres = [
@@ -534,7 +620,8 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, tirand
 
     return (
         <div data-nodo={`alcance-${alerta}-${indice}`}
-            className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-shadow
+            className={`${CAJA} relative bg-white rounded-xl px-4 py-3.5 transition-shadow border-[1.5px]
+                        ${armando ? 'border-dashed' : ''}
                         ${tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
@@ -551,14 +638,19 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, tirand
                 </ul>
             )}
 
-            {puedeEditar && (
-                <span role='button' tabIndex={0} onPointerDown={onTirar}
-                    title='Arrastrá hasta otra regla, o afuera para quitar'
-                    className='absolute -right-2.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full
-                               bg-white border-2 border-gray-400 cursor-grab active:cursor-grabbing z-[3]
-                               grid place-items-center hover:border-[#29c50c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#29c50c]'>
-                    <span className='w-1.5 h-1.5 rounded-full bg-gray-400' />
+            {/* Le falta el otro cable, y decirlo evita que la caja se
+                lea como una asignación ya guardada. */}
+            {armando && (
+                <span className='mt-auto pt-3 text-[10.5px] font-bold text-[#1f9a08]'>
+                    Falta la regla — llevá el punto hasta una
                 </span>
+            )}
+
+            {puedeEditar && (
+                <Puerto activo={tirandoEsta} onTirar={onTirar}
+                    titulo={armando
+                        ? 'Arrastrá hasta la regla que aplica acá; soltarlo afuera descarta esta caja'
+                        : 'Arrastrá hasta otra regla, o afuera para quitar'} />
             )}
         </div>
     );

@@ -83,7 +83,11 @@ export default function BonosPage() {
             </header>
 
             <div className='flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 bg-gray-50'>
-                <div className='max-w-[1100px]'>
+                {/* «Configuración de referencias» lleva el mapa de cables y toma
+                    todo el ancho: acotado a 1100px el mapa quedaba con scroll
+                    lateral propio y las reglas se apretaban contra el borde. El
+                    panel informativo sí se lee mejor en columna angosta. */}
+                <div className={pestaña === 'referencias' ? 'w-full' : 'max-w-[1100px]'}>
 
                     {pestaña === 'referencias' && (
                         <ConfigPanel

@@ -8047,6 +8047,25 @@ tfoot {
 
     .divider      { @apply h-px w-full bg-slate-200 my-4 border-0; }
     .divider-soft { @apply h-px w-full bg-[#e6dcc6] my-4 border-0; }
+
+
+    /* ========================================================================
+       LIENZO PUNTEADO  (fondo del mapa de bonificación)
+       ======================================================================== */
+    /* Papel de cuadrícula: puntos cada 5px. Le da al mapa el fondo de una mesa
+       de trabajo y hace visible que las cajas se pueden mover sobre él.
+
+       Un solo `radial-gradient` repetido por `background-size`, no una imagen:
+       escala con el zoom sin pixelarse y no pesa nada.
+
+       El punto es de 1px sobre 5px de paso, así que la trama es densa: el color
+       tiene que ser claro o compite con los cables que van por encima. */
+    .lienzo-punteado {
+        background-color: #f7f8fa;
+        background-image: radial-gradient(circle, #cfd6e0 1px, transparent 1px);
+        background-size: 5px 5px;
+        background-position: 0 0;
+    }
 }
 
 
