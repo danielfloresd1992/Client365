@@ -83,11 +83,12 @@ export default function BonosPage() {
             </header>
 
             <div className='flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 bg-gray-50'>
-                {/* «Configuración de referencias» lleva el mapa de cables y toma
-                    todo el ancho: acotado a 1100px el mapa quedaba con scroll
-                    lateral propio y las reglas se apretaban contra el borde. El
-                    panel informativo sí se lee mejor en columna angosta. */}
-                <div className={pestaña === 'referencias' ? 'w-full' : 'max-w-[1100px]'}>
+                {/* Todo el ancho del contenedor. El mapa de cables acotado a
+                    1100px quedaba con scroll lateral propio y las reglas se
+                    apretaban contra el borde; lo que necesita medida angosta
+                    para leerse —los párrafos— la lleva puesta en su propio
+                    `max-w-[NNch]`, que es donde corresponde. */}
+                <div className='w-full'>
 
                     {pestaña === 'referencias' && (
                         <ConfigPanel

@@ -8058,11 +8058,12 @@ tfoot {
        Un solo `radial-gradient` repetido por `background-size`, no una imagen:
        escala con el zoom sin pixelarse y no pesa nada.
 
-       El punto es de 1px sobre 5px de paso, así que la trama es densa: el color
-       tiene que ser claro o compite con los cables que van por encima. */
+       El punto es de 1px sobre 5px de paso: una trama densa. El gris tiene que
+       separarse del fondo lo suficiente para verse a tamaño real —un gris casi
+       igual al fondo desaparece— sin llegar a competir con los cables. */
     .lienzo-punteado {
-        background-color: #f7f8fa;
-        background-image: radial-gradient(circle, #cfd6e0 1px, transparent 1px);
+        background-color: #f6f7f9;
+        background-image: radial-gradient(circle, #aab4c4 1px, transparent 1px);
         background-size: 5px 5px;
         background-position: 0 0;
     }
