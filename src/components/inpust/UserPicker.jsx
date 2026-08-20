@@ -1,12 +1,12 @@
 'use client';
-import { useState, useMemo, useRef, useEffect } from 'react';
-import useUsers from '@/hook/useUsers';
+import { useState, useRef, useEffect } from 'react';
+import useUserSearch from '@/hook/useUserSearch';
 
 /**
  * BUSCADOR DE UN USUARIO.
  *
- * Un campo de texto que filtra mientras se escribe y una lista debajo. La
- * lista sale de `useUsers`, que la trae una vez por sesión.
+ * Un campo de texto y una lista debajo. Busca contra el servidor por el mismo
+ * `/user/list` que usa el directorio de `/user/config`.
  *
  *     const [operador, setOperador] = useState(null);
  *     <UserPicker valor={operador} onElegir={setOperador} etiqueta='Operador' />
@@ -15,9 +15,10 @@ import useUsers from '@/hook/useUsers';
  * usuario entero, no solo el id: quien lo usa casi siempre necesita el nombre
  * para mostrarlo, y volver a buscarlo en la lista es trabajo repetido.
  *
- * ES UN BUSCADOR Y NO UN `<select>` porque son ochenta y pico de operadores.
- * En un desplegable eso es una lista que hay que recorrer con la rueda; acá se
- * escriben tres letras.
+ * ES UN BUSCADOR Y NO UN `<select>` porque son cientos de usuarios. En un
+ * desplegable eso es una lista que hay que recorrer con la rueda, y además
+ * obliga a traerlos todos para llenarlo. Acá se escriben tres letras y el
+ * servidor devuelve ocho.
  */
 export default function UserPicker({
     valor = null,
@@ -29,10 +30,14 @@ export default function UserPicker({
     maximo = 8,
 }) {
 
-    const { usuarios, cargando, error } = useUsers();
     const [texto, setTexto] = useState('');
     const [abierto, setAbierto] = useState(false);
     const caja = useRef(null);
+
+    // Solo se busca con la lista abierta: elegido un usuario la lista se
+    // cierra, y seguir consultando por un texto que nadie ve es trabajo al
+    // servidor por nada.
+    const { usuarios, cargando, error } = useUserSearch(abierto && !valor ? texto : '', { limite: maximo });
 
     // Cerrar al tocar fuera. Sin esto la lista queda abierta tapando lo que
     // sigue, y el gesto natural para descartarla no hace nada.
@@ -42,13 +47,6 @@ export default function UserPicker({
         document.addEventListener('pointerdown', fuera);
         return () => document.removeEventListener('pointerdown', fuera);
     }, [abierto]);
-
-    const visibles = useMemo(() => {
-        const busca = texto.trim().toLowerCase();
-        return usuarios
-            .filter(u => !busca || u.nombre.toLowerCase().includes(busca))
-            .slice(0, maximo);
-    }, [usuarios, texto, maximo]);
 
     const elegir = (usuario) => {
         onElegir(usuario);
@@ -81,8 +79,8 @@ export default function UserPicker({
                 <input
                     type='search'
                     value={texto}
-                    disabled={deshabilitado || cargando}
-                    placeholder={cargando ? 'Cargando usuarios…' : textoTodos}
+                    disabled={deshabilitado}
+                    placeholder={textoTodos}
                     onChange={e => { setTexto(e.target.value); setAbierto(true); }}
                     onFocus={() => setAbierto(true)}
                     className='w-full h-9 px-3 rounded-lg border border-gray-300 text-[13px] text-gray-700
@@ -92,14 +90,23 @@ export default function UserPicker({
                 />
             )}
 
-            {abierto && !valor && !cargando && (
+            {abierto && !valor && (
                 <ul className='absolute z-30 mt-1 w-full max-h-64 overflow-y-auto
                                bg-white border border-gray-200 rounded-lg shadow-lg p-1'>
-                    {visibles.map(u => (
+                    {usuarios.map(u => (
                         <li key={u._id}>
                             <button type='button' onClick={() => elegir(u)}
                                 className='w-full text-left px-3 py-2 rounded-md hover:bg-[#29c50c]/10 transition-colors'>
-                                <span className='block text-[12.5px] text-gray-800 truncate'>{u.nombre}</span>
+                                <span className='flex items-center gap-1.5'>
+                                    <span className='flex-1 min-w-0 text-[12.5px] text-gray-800 truncate'>{u.nombre}</span>
+                                    {/* Los inhabilitados se muestran igual: una consulta
+                                        de meses atrás puede ser de alguien que ya no está. */}
+                                    {u.inabilited && (
+                                        <span className='shrink-0 text-[9.5px] font-bold rounded px-1 py-0.5 bg-gray-100 text-gray-500'>
+                                            inactivo
+                                        </span>
+                                    )}
+                                </span>
                                 {u.position && (
                                     <span className='block text-[10.5px] text-gray-500 truncate'>{u.position}</span>
                                 )}
@@ -107,9 +114,9 @@ export default function UserPicker({
                         </li>
                     ))}
 
-                    {!visibles.length && (
+                    {!usuarios.length && (
                         <li className='px-3 py-4 text-[12.5px] text-gray-500'>
-                            {error ? 'No se pudo cargar la lista.' : 'Ninguno coincide.'}
+                            {cargando ? 'Buscando…' : error || 'Ninguno coincide.'}
                         </li>
                     )}
                 </ul>

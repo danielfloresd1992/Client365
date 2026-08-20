@@ -213,11 +213,14 @@ export const getMyDayRole = async () => {
  * @param {{ page?: number, limit?: number, search?: string }} params
  * @returns {{ status, page, limit, search, totalUsers, totalPages, users[] }}
  */
-export const getUsersList = async ({ page = 1, limit = 12, search = '' } = {}) => {
+export const getUsersList = async ({ page = 1, limit = 12, search = '', signal = null } = {}) => {
     try {
         const params = new URLSearchParams({ page: String(page), limit: String(limit) });
         if (search) params.set('search', search);
-        const response = await axiosInstance.get(`/user/list?${params.toString()}`);
+        // `signal` permite cancelar: un buscador dispara una consulta por
+        // pulsación y sin cancelar gana la que vuelve última, no la última que
+        // se pidió.
+        const response = await axiosInstance.get(`/user/list?${params.toString()}`, signal ? { signal } : undefined);
         return response.data;
     }
     catch (error) {
