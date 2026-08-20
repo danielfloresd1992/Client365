@@ -27,11 +27,6 @@ import useBcvReference from '@/hook/useBcvReference.js';
 const ALTO_ROTULO = 'h-4 leading-4';
 const ALTO_CAMPO = 'h-10';
 
-// Las flechitas del input numérico sobran: los valores se escriben, no se
-// suben de a uno, y ocupan el lugar donde va la unidad.
-const SIN_FLECHAS = '[appearance:textfield] '
-    + '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
-
 
 /**
  * Los dos campos, cada uno con la pinta de lo que es.
@@ -335,7 +330,7 @@ function Campo({ campo, valor, editable, onCambiar, onEnter }) {
                 aria-label={campo.etiqueta}
                 className={`flex-1 min-w-0 px-2.5 bg-transparent outline-none
                             text-[14px] font-bold tabular-nums ${campo.tema.texto}
-                            disabled:cursor-not-allowed ${SIN_FLECHAS}`}
+                            disabled:cursor-not-allowed`}
             />
         </div>
     );

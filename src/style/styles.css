@@ -1605,15 +1605,6 @@ p {
    dibujaba un cuadro absoluto sobre cualquier checkbox seguido de label
    y rompía los Checkbox de flowbite-react. Ningún componente la usaba. */
 
-/*
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-*/
-
-
 
 .form-content {
     width: 50%;
@@ -7853,6 +7844,39 @@ tfoot {
         --brand-border-soft: #dde8d0;
         --brand-border-eyebrow: #dce8d4;
         --brand-line: #e6dcc6;
+    }
+
+    /* ========================================================================
+       CAMPOS NUMÉRICOS SIN FLECHITAS
+       ========================================================================
+       Las flechas de subir y bajar de `input[type=number]` no se usan en esta
+       app: los valores se escriben, no se ajustan de a un paso. Lo que hacen
+       es ocupar el borde derecho del campo —donde suele ir la unidad o una
+       acción—, medir distinto en cada navegador y aparecer solo al pasar el
+       mouse, así que el campo cambia de ancho según dónde esté el cursor.
+
+       Van las dos formas: el pseudo-elemento de WebKit/Blink y `appearance`
+       para Firefox. El `margin: 0` no sobra — sin él Chrome deja el hueco
+       donde estaban.
+
+       El campo sigue siendo `type=number`: se conservan el teclado numérico
+       del teléfono y la validación de `min` y `step`. Solo se va el control.
+
+       Sin escotilla a propósito. Se probó una clase `.con-flechas` para
+       devolverlas caso por caso y Tailwind la purgó del build por no estar
+       usada en ningún lado; una escotilla que no funciona es peor que no
+       tenerla. Si algún día hace falta un campo con flechas, se agrega la
+       regla ese día. */
+    input[type="number"]::-webkit-inner-spin-button,
+    input[type="number"]::-webkit-outer-spin-button {
+        -webkit-appearance: none;
+        appearance: none;
+        margin: 0;
+    }
+
+    input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
     }
 }
 
