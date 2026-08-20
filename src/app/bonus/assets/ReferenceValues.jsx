@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import useBcvReference from '@/hook/useBcvReference.js';
 
 /**
  * LAS DOS VARIABLES GLOBALES DEL SISTEMA, EN UNA SOLA PIEZA.
@@ -26,19 +27,48 @@ import { useState, useEffect } from 'react';
 const ALTO_ROTULO = 'h-4 leading-4';
 const ALTO_CAMPO = 'h-10';
 
+// Las flechitas del input numérico sobran: los valores se escriben, no se
+// suben de a uno, y ocupan el lugar donde va la unidad.
+const SIN_FLECHAS = '[appearance:textfield] '
+    + '[&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none';
 
+
+/**
+ * Los dos campos, cada uno con la pinta de lo que es.
+ *
+ * El del BONO va en oro, igual que la estrella de la tarjeta y que el
+ * resultado: los dos extremos de la ecuación son NUESTRO número, el que fija
+ * el reglamento. La TASA, en el medio, es un dato ajeno —lo publica el Banco
+ * Central— y va en gris, sin adorno. Mirando la fila se distingue lo que
+ * decidimos de lo que nos viene dado, sin leer una palabra.
+ *
+ * La unidad va dentro del campo, pegada al número: pertenece al valor y no a
+ * la etiqueta, y así la fila mide un renglón menos que cuando iba debajo.
+ */
 const CAMPOS = [
     {
         key: 'pointValue',
         etiqueta: 'Valor de un bono',
-        unidad: 'Dólares',
+        afijo: '$',
         paso: '0.01',
+        tema: {
+            caja: 'bg-[#fdf6e7]/50 border-[#d9a441]/60 focus-within:ring-[#d9a441]/30 focus-within:border-[#d9a441]',
+            afijo: 'bg-[#d9a441]/25 text-[#8a5a2b]',
+            texto: 'text-[#8a5a2b]',
+        },
     },
     {
         key: 'exchangeRate',
-        etiqueta: 'Tasa de cambio del BCV',
-        unidad: 'Bolívares por dólar',
-        paso: '0.01',
+        etiqueta: 'Tasa del BCV',
+        afijo: 'Bs',
+        // 'any' y no un paso fijo: el BCV publica cuatro decimales y con
+        // step='0.01' el navegador marca 777,4161 como inválido.
+        paso: 'any',
+        tema: {
+            caja: 'bg-white border-gray-300 focus-within:ring-[#29c50c]/30 focus-within:border-[#29c50c]',
+            afijo: 'bg-slate-100 text-slate-500',
+            texto: 'text-gray-800',
+        },
     },
 ];
 
@@ -56,6 +86,10 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
     // Se trabaja con texto y no con números: un input controlado por un número
     // no se puede dejar vacío para reescribirlo, y borra el último dígito solo.
     const [borrador, setBorrador] = useState({ pointValue: '', exchangeRate: '' });
+
+    // La tasa que publica el BCV, para comparar y copiar de un toque. Es una
+    // comodidad: si el servicio no responde, el campo se escribe a mano igual.
+    const referencia = useBcvReference();
 
     // Se sincroniza con lo guardado cuando llega o cuando cambia tras guardar,
     // no en cada render: si se escribiera encima mientras alguien tipea, el
@@ -137,34 +171,37 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                 menos peso que el resultado: son números de tres dígitos y lo
                 que se consulta de reojo es el total en bolívares, así que el
                 espacio de más va donde se mira. */}
-            <div className='mt-5 grid gap-x-3 gap-y-4
-                            sm:grid-cols-[minmax(120px,1fr)_auto_minmax(120px,1fr)_auto_minmax(160px,1.4fr)]'>
+            <div className='mt-4 grid gap-x-3 gap-y-4
+                            sm:grid-cols-[minmax(120px,1fr)_auto_minmax(150px,1.15fr)_auto_minmax(160px,1.4fr)]'>
 
                 {CAMPOS.map((campo, i) => (
                     <Termino
                         key={campo.key}
                         operadorPrevio={i > 0 ? '×' : null}
                         etiqueta={campo.etiqueta}
-                        unidad={campo.unidad}
+                        // La referencia del BCV va en el renglón del rótulo, que
+                        // estaba vacío a la derecha. Es justo donde se mira antes
+                        // de escribir el número, y no gasta una fila nueva.
+                        accion={campo.key === 'exchangeRate' && puedeEditar ? (
+                            <ReferenciaBcv
+                                referencia={referencia}
+                                actual={valores.exchangeRate}
+                                onUsar={v => setBorrador(previo => ({ ...previo, exchangeRate: String(v) }))}
+                            />
+                        ) : null}
                     >
-                        <input
-                            type='number'
-                            step={campo.paso}
-                            min='0'
-                            value={cargando ? '' : borrador[campo.key]}
-                            disabled={!puedeEditar || cargando}
-                            onChange={e => setBorrador(previo => ({ ...previo, [campo.key]: e.target.value }))}
-                            onKeyDown={e => { if (e.key === 'Enter') guardar(); }}
-                            aria-label={campo.etiqueta}
-                            className={`${ALTO_CAMPO} w-full px-3 rounded-xl border border-gray-300 text-[13.5px] font-semibold text-gray-800 tabular-nums
-                                        focus:outline-none focus:ring-2 focus:ring-[#29c50c]/40 focus:border-[#29c50c]
-                                        disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed`}
+                        <Campo
+                            campo={campo}
+                            valor={cargando ? '' : borrador[campo.key]}
+                            editable={puedeEditar && !cargando}
+                            onCambiar={v => setBorrador(previo => ({ ...previo, [campo.key]: v }))}
+                            onEnter={guardar}
                         />
                     </Termino>
                 ))}
 
-                <Termino operadorPrevio='=' etiqueta='Un bono hoy' unidad='Al cambio de hoy'>
-                    <div className={`${ALTO_CAMPO} flex items-center px-3 rounded-xl bg-[#fdf6e7] border border-[#d9a441]/40`}>
+                <Termino operadorPrevio='=' etiqueta='Un bono hoy'>
+                    <div className={`${ALTO_CAMPO} flex items-center px-3.5 rounded-xl bg-[#fdf6e7] border border-[#d9a441]/50`}>
                         <Resultado
                             pointValue={valores.pointValue}
                             exchangeRate={valores.exchangeRate}
@@ -208,7 +245,7 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
                 <p className='text-[11px] text-gray-500 max-w-[80ch]'>
                     {!puedeEditar
                         ? 'Solo un administrador puede cambiar estos valores.'
-                        : 'La tasa se carga a mano con la publicada por el Banco Central. Ningún cambio recalcula lo ya pagado: cada novedad conserva el valor con el que se selló.'}
+                        : 'La tasa de referencia se consulta sola, pero se guarda cuando vos lo confirmás. Ningún cambio recalcula lo ya pagado: cada novedad conserva el valor con el que se selló.'}
                 </p>
 
                 {ajustes?.updatedAt && (
@@ -231,20 +268,22 @@ export default function ReferenceValues({ ajustes, cargando, guardando, puedeEdi
 
 
 /**
- * Un término de la ecuación: rótulo arriba, campo, y unidad abajo.
+ * Un término de la ecuación: el rótulo arriba y el campo debajo.
  *
- * LAS TRES FILAS TIENEN ALTURA FIJA, y eso es lo único que mantiene los campos
+ * LAS DOS FILAS TIENEN ALTURA FIJA, y eso es lo único que mantiene los campos
  * alineados. Alinear las columnas por su borde —`items-end` o `items-start`—
- * parece que funciona hasta que un rótulo ocupa dos líneas o una unidad es más
- * larga que otra: ahí cada campo arranca a distinta altura y la fila deja de
- * leerse como una cuenta. Con las filas fijas, el largo de los textos no puede
- * mover nada.
+ * parece que funciona hasta que un rótulo ocupa dos líneas: ahí cada campo
+ * arranca a distinta altura y la fila deja de leerse como una cuenta. Con las
+ * filas fijas, el largo de los textos no puede mover nada.
  *
- * Por lo mismo el operador se dibuja con la MISMA estructura, con el rótulo y
- * la unidad vacíos: es un término más de la grilla, así que cae solo a la
- * altura del campo sin ningún margen calculado a mano.
+ * Por lo mismo el operador se dibuja con la MISMA estructura y el rótulo
+ * vacío: es un término más de la grilla, así que cae solo a la altura del
+ * campo sin ningún margen calculado a mano.
+ *
+ * `accion` es opcional y va a la derecha del rótulo, en el espacio que ese
+ * renglón deja libre. Es donde entra la referencia del BCV sin sumar altura.
  */
-function Termino({ operadorPrevio, etiqueta, unidad, children }) {
+function Termino({ operadorPrevio, etiqueta, accion, children }) {
     return (
         <>
             {/* Se oculta al apilarse: un "×" suelto entre dos bloques, uno
@@ -255,22 +294,96 @@ function Termino({ operadorPrevio, etiqueta, unidad, children }) {
                     <span className={`mt-1 grid place-items-center ${ALTO_CAMPO} text-[16px] font-light text-gray-300 select-none`}>
                         {operadorPrevio}
                     </span>
-                    <span className={`block mt-1 ${ALTO_ROTULO}`} />
                 </div>
             )}
 
-            <div>
-                <span className={`block ${ALTO_ROTULO} text-[10.5px] font-bold uppercase tracking-wider text-gray-500 truncate`}>
-                    {etiqueta}
-                </span>
+            <div className='min-w-0'>
+                <div className={`flex items-center gap-2 ${ALTO_ROTULO}`}>
+                    <span className='text-[10.5px] font-bold uppercase tracking-wider text-gray-500 truncate'>
+                        {etiqueta}
+                    </span>
+                    {accion && <span className='ml-auto shrink-0'>{accion}</span>}
+                </div>
 
                 <div className='mt-1'>{children}</div>
-
-                <span className={`block mt-1 ${ALTO_ROTULO} text-[10.5px] text-gray-500 truncate`}>
-                    {unidad}
-                </span>
             </div>
         </>
+    );
+}
+
+
+/** Un campo de la ecuación: su unidad a la izquierda y el número al lado. */
+function Campo({ campo, valor, editable, onCambiar, onEnter }) {
+    return (
+        <div className={`${ALTO_CAMPO} flex items-stretch rounded-xl border overflow-hidden
+                         transition-colors focus-within:ring-2
+                         ${campo.tema.caja} ${editable ? '' : 'opacity-60'}`}>
+
+            <span aria-hidden='true'
+                className={`grid place-items-center w-9 shrink-0 text-[12px] font-black ${campo.tema.afijo}`}>
+                {campo.afijo}
+            </span>
+
+            <input
+                type='number'
+                step={campo.paso}
+                min='0'
+                value={valor}
+                disabled={!editable}
+                onChange={e => onCambiar(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') onEnter(); }}
+                aria-label={campo.etiqueta}
+                className={`flex-1 min-w-0 px-2.5 bg-transparent outline-none
+                            text-[14px] font-bold tabular-nums ${campo.tema.texto}
+                            disabled:cursor-not-allowed ${SIN_FLECHAS}`}
+            />
+        </div>
+    );
+}
+
+
+/**
+ * La tasa que publica el BCV, al lado del rótulo del campo.
+ *
+ * Escribe en el campo y NO guarda: lo que se manda al servidor lo sigue
+ * decidiendo el botón de arriba. Un valor externo que se guarda solo es
+ * exactamente lo que no queremos en el único número que multiplica todo lo
+ * que se paga.
+ */
+function ReferenciaBcv({ referencia, actual, onUsar }) {
+    const { tasa, cargando, error, recargar } = referencia;
+
+    const base = 'text-[10px] font-bold normal-case tracking-normal transition-colors';
+
+    if (cargando) return <span className={`${base} text-gray-300`}>consultando…</span>;
+
+    if (error) {
+        return (
+            <button type='button' onClick={recargar} title={error}
+                className={`${base} text-gray-400 hover:text-gray-700 underline decoration-dotted`}>
+                sin referencia
+            </button>
+        );
+    }
+
+    if (!tasa) return null;
+
+    const numero = tasa.valor.toLocaleString('es-VE', { maximumFractionDigits: 4 });
+    const dia = tasa.fecha ? tasa.fecha.toLocaleDateString('es-VE') : null;
+
+    // Cuatro decimales es lo que publica el BCV; comparar más fino haría que
+    // un valor idéntico se viera como distinto por el redondeo del texto.
+    if (actual !== null && Math.abs(actual - tasa.valor) < 0.00005) {
+        return <span className={`${base} text-[#1f9a08]`}>= al BCV</span>;
+    }
+
+    return (
+        <button type='button' onClick={() => onUsar(tasa.valor)}
+            title={`Tasa del BCV${dia ? ` vigente el ${dia}` : ''}. Fuente: ${tasa.fuente}, que republica la oficial.`
+                + ' Al tocar se escribe en el campo; no se guarda hasta confirmar.'}
+            className={`${base} px-1.5 py-0.5 rounded-md text-[#1f9a08] bg-[#29c50c]/10 hover:bg-[#29c50c]/20 tabular-nums`}>
+            usar {numero}
+        </button>
     );
 }
 
