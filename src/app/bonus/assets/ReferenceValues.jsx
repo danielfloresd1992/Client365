@@ -368,17 +368,32 @@ function ReferenciaBcv({ referencia, actual, onUsar }) {
 
     // Cuatro decimales es lo que publica el BCV; comparar más fino haría que
     // un valor idéntico se viera como distinto por el redondeo del texto.
-    if (actual !== null && Math.abs(actual - tasa.valor) < 0.00005) {
-        return <span className={`${base} text-[#1f9a08]`}>= al BCV</span>;
-    }
+    const coincide = actual !== null && Math.abs(actual - tasa.valor) < 0.00005;
+
+    const detalle = `Tasa del BCV${dia ? ` vigente el ${dia}` : ''}. Fuente: ${tasa.fuente}, que republica la oficial.`;
 
     return (
-        <button type='button' onClick={() => onUsar(tasa.valor)}
-            title={`Tasa del BCV${dia ? ` vigente el ${dia}` : ''}. Fuente: ${tasa.fuente}, que republica la oficial.`
-                + ' Al tocar se escribe en el campo; no se guarda hasta confirmar.'}
-            className={`${base} px-1.5 py-0.5 rounded-md text-[#1f9a08] bg-[#29c50c]/10 hover:bg-[#29c50c]/20 tabular-nums`}>
-            usar {numero}
-        </button>
+        <span className='flex items-baseline gap-1.5' title={detalle}>
+
+            {/* De dónde salió el número, dicho en la pantalla y no solo en un
+                tooltip: es un dato de afuera y quien lo va a guardar tiene
+                derecho a saber de dónde viene sin tener que pasar el mouse.
+                En 9px ocupa lo mismo que el aire que había ahí. */}
+            <span className='text-[9px] font-semibold text-gray-500 normal-case tracking-normal'>
+                {tasa.fuente}
+            </span>
+
+            {coincide ? (
+                <span className={`${base} text-[#1f9a08] tabular-nums`}>BCV {numero} ✓</span>
+            ) : (
+                <button type='button' onClick={() => onUsar(tasa.valor)}
+                    title={`${detalle} Al tocar se escribe en el campo; no se guarda hasta confirmar.`}
+                    className={`${base} px-1.5 py-0.5 rounded-md tabular-nums
+                                text-[#1f9a08] bg-[#29c50c]/10 hover:bg-[#29c50c]/20`}>
+                    usar {numero}
+                </button>
+            )}
+        </span>
     );
 }
 
