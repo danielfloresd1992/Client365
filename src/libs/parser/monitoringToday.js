@@ -18,6 +18,8 @@ import { AXIS_START, toMinutes, fmtAxisMinute, fmtInMinutes } from '@/libs/time/
  *                Es un aviso sobre el OPERADOR.
  *   · `dvr.down` no hay cámaras que mirar. No es que no reportara: es que NO
  *                PODÍA. Es un aviso sobre el ESTABLECIMIENTO.
+ *   · `exempt`   un administrador decidió que este local no entra en esa lista.
+ *                Es una DECISIÓN, no un estado del local.
  *
  * Mezclarlos haría que un corte de conexión se leyera como una omisión.
  */
@@ -30,6 +32,7 @@ export function buildScheduleGroups({
     minuteNowAxis,    // minuto actual sobre el eje operativo
     liveByLocal,      // { idLocal → [tipos activos] } según el watcher
     silentByLocal,    // { idLocal → true } señalados por el corte de silencio
+    exemptByLocal,    // { idLocal → {byName,at,reason} } exentos del corte
     dayCounts,        // { byId } conteos del día por local
 }) {
     const groups = { live: [], upcoming: [], done: [] };
@@ -111,18 +114,28 @@ export function buildScheduleGroups({
         // veía antes de esto.
         const dvr = counts?.dvr ?? null;
 
+        // ── Exento del corte de silencio ──────────────────────────────
+        // Un administrador lo sacó de la lista "sin reportar al grupo". Apaga
+        // ESE aviso y nada más: el local sigue en monitoreo, sus alertas se
+        // siguen contando y su DVR se sigue vigilando.
+        const exempt = exemptByLocal?.[id] ?? null;
+
         const silentInfo = silentByLocal?.[id];
         const isSilent = Boolean(silentInfo)
             && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical'))
             // Sin cámaras no hay nada que mandar al grupo: avisar de silencio
             // sería reprochar dos veces el mismo corte de conexión.
-            && !dvr?.down;
+            && !dvr?.down
+            // Y si está exento, tampoco. Se comprueba acá además de en el
+            // servidor porque el flag durable puede venir de antes de eximirlo.
+            && !exempt;
 
         groups[state].push({
             id, name, state, stateLabel,
             ranges: todays,
             liveTypes: [...liveTypes],
             silent: isSilent,
+            exempt,
             dvr,
             // Último envío al grupo (ISO) para mostrar "sin actualización hace X".
             // silentByLocal[id] es { lastSentAt }; solo tiene sentido si está silencioso.

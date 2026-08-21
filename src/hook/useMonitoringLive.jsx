@@ -13,7 +13,14 @@ import { getMonitoringStatus } from '@/libs/ajaxClient/monitoring.fecth';
  *     'monitoring-silence-clear' apaga un local al instante cuando envía, y
  *     el FIN del monitoreo analítico de un local también lo apaga (fuera de
  *     su ventana no hay nada que reclamarle)
+ *   · exemptByLocal { idLocal → { byName, at, reason } } — locales que un
+ *     administrador sacó de la lista "sin reportar al grupo"; se siembra de
+ *     /monitoring/status y lo mantiene 'monitoring-silence-exempt'
  *   · lastEvent     último inicio/fin recibido (para la cinta del panel)
+ *
+ * EXENTO NO ES SILENCIOSO, y por eso son dos mapas. El exento no dispara el
+ * aviso horario, pero sigue en monitoreo, sigue contando alertas y sigue
+ * avisando si se le cae el DVR: lo único que se apaga es esa lista.
  *
  * /monitoring/status calcula la verdad EN TIEMPO REAL desde el horario
  * (Schedules/MonitoringRange: dayMonitoring + start/end del día). Además de
@@ -28,6 +35,7 @@ export default function useMonitoringLive() {
 
     const [liveByLocal, setLiveByLocal] = useState({});
     const [silentByLocal, setSilentByLocal] = useState({});
+    const [exemptByLocal, setExemptByLocal] = useState({});
     const [lastEvent, setLastEvent] = useState(null);
 
     useEffect(() => {
@@ -41,15 +49,25 @@ export default function useMonitoringLive() {
                     if (!alive) return;
                     const map = {};
                     const silent = {};
+                    const exempt = {};
                     docs.forEach(doc => {
                         map[doc.idLocal] = doc.activeTypes ?? [];
                         // silentByLocal[id] = { lastSentAt } — objeto truthy: los
                         // Boolean(silentByLocal[id]) existentes siguen valiendo, y
                         // el front puede leer cuándo fue el último envío al grupo.
                         if (doc.noveltyCheck?.flagged) silent[doc.idLocal] = { lastSentAt: doc.noveltyCheck?.lastSentAt ?? null };
+
+                        if (doc.silenceExempt?.active) {
+                            exempt[doc.idLocal] = {
+                                byName: doc.silenceExempt.byName ?? '',
+                                at: doc.silenceExempt.at ?? null,
+                                reason: doc.silenceExempt.reason ?? '',
+                            };
+                        }
                     });
                     setLiveByLocal(map);
                     setSilentByLocal(silent);
+                    setExemptByLocal(exempt);
                 })
                 .catch(err => console.error('Estado de monitoreo:', err?.message ?? err));
         };
@@ -97,10 +115,42 @@ export default function useMonitoringLive() {
             });
         };
 
+        /**
+         * Un administrador eximió (o devolvió) un local al corte de silencio.
+         *
+         * Al eximir se apaga además el aviso que tuviera puesto: si no, el local
+         * quedaría en rojo hasta el corte siguiente y parecería que el botón no
+         * hizo nada. Al devolverlo NO se lo señala — eso lo decide el corte.
+         */
+        const handleExempt = (msm) => {
+            if (!msm?.idLocal) return;
+
+            setExemptByLocal(prev => {
+                const next = { ...prev };
+                if (msm.active) {
+                    next[msm.idLocal] = { byName: msm.byName ?? '', at: msm.at ?? null, reason: msm.reason ?? '' };
+                }
+                else {
+                    delete next[msm.idLocal];
+                }
+                return next;
+            });
+
+            if (msm.active) {
+                setSilentByLocal(prev => {
+                    if (!prev[msm.idLocal]) return prev;
+                    const next = { ...prev };
+                    delete next[msm.idLocal];
+                    return next;
+                });
+            }
+        };
+
         socket.on('monitoring-start', handleStart);
         socket.on('monitoring-end', handleEnd);
         socket.on('monitoring-silence', handleSilence);
         socket.on('monitoring-silence-clear', handleSilenceClear);
+        socket.on('monitoring-silence-exempt', handleExempt);
 
         const timer = setInterval(load, RESEED_MS);
         const onVisible = () => { if (document.visibilityState === 'visible') load(); };
@@ -114,8 +164,9 @@ export default function useMonitoringLive() {
             socket.off('monitoring-end', handleEnd);
             socket.off('monitoring-silence', handleSilence);
             socket.off('monitoring-silence-clear', handleSilenceClear);
+            socket.off('monitoring-silence-exempt', handleExempt);
         };
     }, []);
 
-    return { liveByLocal, silentByLocal, lastEvent };
+    return { liveByLocal, silentByLocal, exemptByLocal, lastEvent };
 }

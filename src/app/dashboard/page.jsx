@@ -65,7 +65,7 @@ export default function Dashboard() {
 
     // Estado vivo (los sockets viven dentro de cada hook)
     const dayCounts = useDayCounts({ category: categoryFilter, bonusCategory: bonusFilter });
-    const { liveByLocal, silentByLocal, lastEvent } = useMonitoringLive();
+    const { liveByLocal, silentByLocal, exemptByLocal, lastEvent } = useMonitoringLive();
     const now = useLiveClock();
 
     // Horarios de monitoreo + flag de invierno (una vez por montaje)
@@ -88,8 +88,8 @@ export default function Dashboard() {
     const minuteNowAxis = useMemo(() => minuteOnAxis(now), [now]);
 
     const scheduleGroups = useMemo(
-        () => buildScheduleGroups({ schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, dayCounts }),
-        [schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, dayCounts],
+        () => buildScheduleGroups({ schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, exemptByLocal, dayCounts }),
+        [schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, exemptByLocal, dayCounts],
     );
 
     // Formato analógico 12 h con segundos, sin espacio: "00:09:23AM" (la hora
