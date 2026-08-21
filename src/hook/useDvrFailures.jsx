@@ -8,25 +8,42 @@ import {
 } from '@/libs/ajaxClient/dvrFailure.fecth';
 
 /**
- * Caídas de DVR: las de AHORA en vivo, y el historial del último mes.
+ * Caídas de DVR: las de AHORA en vivo, y el historial hacia atrás.
  *
  * @param {{ days?: number, limit?: number }} [opciones]
- *        `days` cuántos días hacia atrás cubre el historial y el mapa (30).
- * @returns {{ active, stats, history, loading, error, reload }}
+ *        `days` cuántos días hacia atrás se piden (default 371 = 53 semanas).
+ *        Es el mismo tope que el del mapa: pedir menos de lo que la rejilla
+ *        puede llegar a pintar dejaría meses en cero por falta de datos, no
+ *        por falta de caídas.
+ * @returns {{ active, stats, history, loading, error, reload, days }}
+ *
+ *
+ * SE PIDE TODO EL RANGO, NO LO QUE SE VE
+ *
+ * El mapa de calor no muestra un número fijo de días: estira la rejilla hasta
+ * llenar el ancho del panel, así que en una pantalla ancha alcanza a mostrar
+ * bastante más de un mes. Si la consulta siguiera a lo que se ve, cada cambio
+ * de tamaño de la ventana dispararía otra consulta, y al abrir el panel harían
+ * falta dos —una a ciegas y otra ya medido—.
+ *
+ * Así que se pide el rango COMPLETO de una vez y el componente coloca cada día
+ * en su casilla por fecha; lo que caiga fuera de lo que se está pintando
+ * simplemente no se dibuja. Sale barato: `byDay` es una fila por día, así que
+ * un año son 371 filas.
  *
  *
  * LO DE AHORA Y LO DE ANTES SE PIDEN DISTINTO, A PROPÓSITO
  *
  * `active` se repide entero en cada evento: son un puñado de filas y lo que
  * importa es que el minuto que llevan caídos esté al día. `stats` e `history`
- * cubren un mes y cambian poco, así que van con debounce — un rebote de DVR
- * dispararía tres consultas de un mes cada una para mover una celda.
+ * cubren meses y cambian poco, así que van con debounce — un rebote de DVR
+ * dispararía tres consultas de medio año cada una para mover una celda.
  *
  * El reloj también cuenta: `elapsedMinutes` lo calcula el servidor al
  * responder, así que sin volver a preguntar se congelaría. Por eso hay un
  * refresco periódico de `active` aunque no llegue ningún evento.
  */
-export default function useDvrFailures({ days = 30, limit = 200 } = {}) {
+export default function useDvrFailures({ days = 371, limit = 200 } = {}) {
 
     const [active, setActive] = useState(null);
     const [stats, setStats] = useState(null);
@@ -116,5 +133,5 @@ export default function useDvrFailures({ days = 30, limit = 200 } = {}) {
         };
     }, [reload, cargarActivas, cargarHistorial]);
 
-    return { active, stats, history, loading, error, reload };
+    return { active, stats, history, loading, error, reload, days };
 }

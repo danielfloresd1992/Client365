@@ -1,5 +1,5 @@
 'use client';
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityGreen } from '@/components/ui/mono-activity-green';
 import useDvrFailures from '@/hook/useDvrFailures';
 
@@ -47,7 +47,14 @@ const fechaDe = (fecha) => (fecha
 
 export default function DvrFailures() {
 
-    const { active, stats, history, loading } = useDvrFailures({ days: 30 });
+    const { active, stats, history, loading, days } = useDvrFailures();
+
+    // Cuántos días acabó mostrando el mapa. No se sabe hasta medir el panel: la
+    // rejilla estira el rango hacia atrás hasta llenar el ancho, así que en una
+    // pantalla ancha son bastantes más de treinta. El rótulo lo dice para que
+    // nadie lea el mapa creyendo que son otros.
+    const [diasEnElMapa, setDiasEnElMapa] = useState(null);
+    const alCambiarElRango = useCallback(({ days: mostrados }) => setDiasEnElMapa(mostrados), []);
 
     const caidos = active?.failures ?? [];
     const porLocal = stats?.byLocal ?? [];
@@ -65,12 +72,12 @@ export default function DvrFailures() {
         [stats],
     );
 
-    const rango = useMemo(() => {
-        const hoy = new Date();
-        return { from: new Date(hoy.getTime() - 29 * 86_400_000), to: hoy };
-    }, []);
-
     const hayCaidos = caidos.length > 0;
+
+    // "6 meses" se lee mejor que "182 días" cuando el rango es largo.
+    const etiquetaDelRango = days >= 60
+        ? `últimos ${Math.round(days / 30)} meses`
+        : `últimos ${days} días`;
 
     return (
         <section className='flex flex-col gap-4 p-4' aria-label='Fallas de conexión con DVR'>
@@ -141,9 +148,13 @@ export default function DvrFailures() {
                 <ActivityGreen
                     theme='dark'
                     data={datosDelMapa}
-                    from={rango.from}
-                    to={rango.to}
-                    title='Caídas de DVR · últimos 30 días'
+                    minDays={30}
+                    /* El tope va atado a lo que se pidió: pintar más semanas de
+                       las que se trajeron dejaría meses en cero por falta de
+                       datos y no por falta de caídas. */
+                    maxDays={days}
+                    onRangeChange={alCambiarElRango}
+                    title={`Caídas de DVR · ${diasEnElMapa ? `últimos ${diasEnElMapa} días` : 'último mes'}`}
                     unitLabel='caídas'
                     tooltip={(dia) => (dia.valor === 0
                         ? 'sin caídas'
@@ -159,7 +170,7 @@ export default function DvrFailures() {
                 <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
                     <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Se caen más</h3>
-                        <span className='text-[9.5px] text-gray-400'>últimos 30 días</span>
+                        <span className='text-[9.5px] text-gray-400'>{etiquetaDelRango}</span>
                         {stats?.totals && (
                             <span className='ml-auto text-[10px] font-bold tabular-nums text-gray-500'>
                                 {stats.totals.failures} caídas · {formatDowntime(stats.totals.downtimeMinutes)}
@@ -211,7 +222,7 @@ export default function DvrFailures() {
                     <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Historial</h3>
                         <span className='text-[9.5px] text-gray-400'>
-                            {history?.total ? `${history.total} episodios` : 'últimos 30 días'}
+                            {history?.total ? `${history.total} episodios · ${etiquetaDelRango}` : etiquetaDelRango}
                         </span>
                     </header>
 
