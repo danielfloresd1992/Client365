@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import AlertsChart from './assets/AlertsChart';
 import LocalsOverview from './assets/LocalsOverview';
+import DvrFailures from './assets/DvrFailures';
 import OperationsToday from './assets/OperationsToday';
 import ConnectedUsers from './assets/ConnectedUsers';
 import { TickerStat } from './assets/Ticker';
@@ -158,6 +159,7 @@ export default function Dashboard() {
                             {[
                                 { key: 'panorama', label: '🔗 Horario + alertas' },
                                 { key: 'grafica', label: '📊 Gráfica detallada' },
+                                { key: 'dvr', label: '⛔ Falla con DVR' },
                             ].map(t => (
                                 <button
                                     key={t.key}
@@ -241,6 +243,18 @@ export default function Dashboard() {
                             de alertas por local (assets/LocalsOverview) */}
                         {centralTab === 'panorama' && (
                         <LocalsOverview groups={scheduleGroups} now={now} />
+                        )}
+
+                        {/* Fallas de conexión con el DVR: lo caído ahora en
+                            vivo, el mapa de calor del último mes y quién se cae
+                            más (assets/DvrFailures).
+
+                            No recibe `dayCounts`: bebe del recurso dvr-failure,
+                            que es el que guarda los episodios. El reporte del
+                            día solo sabe quién está caído AHORA — para el
+                            historial hace falta la colección. */}
+                        {centralTab === 'dvr' && (
+                        <DvrFailures />
                         )}
                         </div>
                 </div>
