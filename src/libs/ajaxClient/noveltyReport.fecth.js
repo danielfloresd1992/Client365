@@ -28,8 +28,18 @@ export const getNoveltyReportToday = async ({ category, bonusCategory } = {}) =>
 
 /**
  * Variante aplanada para paneles en vivo (dashboard, AlertInputLive):
- * { byId: { idLocal → {total, positivas, negativas, ignoradas, enviadas} },
- *   totals }
+ * { byId: { idLocal → {total, positivas, negativas, ignoradas, enviadas,
+ *                      dvr, status} },
+ *   totals, status, dvr }
+ *
+ * `status` reparte los locales en 'reportaron' | 'sinReportar' | 'sinConexion',
+ * y `dvr` resume el estado de las cámaras del día. Los dos vienen CONTADOS del
+ * servidor: el criterio de qué es "no reportó" —un local con el DVR caído no lo
+ * es, porque no podía monitorearse— tiene que ser uno solo, y vive allá.
+ *
+ * Se devuelven aunque el servidor todavía no los mande: mientras api_jarvis365
+ * no esté desplegado llegan en `null`, y las filas sin `dvr`. La vista lo trata
+ * como "no hay caídas", que es exactamente lo que se veía antes.
  *
  * @param {{ category?: string, bonusCategory?: string }} [filtros]
  */
@@ -41,7 +51,12 @@ export const getDayCountsByLocal = async (filtros = {}) => {
             if (local.idLocal) byId[local.idLocal] = local;
         });
     });
-    return { byId, totals: data?.totals ?? null };
+    return {
+        byId,
+        totals: data?.totals ?? null,
+        status: data?.status ?? null,
+        dvr: data?.dvr ?? null,
+    };
 }
 
 

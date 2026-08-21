@@ -9,8 +9,17 @@ import { AXIS_START, toMinutes, fmtAxisMinute, fmtInMinutes } from '@/libs/time/
  *
  * Cada entrada: { id, name, state, stateLabel, ranges: [{label, type,
  * sAxis, eAxis}], liveTypes: ['analytical'|'perimeter'], silent, silentSince,
- * counts, sortKey }. Sin efectos ni fetching: todo llega por parámetros, así
- * es testeable y reutilizable.
+ * dvr, counts, sortKey }. Sin efectos ni fetching: todo llega por parámetros,
+ * así es testeable y reutilizable.
+ *
+ * SILENCIO Y SIN CONEXIÓN NO SON LO MISMO, y por eso son dos campos:
+ *
+ *   · `silent`   hay cámaras, pero hace rato que no se manda nada al grupo.
+ *                Es un aviso sobre el OPERADOR.
+ *   · `dvr.down` no hay cámaras que mirar. No es que no reportara: es que NO
+ *                PODÍA. Es un aviso sobre el ESTABLECIMIENTO.
+ *
+ * Mezclarlos haría que un corte de conexión se leyera como una omisión.
  */
 
 export function buildScheduleGroups({
@@ -90,19 +99,35 @@ export function buildScheduleGroups({
             }
         }
 
+        const counts = dayCounts?.byId?.[id] ?? null;
+
+        // ── Estado del DVR ────────────────────────────────────────────
+        // Viene con el conteo del día: el reporte ya sabe qué establecimientos
+        // están sin cámaras, y traerlo de ahí evita una segunda fuente que
+        // pueda contradecirlo.
+        //
+        // `null` si el servidor todavía no lo manda —api_jarvis365 se despliega
+        // a mano— y la vista lo trata como "no hay caídas", que es lo que se
+        // veía antes de esto.
+        const dvr = counts?.dvr ?? null;
+
         const silentInfo = silentByLocal?.[id];
         const isSilent = Boolean(silentInfo)
-            && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical'));
+            && (inAnalyticalWindow || (liveByLocal?.[id] ?? []).includes('analytical'))
+            // Sin cámaras no hay nada que mandar al grupo: avisar de silencio
+            // sería reprochar dos veces el mismo corte de conexión.
+            && !dvr?.down;
 
         groups[state].push({
             id, name, state, stateLabel,
             ranges: todays,
             liveTypes: [...liveTypes],
             silent: isSilent,
+            dvr,
             // Último envío al grupo (ISO) para mostrar "sin actualización hace X".
             // silentByLocal[id] es { lastSentAt }; solo tiene sentido si está silencioso.
             silentSince: isSilent ? (silentInfo?.lastSentAt ?? null) : null,
-            counts: dayCounts?.byId?.[id] ?? null,
+            counts,
             sortKey: state === 'live'
                 ? Math.min(...todays.filter(r => minuteNowAxis >= r.sAxis && minuteNowAxis < r.eAxis).map(r => r.eAxis), Infinity)
                 : state === 'upcoming'
