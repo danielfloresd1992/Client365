@@ -6,6 +6,7 @@ import { myUserContext } from '@/contexts/userContext';
 import useBonusSettings from './assets/useBonusSettings';
 import useBonusRules from './assets/useBonusRules';
 import ConfigPanel from './assets/ConfigPanel';
+import EvaluationsPanel from './assets/EvaluationsPanel';
 import InfoPanel from './assets/InfoPanel';
 
 /**
@@ -36,6 +37,7 @@ import InfoPanel from './assets/InfoPanel';
 
 const PESTAÑAS = [
     { key: 'referencias', label: 'Configuración de referencias' },
+    { key: 'evaluaciones', label: 'Evaluaciones' },
     { key: 'info', label: 'Panel informativo' },
 ];
 
@@ -106,6 +108,16 @@ export default function BonosPage() {
                             onGuardarRegla={reglasBonos.guardarRegla}
                             onBorrarRegla={reglasBonos.borrarRegla}
                             onEscribirAsignaciones={reglasBonos.escribirAsignaciones}
+                        />
+                    )}
+
+                    {/* La evaluación decide si los bonos del turno se pagan o
+                        se pierden enteros, así que va en pestaña propia y no
+                        colgada de la configuración. */}
+                    {pestaña === 'evaluaciones' && (
+                        <EvaluationsPanel
+                            alcance={reglasBonos.alcance}
+                            puedeEditar={esAdmin}
                         />
                     )}
 
