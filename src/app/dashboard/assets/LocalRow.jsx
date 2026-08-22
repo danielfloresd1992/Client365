@@ -1,8 +1,11 @@
 'use client';
+import { useState } from 'react';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
 import { formatSince } from '@/libs/time/operationalDay';
+import useLocalAlerts, { precargarAlertas } from '@/hook/useLocalAlerts';
 import LiveDot from './LiveDot';
 import ExemptToggle from './ExemptToggle';
+import LocalAlertsList from './LocalAlertsList';
 
 /**
  * UNA FILA DE LA LISTA: UN ESTABLECIMIENTO.
@@ -21,7 +24,21 @@ import ExemptToggle from './ExemptToggle';
  * dejaría de comparar nada.
  *
  * La rejilla, en cambio, se declara acá adentro y se alinea sola entre filas:
- * todas usan las mismas columnas dentro del mismo ancho.
+ * todas usan las mismas columnas dentro del mismo ancho. La última mide
+ * `6.4rem` y no menos porque tiene que entrar el par de contadores MÁS el
+ * botón de desplegar: apretada, el botón empuja los números fuera de su
+ * columna y las filas dejan de alinearse entre sí.
+ *
+ *
+ * SE DESPLIEGA, Y EMPIEZA A CARGAR ANTES DE QUE LA ABRAN
+ *
+ * El botón de la derecha abre las alertas del día. Al pasar el mouse por la
+ * fila la consulta ya sale, así que para cuando alguien hace clic el dato
+ * suele estar y no hay pantalla de carga: entre apuntar y pulsar pasan dos o
+ * tres décimas, y eso alcanza.
+ *
+ * Es barato porque `precargarAlertas` deduplica: pasar cinco veces por la
+ * misma fila pide una sola vez, y abrirla después no vuelve a pedir.
  *
  *
  * POR QUÉ EL DVR SE PINTA EN NEGRO Y NO EN ROJO
@@ -44,9 +61,24 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
     // Tipo(s) en ventana AHORA: definen el color del punto y del fondo
     const liveA = local.state === 'live' && (local.liveTypes ?? []).includes('analytical');
     const liveP = local.state === 'live' && (local.liveTypes ?? []).includes('perimeter');
+
+    const [abierta, setAbierta] = useState(false);
+    const alertas = useLocalAlerts(local.id);
+
+    const alternar = () => {
+        const siguiente = !abierta;
+        setAbierta(siguiente);
+        if (siguiente) alertas.pedir();
+    };
+
     return (
         <div
-            className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_4.8rem]
+            // El hover adelanta la consulta. No abre nada ni cambia nada de lo
+            // que se ve: si el clic no llega, lo único que pasó fue una
+            // petición liviana de más.
+            onMouseEnter={() => precargarAlertas(local.id)}
+            onFocus={() => precargarAlertas(local.id)}
+            className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_6.4rem]
                 ${sinDvr ? 'bg-white ring-2 ring-inset ring-black'
                     : local.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
                         : local.state === 'live'
@@ -148,7 +180,31 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                 <AnalogCounter value={total} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#f1f5f9'} />
                 <span className={dim ? 'text-gray-400' : 'text-amber-500'}>➤</span>
                 <AnalogCounter value={enviadas} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#fbbf24'} />
+
+                {/* Desplegar. Va al final de la fila, después de los números,
+                    porque es lo que uno mira y sobre lo que quiere el detalle. */}
+                <button type='button' onClick={alternar}
+                    aria-expanded={abierta}
+                    title={abierta ? 'Cerrar las alertas del día' : 'Ver las alertas del día'}
+                    className={`shrink-0 grid place-items-center w-5 h-5 rounded-full border transition-all
+                        ${abierta
+                            ? 'bg-gray-700 text-white border-gray-700 rotate-180'
+                            : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-700'}`}>
+                    <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3'
+                        strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
+                        <path d='m6 9 6 6 6-6' />
+                    </svg>
+                </button>
             </span>
+
+            {abierta && (
+                <LocalAlertsList
+                    datos={alertas.datos}
+                    cargando={alertas.cargando}
+                    error={alertas.error}
+                    onReintentar={alertas.pedir}
+                />
+            )}
         </div>
     );
 }

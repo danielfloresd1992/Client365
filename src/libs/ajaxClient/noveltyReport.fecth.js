@@ -84,3 +84,25 @@ export const getNoveltiesByUser = async ({ userId, since, until } = {}) => {
         throw error;
     }
 };
+
+
+/**
+ * Las alertas de un establecimiento en el día operativo, en versión corta.
+ *
+ * GET /noveltie/establecimiento/id=:id/dia=:dia — `dia = '0'` es hoy.
+ *
+ * Trae lo justo para una lista: qué alerta fue, a qué hora y cómo quedó la
+ * validación. La ficha completa de una novedad tiene otro endpoint.
+ *
+ * Usa el MISMO día operativo (08:00 → 07:00) que los conteos de la fila, así
+ * que la lista y el número que se ve al lado siempre coinciden.
+ *
+ * @param {{ idLocal: string, dia?: string }} params  `dia` en formato YYYY-MM-DD
+ * @returns {Promise<{ resumen: { total, aprobadas, rechazadas, sinValidar }, alertas: Array }>}
+ */
+export const getNoveltiesOfLocalByDay = async ({ idLocal, dia = '0' } = {}) => {
+    const response = await axiosInstance.get(
+        `/noveltie/establecimiento/id=${encodeURIComponent(idLocal)}/dia=${encodeURIComponent(dia)}`,
+    );
+    return response.data;
+};
