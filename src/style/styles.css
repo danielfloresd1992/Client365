@@ -8085,6 +8085,16 @@ tfoot {
        El punto es de 1px sobre 5px de paso: una trama densa. El gris tiene que
        separarse del fondo lo suficiente para verse a tamaño real —un gris casi
        igual al fondo desaparece— sin llegar a competir con los cables. */
+    /* Lo que se mueve en el mapa de bonificación: las cajas al reacomodarse y
+       los cables al seguirlas. La transición va en el estilo EN LÍNEA porque
+       depende de valores calculados, y un estilo en línea no puede llevar
+       media query — de ahí el !important, que es lo único que le gana.
+
+       Quien pidió menos movimiento ve el cambio, no el viaje. */
+    @media (prefers-reduced-motion: reduce) {
+        .mapa-anima { transition: none !important; }
+    }
+
     .lienzo-punteado {
         background-color: #f6f7f9;
         background-image: radial-gradient(circle, #aab4c4 1px, transparent 1px);

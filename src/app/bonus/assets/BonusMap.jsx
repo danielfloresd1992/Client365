@@ -100,6 +100,13 @@ export default function BonusMap({
     const lienzo = useRef(null);
     const [cables, setCables] = useState([]);
 
+    // Cuánto se corre cada regla para quedar frente a los cables que le llegan.
+    // Va en estado para pintar y en un ref para poder RESTARLO al medir: sin
+    // eso, la medición de la vuelta siguiente incluiría el desplazamiento ya
+    // aplicado y la caja se iría corriendo sola en cada pasada.
+    const [correr, setCorrer] = useState(new Map());
+    const correrRef = useRef(new Map());
+
     // El zoom del lienzo. Un mapa con muchas alertas no entra en pantalla, y
     // alejarlo para ver el conjunto es distinto de acercarlo para cablear fino.
     const zoom = useZoom({ nombre: 'mapa-de-bonificacion', min: 0.5, max: 1.5, paso: 0.1 });
@@ -147,16 +154,21 @@ export default function BonusMap({
         // Los rects llegan en píxeles de pantalla, ya multiplicados por el
         // zoom; el SVG dibuja en coordenadas de layout. Sin dividir, al 150%
         // los cables saldrían medio ancho más lejos que las cajas que unen.
-        const caja = (sel) => {
+        const caja = (sel, quitar = 0) => {
             const n = lienzo.current.querySelector(sel);
             if (!n) return null;
             const r = n.getBoundingClientRect();
             return {
                 x1: (r.left - base.left) / escala,
                 x2: (r.right - base.left) / escala,
-                y: (r.top - base.top + r.height / 2) / escala,
+                y: (r.top - base.top + r.height / 2) / escala - quitar,
+                alto: r.height / escala,
             };
         };
+
+        /** Una regla, medida SIN el desplazamiento que ya tiene puesto. */
+        const cajaDeRegla = (idRegla) =>
+            caja(`[data-nodo="regla-${idRegla}"]`, correrRef.current.get(String(idRegla)) || 0);
         const curva = (de, a) => {
             if (!de || !a) return null;
             const dx = Math.max(30, (a.x1 - de.x2) / 2);
@@ -164,6 +176,8 @@ export default function BonusMap({
         };
 
         const nuevos = [];
+        const llegadas = new Map();     // idRegla → alturas de los alcances que la usan
+
         puestas.forEach(alerta => {
             const mid = String(alerta._id);
             const dAlerta = caja(`[data-nodo="alerta-${mid}"]`);
@@ -174,12 +188,24 @@ export default function BonusMap({
 
             (alerta.bonusRules || []).forEach((asig, i) => {
                 const dAlc = caja(`[data-nodo="alcance-${mid}-${i}"]`);
+
+                // De dónde le llegan los cables a cada regla. Es lo que decide
+                // a qué altura se para: enfrente del promedio de los que la
+                // usan, no arriba de todo con el hueco debajo.
+                if (dAlc && asig.rule) {
+                    const clave = String(asig.rule);
+                    if (!llegadas.has(clave)) llegadas.set(clave, []);
+                    llegadas.get(clave).push(dAlc.y);
+                }
                 const d1 = curva(dAlerta, dAlc);
                 if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: apagada ? COLOR_APAGADO : COLOR_ALCANCE });
 
                 // El que se arrastra no se dibuja fijo: lo dibuja la goma.
                 if (tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === i) return;
-                const d2 = curva(dAlc, caja(`[data-nodo="regla-${asig.rule}"]`));
+                // A la regla el cable llega a donde SE VE, o sea con su
+                // desplazamiento puesto.
+                const dRegla = caja(`[data-nodo="regla-${asig.rule}"]`);
+                const d2 = curva(dAlc, dRegla);
                 if (d2) {
                     const regla = porId.get(String(asig.rule));
                     const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
@@ -197,7 +223,70 @@ export default function BonusMap({
             }
         });
         setCables(nuevos);
-    }, [puestas, tirando, armando, porId, categoriaDe, escala]);
+        acomodarReglas(llegadas, cajaDeRegla);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [puestas, tirando, armando, porId, categoriaDe, escala, reglas]);
+
+
+    /**
+     * Pone cada regla frente a los cables que le llegan.
+     *
+     * La columna de reglas se apila desde arriba, así que una regla que usan
+     * tres alertas del medio de la lista queda arriba de todo con un hueco
+     * debajo, y sus tres cables cruzan la pantalla en diagonal. Corrida al
+     * promedio de sus llegadas, los cables salen casi rectos y se ve de un
+     * vistazo qué alertas la usan.
+     *
+     * SE MUEVE CON `transform`, NO CON MARGEN. Un margen cambiaría el alto de
+     * la columna, y eso vuelve a disparar la medición: la caja se correría de
+     * nuevo en cada pasada, sin parar. `transform` no toca el layout.
+     *
+     * Las que no reciben ningún cable se quedan donde estén: correrlas no
+     * apuntaría a nada y solo movería la lista.
+     */
+    const acomodarReglas = (llegadas, cajaDeRegla) => {
+        const SEPARACION = 12;
+
+        // Cada regla con cables, en su posición base y con su altura deseada.
+        const objetivos = [];
+        for (const regla of reglas || []) {
+            const idRegla = String(regla._id);
+            const alturas = llegadas.get(idRegla);
+            const c = cajaDeRegla(idRegla);
+            if (!c) continue;
+
+            objetivos.push({
+                idRegla,
+                base: c.y,
+                alto: c.alto,
+                deseada: alturas?.length
+                    ? alturas.reduce((s, y) => s + y, 0) / alturas.length
+                    : c.y,
+            });
+        }
+
+        // De arriba abajo, respetando el orden en que están en la columna: una
+        // no puede subir por encima de la anterior ni pisarla.
+        objetivos.sort((a, b) => a.base - b.base);
+
+        let piso = -Infinity;
+        const siguiente = new Map();
+
+        for (const o of objetivos) {
+            const centro = Math.max(o.deseada, piso + o.alto / 2);
+            piso = centro + o.alto / 2 + SEPARACION;
+
+            const desplazamiento = Math.round(centro - o.base);
+            if (desplazamiento) siguiente.set(o.idRegla, desplazamiento);
+        }
+
+        // Solo se vuelve a pintar si de verdad cambió: sin esta comparación,
+        // cada medición dispararía un render y el render otra medición.
+        if (!mismoMapa(siguiente, correrRef.current)) {
+            correrRef.current = siguiente;
+            setCorrer(siguiente);
+        }
+    };
 
     useEffect(() => { trazar(); }, [trazar]);
     useEffect(() => {
@@ -433,6 +522,7 @@ export default function BonusMap({
 
                                 {(reglas || []).map(r => (
                                     <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
+                                        correr={correr.get(String(r._id)) || 0}
                                         categoria={categoriaDe.get(r.bonusCategory) || null}
                                         conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
                                         onEditar={() => onEditarRegla(r)} />
@@ -553,6 +643,24 @@ const CAJA = 'min-h-[190px] flex flex-col';
  * de la categoría de esa regla — así se lee de un vistazo a qué categoría va
  * cada asignación sin leer la caja.
  */
+/**
+ * Un segundo, y con la misma curva en todo lo que se mueve.
+ *
+ * Los cables y las cajas tienen que viajar juntos: si la caja se desliza y el
+ * cable salta a su destino, durante ese segundo el cable apunta a donde la
+ * caja TODAVÍA no está.
+ *
+ * El `d` de un path se puede animar por CSS en Chrome, Safari y Firefox
+ * modernos. Donde no, el cable salta y la caja se desliza igual — que es
+ * exactamente como se veía antes de esto.
+ */
+const TRANSICION = {
+    transition: 'transform 1s ease-in-out, background-color .3s, border-color .3s',
+};
+
+/** El mismo segundo, para el `d` de los cables. */
+const TRANSICION_CABLE = { transition: 'd 1s ease-in-out, stroke .3s' };
+
 const COLOR_ALCANCE = '#29c50c';
 const COLOR_NEUTRO = '#9aa6b5';
 
@@ -561,6 +669,13 @@ const COLOR_APAGADO = '#c3cad4';
 
 /** Lo apagado se muestra sin color, no se esconde. */
 const APAGADO = 'grayscale opacity-70';
+
+/** ¿Dos mapas de desplazamiento dicen lo mismo? */
+const mismoMapa = (a, b) => {
+    if (a.size !== b.size) return false;
+    for (const [k, v] of a) if (b.get(k) !== v) return false;
+    return true;
+};
 
 const Marco = ({ children }) => (
     <section className='bg-white rounded-xl shadow-sm border overflow-hidden'>{children}</section>
@@ -607,7 +722,8 @@ function Cables({ cables, tirando, lienzo, escala = 1 }) {
                 ))}
             </defs>
             {cables.map(c => (
-                <path key={c.id} d={c.d} fill='none' stroke={c.color} strokeWidth='2.5'
+                <path key={c.id} d={c.d} fill='none' stroke={c.color} strokeWidth='2.5' className='mapa-anima'
+                    style={TRANSICION_CABLE}
                     markerEnd={`url(#punta-${c.color.replace('#', '')})`} />
             ))}
             {goma && <path d={goma} fill='none' stroke='#29c50c' strokeWidth='2.5' strokeDasharray='6 5' />}
@@ -863,14 +979,15 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
 
 
 /** Una regla: destino de cables. Se ilumina si esta alerta la usa. */
-function NodoRegla({ regla, categoria, conectada, puedeEditar, onEditar }) {
+function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, onEditar }) {
     const dia = bonusPerAlert(regla, 'day');
     const noche = bonusPerAlert(regla, 'night');
     const inactiva = regla.active === false;
 
     return (
         <div data-nodo={`regla-${regla._id}`} data-tipo='regla' data-regla={String(regla._id)}
-            className={`${CAJA} border-2 rounded-xl px-4 py-3.5 transition-colors
+            style={{ transform: `translateY(${correr}px)`, ...TRANSICION }}
+            className={`${CAJA} mapa-anima border-2 rounded-xl px-4 py-3.5
                         ${conectada ? 'bg-[#fdf6e7] border-[#d9a441]' : 'bg-white border-gray-200'}
                         ${inactiva ? 'opacity-60' : ''}`}>
             <div className='flex items-start gap-2'>
