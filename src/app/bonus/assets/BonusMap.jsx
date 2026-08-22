@@ -19,10 +19,15 @@ import {
  *                  (todos)  ──→  Perimetrales 3x1
  *                  (Miami)  ──→  Miami reforzada
  *
- * Muestra UNA alerta a la vez, con sus asignaciones: cada una es un alcance
- * —una caja del medio— con un cable hacia la regla que aplica ahí. La misma
- * alerta puede ir con reglas distintas según el establecimiento, y esta forma
- * lo muestra tal cual: tantas cajas del medio como asignaciones tenga.
+ * Cada alerta es una fila con sus asignaciones: cada una es un alcance —una
+ * caja del medio— con un cable hacia la regla que aplica ahí. La misma alerta
+ * puede ir con reglas distintas según el establecimiento, y esta forma lo
+ * muestra tal cual: tantas cajas del medio como asignaciones tenga.
+ *
+ * Las reglas van en una columna aparte, COMPARTIDA por todas las filas: una
+ * regla que usan tres alertas se dibuja una vez y le llegan tres cables. Por
+ * eso «+ Asignar una regla» vive arriba de esa columna y pregunta a qué alerta
+ * —el botón no puede saberlo, la columna no es de nadie en particular—.
  *
  * Con una sola asignación general, el mapa se ve como una línea recta:
  * alerta → todos → regla. Solo cuando la alerta necesita reglas distintas por
@@ -60,6 +65,11 @@ import {
  *                         porque soltar el cable a un centímetro de la caja es
  *                         un accidente fácil y borra una referencia guardada.
  *
+ * Y del lado IZQUIERDO del alcance, donde LLEGA el cable, hay una cruz que lo
+ * corta. Arrastrar afuera alcanza cuando hay una sola asignación, pero con dos
+ * o más arrastrar es el gesto para reapuntar y no quedaba ninguno para quitar
+ * la del medio.
+ *
  * Así se arma una alerta de punta a punta sin salir del mapa: se tira el cable,
  * se define dónde, se lleva hasta la regla. Nada se manda a medias — una
  * asignación sin regla no existe para el servidor, así que la caja intermedia
@@ -79,6 +89,7 @@ export default function BonusMap({
     // toca su configuración.
     const [enLienzo, setEnLienzo] = useState(null);
     const [eligiendo, setEligiendo] = useState(false);
+    const [asignando, setAsignando] = useState(false);
     const [tirando, setTirando] = useState(null);        // { desde, menuId, indice, x, y }
     const [editandoAlcance, setEditandoAlcance] = useState(null);
 
@@ -384,7 +395,6 @@ export default function BonusMap({
                                         key={alerta._id}
                                         alerta={alerta}
                                         catalogo={alcance}
-                                        reglas={activasReglas}
                                         puedeEditar={puedeEditar}
                                         tirando={tirando}
                                         armando={armando?.menuId === String(alerta._id) ? armando : null}
@@ -392,7 +402,7 @@ export default function BonusMap({
                                         onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
                                         onEditarAlcance={i => setEditandoAlcance(
                                             i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
-                                        onSumar={ruleId => sumar(alerta, ruleId)}
+                                        onQuitarAlcance={i => quitarPreguntando(alerta, i)}
                                         onAlternar={() => alternarBonifica(alerta)}
                                         onSacar={() => sacar(alerta)}
                                     />
@@ -407,6 +417,20 @@ export default function BonusMap({
 
                             <div className='flex flex-col gap-3'>
                                 <Rotulo>Reglas de bonificación</Rotulo>
+
+                                {/* Asignar se hace desde acá, que es donde están
+                                    las reglas. Como esta columna la comparten
+                                    TODAS las alertas —una regla usada por tres se
+                                    dibuja una vez—, el botón pregunta a cuál. */}
+                                {puedeEditar && activasReglas.length > 0 && puestas.length > 0 && (
+                                    <button type='button' onClick={() => setAsignando(true)}
+                                        className='w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-3
+                                                   text-[12px] font-bold text-gray-500 transition-colors
+                                                   hover:border-[#29c50c] hover:text-[#1f9a08]'>
+                                        + Asignar una regla
+                                    </button>
+                                )}
+
                                 {(reglas || []).map(r => (
                                     <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
                                         categoria={categoriaDe.get(r.bonusCategory) || null}
@@ -430,6 +454,16 @@ export default function BonusMap({
                 if (a) traer(a);
                 setEligiendo(false);
             }} />
+            )}
+
+            {asignando && (
+                <AsignarRegla
+                    alertas={puestas}
+                    reglas={activasReglas}
+                    categoriaDe={categoriaDe}
+                    onCerrar={() => setAsignando(false)}
+                    onAsignar={(alerta, ruleId) => { setAsignando(false); sumar(alerta, ruleId); }}
+                />
             )}
 
             {editandoAlcance && (
@@ -464,8 +498,8 @@ export default function BonusMap({
  * de las demás — el mapa es una vista de relaciones, no un formulario único.
  */
 function FilaDeAlerta({
-    alerta, catalogo, reglas, puedeEditar, tirando, armando,
-    onTirarAlerta, onTirar, onEditarAlcance, onSumar, onAlternar, onSacar,
+    alerta, catalogo, puedeEditar, tirando, armando,
+    onTirarAlerta, onTirar, onEditarAlcance, onQuitarAlcance, onAlternar, onSacar,
 }) {
     const asignaciones = alerta.bonusRules || [];
     const mid = String(alerta._id);
@@ -484,7 +518,8 @@ function FilaDeAlerta({
                     <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
                         puedeEditar={puedeEditar} apagada={apagada} tirandoEsta={tirandoDe(i)}
                         onTirar={e => onTirar(e, i)}
-                        onEditar={() => onEditarAlcance(i)} />
+                        onEditar={() => onEditarAlcance(i)}
+                        onQuitar={() => onQuitarAlcance(i)} />
                 ))}
 
                 {armando && (
@@ -494,10 +529,8 @@ function FilaDeAlerta({
                         onEditar={() => onEditarAlcance('nueva')} />
                 )}
 
-                {puedeEditar && reglas.length > 0 && (
-                    <ElegirRegla reglas={reglas} onElegir={onSumar}
-                        etiqueta={asignaciones.length ? '+ Otro lugar' : '+ Asignar una regla'} />
-                )}
+                {/* Asignar una regla NO está acá: está arriba de la columna de
+                    reglas, que es donde se eligen. Ver `AsignarRegla`. */}
             </div>
         </div>
     );
@@ -765,7 +798,7 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, tirandoDeEsta, o
  * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
  * regla — se arrastra para reapuntarla, o afuera para borrarla.
  */
-function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, onTirar, onEditar }) {
+function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, onTirar, onEditar, onQuitar }) {
     const s = asignacion.scope || { mode: 'all' };
     const nombres = nombresDelAlcance(s, catalogo);
 
@@ -778,6 +811,23 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
                         ${armando ? 'border-dashed' : ''}
                         ${apagada ? `border-gray-300 ${APAGADO}`
                             : tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
+            {/* El punto por donde LLEGA el cable de la alerta, y el botón para
+                cortarlo. Arrastrar el puerto de la derecha borra la asignación
+                cuando hay una sola; con dos o más, arrastrar es el gesto para
+                reapuntar y no queda ninguno para quitar la del medio. Acá está,
+                justo donde se ve el cable que se va a cortar. */}
+            {puedeEditar && onQuitar && (
+                <button type='button' onClick={onQuitar}
+                    title='Quitar esta asignación — la alerta deja de bonificar acá'
+                    className='absolute -left-2.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full z-[3]
+                               grid place-items-center border-2 bg-white text-transparent
+                               border-gray-400 hover:border-red-500 hover:text-red-600
+                               focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500
+                               transition-colors'>
+                    <span className='text-[9px] font-black leading-none'>✕</span>
+                </button>
+            )}
+
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
                 {puedeEditar && (
@@ -864,28 +914,86 @@ function ChipCategoria({ categoria }) {
 }
 
 
-/** Sumar una asignación: elegir con qué regla. */
-function ElegirRegla({ reglas, etiqueta, onElegir }) {
-    const [abierto, setAbierto] = useState(false);
+/**
+ * ASIGNAR UNA REGLA A UNA ALERTA.
+ *
+ * Vive arriba de la columna de reglas porque es donde se eligen. Esa columna
+ * la comparten todas las alertas —una regla usada por tres se dibuja una vez—,
+ * así que lo primero que pregunta es a cuál.
+ *
+ * Las dos preguntas van en la misma pantalla y no en dos pasos: son cuatro
+ * alertas y cinco reglas, y partir eso en un asistente hace más largo lo que
+ * ya se resolvía de un vistazo.
+ */
+function AsignarRegla({ alertas, reglas, categoriaDe, onCerrar, onAsignar }) {
+
+    const [alerta, setAlerta] = useState(alertas.length === 1 ? alertas[0] : null);
+
     return (
-        <div className='relative'>
-            <button type='button' onClick={() => setAbierto(v => !v)}
-                className='w-full rounded-xl border-[1.5px] border-dashed border-gray-300 py-3 text-[12px] font-bold
-                           text-gray-500 hover:border-[#29c50c] hover:text-[#1f9a08] transition-colors'>
-                {etiqueta}
-            </button>
-            {abierto && (
-                <ul className='absolute z-20 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg p-1'>
-                    {reglas.map(r => (
-                        <li key={r._id}>
-                            <button type='button' onClick={() => { setAbierto(false); onElegir(String(r._id)); }}
-                                className='w-full text-left px-3 py-2 rounded-md text-[12.5px] text-gray-800 hover:bg-[#29c50c]/10 transition-colors'>
-                                {r.name} <span className='text-[10.5px] text-gray-500'>· {formulaLabel(r)}</span>
+        <div className='fixed inset-0 z-50 grid place-items-center p-4 bg-slate-900/50' onClick={onCerrar}>
+            <div className='bg-white rounded-2xl shadow-xl w-full max-w-[560px] max-h-[82vh] flex flex-col'
+                onClick={e => e.stopPropagation()}>
+
+                <div className='px-5 pt-4 pb-3 border-b border-gray-100'>
+                    <h3 className='text-[15px] font-bold text-gray-800'>Asignar una regla</h3>
+                    <p className='text-[11.5px] text-gray-500 mt-0.5'>
+                        {alerta
+                            ? <>La regla que elijas se le suma a «<b className='font-semibold text-gray-700'>{alerta.es || alerta.en}</b>».</>
+                            : 'Primero, a qué alerta.'}
+                    </p>
+                </div>
+
+                <div className='flex-1 min-h-0 overflow-y-auto p-3'>
+
+                    {/* Paso uno. Con una sola alerta en el mapa viene resuelto,
+                        pero se sigue mostrando: saber a qué se le está por
+                        asignar importa más que ahorrar un renglón. */}
+                    <Rotulo>Alerta</Rotulo>
+                    <div className='flex flex-wrap gap-1.5 mt-1.5 mb-4'>
+                        {alertas.map(a => (
+                            <button key={a._id} type='button' onClick={() => setAlerta(a)}
+                                aria-pressed={alerta?._id === a._id}
+                                className={`px-2.5 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors
+                                    ${alerta?._id === a._id
+                                        ? 'bg-[#29c50c] text-white'
+                                        : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}>
+                                {a.es || a.en}
                             </button>
-                        </li>
-                    ))}
-                </ul>
-            )}
+                        ))}
+                    </div>
+
+                    <Rotulo>Regla</Rotulo>
+                    <ul className='mt-1.5'>
+                        {reglas.map(r => {
+                            const cat = categoriaDe.get(r.bonusCategory);
+                            return (
+                                <li key={r._id}>
+                                    <button type='button' disabled={!alerta}
+                                        onClick={() => onAsignar(alerta, String(r._id))}
+                                        className='w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg
+                                                   hover:bg-[#29c50c]/10 disabled:opacity-40
+                                                   disabled:hover:bg-transparent disabled:cursor-not-allowed
+                                                   transition-colors'>
+                                        {cat && (
+                                            <span className='shrink-0 w-1.5 h-1.5 rounded-full'
+                                                style={{ background: cat.color || '#9aa6b5' }} />
+                                        )}
+                                        <span className='flex-1 text-[12.5px] text-gray-800 truncate'>{r.name}</span>
+                                        <span className='text-[10.5px] text-gray-500 whitespace-nowrap'>{formulaLabel(r)}</span>
+                                    </button>
+                                </li>
+                            );
+                        })}
+                    </ul>
+                </div>
+
+                <div className='px-5 py-3 border-t border-gray-100 flex justify-end'>
+                    <button type='button' onClick={onCerrar}
+                        className='h-9 px-4 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors'>
+                        Cancelar
+                    </button>
+                </div>
+            </div>
         </div>
     );
 }
