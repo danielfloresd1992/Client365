@@ -182,14 +182,19 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                 <AnalogCounter value={enviadas} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#fbbf24'} />
 
                 {/* Desplegar. Va al final de la fila, después de los números,
-                    porque es lo que uno mira y sobre lo que quiere el detalle. */}
+                    porque es lo que uno mira y sobre lo que quiere el detalle.
+
+                    Relleno oscuro con la flecha en blanco, en los dos estados:
+                    en blanco sobre una fila que ya es casi blanca no se veía.
+                    Lo que dice si está abierto es la flecha dada vuelta, no el
+                    color — así el botón se encuentra igual estando cerrado. */}
                 <button type='button' onClick={alternar}
                     aria-expanded={abierta}
                     title={abierta ? 'Cerrar las alertas del día' : 'Ver las alertas del día'}
-                    className={`shrink-0 grid place-items-center w-5 h-5 rounded-full border transition-all
+                    className={`shrink-0 grid place-items-center w-5 h-5 rounded-full text-white transition-all
                         ${abierta
-                            ? 'bg-gray-700 text-white border-gray-700 rotate-180'
-                            : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-700'}`}>
+                            ? 'bg-slate-800 rotate-180'
+                            : 'bg-slate-600 hover:bg-slate-800'}`}>
                     <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3'
                         strokeLinecap='round' strokeLinejoin='round' className='w-2.5 h-2.5'>
                         <path d='m6 9 6 6 6-6' />
