@@ -1,141 +1,40 @@
 'use client';
-import { useState } from 'react';
-import { useDispatch } from 'react-redux';
-import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
-import { formatSince } from '@/libs/time/operationalDay';
-import { setSilenceExempt } from '@/libs/ajaxClient/monitoring.fecth';
-import { setConfigModal } from '@/store/slices/globalModal';
+import LocalRow from './LocalRow';
 import useAuthOnServer from '@/hook/auth';
 
 /*
  * Panorama "Horario + alertas" del panel analítico: LA VISTA UNIFICADA.
  *
- * UNA sola lista ordenada por ALERTAS DEL DÍA (de mayor a menor) donde cada
- * local es una fila que junta las dos lecturas:
- *   · su barra comparativa en ESCALA COMÚN (claro = total del día,
- *     oscuro = enviadas al grupo) — alineadas, se leen como gráfica, y
- *   · su horario de hoy (chips de franjas + estado con contexto).
- *
- * El estado de monitoreo se identifica POR FILA sin romper el orden:
- *   · en monitoreo ahora → punto pulsante POR TIPO (verde=analítico,
- *     azul=perimetral; ambos si los dos están en ventana) + fondo suave
- *     esmeralda (analítico) o celeste (solo perimetral)
- *   · por abrir          → "abre HH:MM · en X min" en gris
- *   · ya cerró           → fila atenuada, "cerró a las HH:MM"
- *   · señalado por silencio → fila roja con ⚠
- *   · SIN CONEXIÓN CON EL DVR → fila con BORDE NEGRO y la etiqueta
- *     "Falla de conexión con DVR" + la hora en que se cayó
- * Arriba, el resumen de cuántos hay en cada estado con el desglose
- * analítico/perimetral. Recibe `groups` (scheduleGroups del padre; cada
- * entrada trae liveTypes con los tipos en ventana AHORA).
+ * UNA sola lista donde cada local es una fila que junta su horario de hoy con
+ * cuántas alertas lleva. Cómo se dibuja cada fila está en `LocalRow`; acá se
+ * decide el ORDEN, el resumen de arriba y la ESCALA que comparten las barras.
  *
  *
- * POR QUÉ EL DVR SE PINTA EN NEGRO Y NO EN ROJO
+ * EL ORDEN, QUE ES LA DECISIÓN DE ESTA PANTALLA
  *
- * El rojo ya es del silencio, y las dos cosas se leen distinto: el silencio
- * dice "el operador no está mandando", la falla de conexión dice "no hay nada
- * que mirar". El negro no compite con ningún estado de la lista —verde,
- * celeste, ámbar, rojo, gris— y es el único borde sólido oscuro, así que la
- * fila se encuentra de un vistazo entre cien.
+ *   1. los que están SIN CÁMARAS, siempre primero
+ *   2. después por alertas del día, de mayor a menor
+ *   3. en empate, primero los que están en monitoreo
+ *   4. y al final, por nombre
  *
- * Y va ARRIBA DE TODO, fuera del orden por alertas: un local sin cámaras
- * siempre tiene 0 alertas, así que ordenado por conteo caería al fondo de la
- * lista, que es justo donde nadie lo vería.
+ * El punto 1 va fuera del orden por alertas a propósito: un local sin cámaras
+ * no puede reportar, así que siempre tiene 0 y ordenado por conteo caería al
+ * fondo de la lista — justo donde nadie lo vería.
+ *
+ *
+ * LA ESCALA COMÚN
+ *
+ * `maxTotal` se calcula acá, sobre TODA la lista, y se le pasa a cada fila. Es
+ * lo que hace que las barras se lean como gráfica: todas dividen por el mismo
+ * número, así que sus largos son comparables entre sí. Si cada fila usara su
+ * propio máximo, todas se llenarían al 100%.
+ *
+ * Recibe `groups` (los scheduleGroups del padre; cada entrada trae `liveTypes`
+ * con los tipos en ventana AHORA).
  */
 
 // En empate de alertas: primero los que están en monitoreo, luego por abrir
 const STATE_RANK = { live: 0, upcoming: 1, done: 2 };
-
-// Punto de estado en vivo, coloreado por tipo de monitoreo
-function LiveDot({ ping, bg }) {
-    return (
-        <span className='relative flex h-[6px] w-[6px] shrink-0'>
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${ping} opacity-75`}></span>
-            <span className={`relative inline-flex rounded-full h-[6px] w-[6px] ${bg}`}></span>
-        </span>
-    );
-}
-
-/*
- * EL INTERRUPTOR DE "NO LO CUENTES EN LA LISTA"
- *
- * Saca al establecimiento del corte horario "ESTABLECIMIENTOS SIN REPORTAR AL
- * GRUPO". Solo lo ven —y solo lo pueden tocar— los usuarios con `admin: true`;
- * el backend lo exige además, porque esconder un botón no es una medida de
- * seguridad, es una comodidad.
- *
- * Apaga SOLO ese aviso. El local sigue en monitoreo, sus alertas se siguen
- * contando, su inicio y su fin se siguen anunciando y su DVR se sigue
- * vigilando. Al devolverlo a la lista vuelve a evaluarse en el corte siguiente.
- *
- * NO es optimista, y es a propósito: el servidor emite `monitoring-silence-
- * exempt` al guardar, así que la fila se actualiza por el mismo camino que si
- * lo hubiera tocado otro. Una copia local del estado tendría que reconciliarse
- * después con la que llega por socket, y ahí es donde aparecen los botones que
- * se quedan al revés. Mientras tanto el botón queda deshabilitado, que es el
- * aviso de que está guardando.
- */
-function ExemptToggle({ local }) {
-
-    const dispatch = useDispatch();
-    const [saving, setSaving] = useState(false);
-
-    const exento = Boolean(local.exempt);
-
-    const alternar = async (event) => {
-        // La fila entera es clicable en otras vistas; que el botón no arrastre.
-        event.stopPropagation();
-        if (saving) return;
-
-        setSaving(true);
-
-        try {
-            await setSilenceExempt({ idLocal: local.id, active: !exento });
-        }
-        catch (err) {
-            dispatch(setConfigModal({
-                modalOpen: true,
-                title: 'No se pudo cambiar',
-                description: err?.response?.data?.message
-                    ?? 'No se pudo cambiar si este establecimiento entra en la lista de "sin reportar al grupo".',
-                isCallback: null,
-                type: 'error',
-            }));
-        }
-        finally {
-            setSaving(false);
-        }
-    };
-
-    return (
-        <button
-            type='button'
-            onClick={alternar}
-            disabled={saving}
-            aria-pressed={exento}
-            title={exento
-                ? `${local.name} está FUERA de la lista "sin reportar al grupo"${local.exempt?.byName ? ` · lo quitó ${local.exempt.byName}` : ''}. Tocá para volver a contarlo.`
-                : `${local.name} entra en la lista "sin reportar al grupo". Tocá para dejar de contarlo.`}
-            className={`shrink-0 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-[2px] rounded border transition-colors
-                disabled:opacity-40 disabled:cursor-wait
-                ${exento
-                    ? 'bg-slate-700 text-white border-slate-700 hover:bg-slate-600'
-                    : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-600'}`}
-        >
-            {exento ? '🔕 sin contar' : '🔔 contando'}
-        </button>
-    );
-}
-
-
-/** "3 h 25 min" a partir de minutos. Para el tiempo sin cámaras. */
-function formatDowntime(minutes) {
-    if (!minutes) return '';
-    if (minutes < 60) return `${minutes} min`;
-    const horas = Math.floor(minutes / 60);
-    const resto = minutes % 60;
-    return resto ? `${horas} h ${resto} min` : `${horas} h`;
-}
 
 export default function LocalsOverview({ groups, now }) {
 
@@ -216,125 +115,15 @@ export default function LocalsOverview({ groups, now }) {
                 </span>
             </div>
 
-            {all.map(l => {
-                const total = l.counts?.total ?? 0;
-                const enviadas = l.counts?.enviadas ?? 0;
-                // Sin cámaras: manda sobre cualquier otro estado de la fila.
-                const sinDvr = Boolean(l.dvr?.down);
-                // Fuera de monitoreo (por abrir o cerrado): toda la fila en
-                // gris claro — el color queda reservado para los EN VIVO.
-                const dim = l.state !== 'live' && !l.silent && !sinDvr;
-                // Tipo(s) en ventana AHORA: definen el color del punto y del fondo
-                const liveA = l.state === 'live' && (l.liveTypes ?? []).includes('analytical');
-                const liveP = l.state === 'live' && (l.liveTypes ?? []).includes('perimeter');
-                return (
-                    <div key={l.id}
-                        className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_4.8rem]
-                            ${sinDvr ? 'bg-white ring-2 ring-inset ring-black'
-                                : l.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
-                                    : l.state === 'live'
-                                        ? (liveP && !liveA ? 'bg-sky-50/40' : 'bg-emerald-50/40')
-                                        : 'bg-gray-50'}`}>
-
-                        {/* Nombre + identificador de estado en vivo (un punto POR TIPO:
-                            verde=analítico, azul=perimetral; ambos si coinciden) */}
-                        <span className={`flex items-center gap-1.5 min-w-0 text-[11.5px] font-semibold ${sinDvr ? 'text-black font-black' : l.silent ? 'text-red-600' : dim ? 'text-gray-400' : 'text-gray-700'}`}
-                            title={sinDvr ? `${l.name} — falla de conexión con DVR desde las ${l.dvr.failedAtLabel ?? '—'}${l.dvr.reportedByName ? ` · lo pasó ${l.dvr.reportedByName}` : ''}`
-                                : l.silent ? `${l.name} — sin actualización de alerta en el grupo`
-                                    : l.state === 'live' ? `${l.name} — en monitoreo ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ')}`
-                                        : l.name}>
-                            {sinDvr ? (
-                                <span className='shrink-0 h-[6px] w-[6px] rounded-full bg-black' />
-                            ) : l.state === 'live' ? (
-                                <>
-                                    {(liveA || !liveP) && <LiveDot ping='bg-emerald-400' bg='bg-emerald-500' />}
-                                    {liveP && <LiveDot ping='bg-sky-400' bg='bg-sky-500' />}
-                                </>
-                            ) : (
-                                <span className={`shrink-0 h-[6px] w-[6px] rounded-full ${l.state === 'upcoming' ? 'bg-gray-300' : 'bg-gray-200'}`} />
-                            )}
-                            {l.silent && !sinDvr && <span aria-hidden='true'>⚠</span>}
-                            <span className='truncate'>{l.name}</span>
-
-                            {/* El interruptor, pegado al nombre: es una decisión
-                                SOBRE ESTE local y ahí es donde se lo busca. */}
-                            {isAdmin && <ExemptToggle local={l} />}
-                        </span>
-
-                        {/* Horario del día: franjas + estado con contexto */}
-                        <span className='flex items-center flex-wrap gap-1 min-w-0'>
-                            {l.ranges.map((r, i) => (
-                                <span key={i}
-                                    title={r.type === 'perimeter' ? 'Franja perimetral' : 'Franja analítica'}
-                                    className={`text-[9.5px] font-semibold tabular-nums px-1.5 py-[1px] rounded-full border whitespace-nowrap
-                                        ${dim ? 'bg-gray-50 text-gray-400 border-gray-200'
-                                            : r.type === 'perimeter'
-                                                ? 'bg-sky-50 text-sky-700 border-sky-200'
-                                                : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
-                                    {r.label}
-                                </span>
-                            ))}
-                            <span className={`text-[9.5px] font-bold whitespace-nowrap ${l.state === 'live' ? (liveP && !liveA ? 'text-sky-600' : 'text-emerald-600') : l.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
-                                {l.state === 'live'
-                                    ? `● ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ') || 'en vivo'} · ${l.stateLabel}`
-                                    : l.stateLabel}
-                            </span>
-
-                            {/* ── Falla de conexión con el DVR ──────────────
-                                La hora es lo que se pregunta primero: "¿desde
-                                cuándo?". Va en la etiqueta y no en un tooltip,
-                                porque nadie pasa el ratón por una lista de cien
-                                filas buscando cuál está caída. */}
-                            {sinDvr && (
-                                <span className='text-[9.5px] font-black text-black whitespace-nowrap px-1.5 py-[1px] rounded border border-black bg-white'>
-                                    ⛔ Falla de conexión con DVR{l.dvr.failedAtLabel ? ` · ${l.dvr.failedAtLabel}` : ''}
-                                </span>
-                            )}
-
-                            {/* Ya volvió, pero estuvo ciego parte de la jornada.
-                                Explica un conteo bajo sin señalar al operador. */}
-                            {!sinDvr && (l.dvr?.episodes ?? 0) > 0 && (
-                                <span className='text-[9.5px] font-semibold text-gray-500 whitespace-nowrap'
-                                    title={`Recuperó la conexión${l.dvr.restoredAtLabel ? ` a las ${l.dvr.restoredAtLabel}` : ''}`}>
-                                    sin DVR {formatDowntime(l.dvr.downtimeMinutes)} hoy
-                                </span>
-                            )}
-
-                            {l.silent && !sinDvr && (
-                                <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>
-                                    ⚠ sin actualización al grupo{l.silentSince ? ` · ${formatSince(l.silentSince, now)}` : ' · sin envíos hoy'}
-                                </span>
-                            )}
-
-                            {/* Fuera de la lista "sin reportar al grupo". Se
-                                muestra a TODOS y no solo a los administradores:
-                                quien vea la sala tiene que poder entender por
-                                qué este local nunca sale en el corte, aunque no
-                                pueda cambiarlo. */}
-                            {l.exempt && (
-                                <span className='text-[9.5px] font-semibold text-slate-500 whitespace-nowrap'
-                                    title={`No entra en la lista "sin reportar al grupo"${l.exempt.byName ? ` · lo quitó ${l.exempt.byName}` : ''}${l.exempt.reason ? ` · ${l.exempt.reason}` : ''}`}>
-                                    🔕 fuera de la lista de sin reportar
-                                </span>
-                            )}
-                        </span>
-
-                        {/* Barra comparativa (escala común entre TODOS los locales) */}
-                        <span className='relative h-[9px] rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
-                            <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-300/60' : 'bg-[#29c50c]/45'}`} style={{ width: `${(total / maxTotal) * 100}%` }} />
-                            <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-400' : 'bg-[#1f9a08]'}`} style={{ width: `${(enviadas / maxTotal) * 100}%` }} />
-                        </span>
-
-                        {/* Números del día — visores analógicos (panel oscuro,
-                            dígitos que ruedan cuando el conteo cambia en vivo) */}
-                        <span className='flex items-center justify-end gap-1.5 text-[11.5px] whitespace-nowrap'>
-                            <AnalogCounter value={total} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#f1f5f9'} />
-                            <span className={dim ? 'text-gray-400' : 'text-amber-500'}>➤</span>
-                            <AnalogCounter value={enviadas} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#fbbf24'} />
-                        </span>
-                    </div>
-                );
-            })}
+            {all.map(l => (
+                <LocalRow
+                    key={l.id}
+                    local={l}
+                    maxTotal={maxTotal}
+                    isAdmin={isAdmin}
+                    now={now}
+                />
+            ))}
 
             {all.length === 0 && (
                 <p className='px-4 py-8 text-center text-xs text-gray-400'>Sin locales con horario de monitoreo hoy.</p>

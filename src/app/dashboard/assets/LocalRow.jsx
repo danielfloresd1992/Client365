@@ -1,0 +1,164 @@
+'use client';
+import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
+import { formatSince } from '@/libs/time/operationalDay';
+import LiveDot from './LiveDot';
+import ExemptToggle from './ExemptToggle';
+
+/**
+ * UNA FILA DE LA LISTA: UN ESTABLECIMIENTO.
+ *
+ * Junta las dos lecturas que antes había que buscar por separado —su horario de
+ * hoy y cuántas alertas lleva— y el estado que manda sobre las dos: en
+ * monitoreo, por abrir, cerrado, señalado por silencio, o sin cámaras.
+ *
+ *
+ * `maxTotal` NO ES UN DETALLE DE LA FILA
+ *
+ * Es el mayor conteo de TODA la lista, y por eso lo pasa quien la arma. Las
+ * barras se leen como gráfica porque todas dividen por el mismo número: el que
+ * tiene 25 llena la barra entera y el que tiene 2 llena un pedacito. Si cada
+ * fila calculara su propia escala, todas se llenarían al 100% y la barra
+ * dejaría de comparar nada.
+ *
+ * La rejilla, en cambio, se declara acá adentro y se alinea sola entre filas:
+ * todas usan las mismas columnas dentro del mismo ancho.
+ *
+ *
+ * POR QUÉ EL DVR SE PINTA EN NEGRO Y NO EN ROJO
+ *
+ * El rojo ya es del silencio, y las dos cosas se leen distinto: el silencio
+ * dice "el operador no está mandando", la falla de conexión dice "no hay nada
+ * que mirar". El negro no compite con ningún otro estado de la lista —verde,
+ * celeste, ámbar, rojo, gris— y es el único borde sólido oscuro, así que la
+ * fila se encuentra de un vistazo entre cien.
+ */
+export default function LocalRow({ local, maxTotal, isAdmin, now }) {
+
+    const total = local.counts?.total ?? 0;
+    const enviadas = local.counts?.enviadas ?? 0;
+    // Sin cámaras: manda sobre cualquier otro estado de la fila.
+    const sinDvr = Boolean(local.dvr?.down);
+    // Fuera de monitoreo (por abrir o cerrado): toda la fila en
+    // gris claro — el color queda reservado para los EN VIVO.
+    const dim = local.state !== 'live' && !local.silent && !sinDvr;
+    // Tipo(s) en ventana AHORA: definen el color del punto y del fondo
+    const liveA = local.state === 'live' && (local.liveTypes ?? []).includes('analytical');
+    const liveP = local.state === 'live' && (local.liveTypes ?? []).includes('perimeter');
+    return (
+        <div
+            className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_4.8rem]
+                ${sinDvr ? 'bg-white ring-2 ring-inset ring-black'
+                    : local.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
+                        : local.state === 'live'
+                            ? (liveP && !liveA ? 'bg-sky-50/40' : 'bg-emerald-50/40')
+                            : 'bg-gray-50'}`}>
+
+            {/* Nombre + identificador de estado en vivo (un punto POR TIPO:
+                verde=analítico, azul=perimetral; ambos si coinciden) */}
+            <span className={`flex items-center gap-1.5 min-w-0 text-[11.5px] font-semibold ${sinDvr ? 'text-black font-black' : local.silent ? 'text-red-600' : dim ? 'text-gray-400' : 'text-gray-700'}`}
+                title={sinDvr ? `${local.name} — falla de conexión con DVR desde las ${local.dvr.failedAtLabel ?? '—'}${local.dvr.reportedByName ? ` · lo pasó ${local.dvr.reportedByName}` : ''}`
+                    : local.silent ? `${local.name} — sin actualización de alerta en el grupo`
+                        : local.state === 'live' ? `${local.name} — en monitoreo ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ')}`
+                            : local.name}>
+                {sinDvr ? (
+                    <span className='shrink-0 h-[6px] w-[6px] rounded-full bg-black' />
+                ) : local.state === 'live' ? (
+                    <>
+                        {(liveA || !liveP) && <LiveDot ping='bg-emerald-400' bg='bg-emerald-500' />}
+                        {liveP && <LiveDot ping='bg-sky-400' bg='bg-sky-500' />}
+                    </>
+                ) : (
+                    <span className={`shrink-0 h-[6px] w-[6px] rounded-full ${local.state === 'upcoming' ? 'bg-gray-300' : 'bg-gray-200'}`} />
+                )}
+                {local.silent && !sinDvr && <span aria-hidden='true'>⚠</span>}
+                <span className='truncate'>{local.name}</span>
+
+                {/* El interruptor, pegado al nombre: es una decisión
+                    SOBRE ESTE local y ahí es donde se lo busca. */}
+                {isAdmin && <ExemptToggle local={local} />}
+            </span>
+
+            {/* Horario del día: franjas + estado con contexto */}
+            <span className='flex items-center flex-wrap gap-1 min-w-0'>
+                {local.ranges.map((r, i) => (
+                    <span key={i}
+                        title={r.type === 'perimeter' ? 'Franja perimetral' : 'Franja analítica'}
+                        className={`text-[9.5px] font-semibold tabular-nums px-1.5 py-[1px] rounded-full border whitespace-nowrap
+                            ${dim ? 'bg-gray-50 text-gray-400 border-gray-200'
+                                : r.type === 'perimeter'
+                                    ? 'bg-sky-50 text-sky-700 border-sky-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
+                        {r.label}
+                    </span>
+                ))}
+                <span className={`text-[9.5px] font-bold whitespace-nowrap ${local.state === 'live' ? (liveP && !liveA ? 'text-sky-600' : 'text-emerald-600') : local.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {local.state === 'live'
+                        ? `● ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ') || 'en vivo'} · ${local.stateLabel}`
+                        : local.stateLabel}
+                </span>
+
+                {/* ── Falla de conexión con el DVR ──────────────
+                    La hora es lo que se pregunta primero: "¿desde
+                    cuándo?". Va en la etiqueta y no en un tooltip,
+                    porque nadie pasa el ratón por una lista de cien
+                    filas buscando cuál está caída. */}
+                {sinDvr && (
+                    <span className='text-[9.5px] font-black text-black whitespace-nowrap px-1.5 py-[1px] rounded border border-black bg-white'>
+                        ⛔ Falla de conexión con DVR{local.dvr.failedAtLabel ? ` · ${local.dvr.failedAtLabel}` : ''}
+                    </span>
+                )}
+
+                {/* Ya volvió, pero estuvo ciego parte de la jornada.
+                    Explica un conteo bajo sin señalar al operador. */}
+                {!sinDvr && (local.dvr?.episodes ?? 0) > 0 && (
+                    <span className='text-[9.5px] font-semibold text-gray-500 whitespace-nowrap'
+                        title={`Recuperó la conexión${local.dvr.restoredAtLabel ? ` a las ${local.dvr.restoredAtLabel}` : ''}`}>
+                        sin DVR {formatDowntime(local.dvr.downtimeMinutes)} hoy
+                    </span>
+                )}
+
+                {local.silent && !sinDvr && (
+                    <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>
+                        ⚠ sin actualización al grupo{local.silentSince ? ` · ${formatSince(local.silentSince, now)}` : ' · sin envíos hoy'}
+                    </span>
+                )}
+
+                {/* Fuera de la lista "sin reportar al grupo". Se
+                    muestra a TODOS y no solo a los administradores:
+                    quien vea la sala tiene que poder entender por
+                    qué este local nunca sale en el corte, aunque no
+                    pueda cambiarlo. */}
+                {local.exempt && (
+                    <span className='text-[9.5px] font-semibold text-slate-500 whitespace-nowrap'
+                        title={`No entra en la lista "sin reportar al grupo"${local.exempt.byName ? ` · lo quitó ${local.exempt.byName}` : ''}${local.exempt.reason ? ` · ${local.exempt.reason}` : ''}`}>
+                        🔕 fuera de la lista de sin reportar
+                    </span>
+                )}
+            </span>
+
+            {/* Barra comparativa (escala común entre TODOS los locales) */}
+            <span className='relative h-[9px] rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
+                <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-300/60' : 'bg-[#29c50c]/45'}`} style={{ width: `${(total / maxTotal) * 100}%` }} />
+                <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-400' : 'bg-[#1f9a08]'}`} style={{ width: `${(enviadas / maxTotal) * 100}%` }} />
+            </span>
+
+            {/* Números del día — visores analógicos (panel oscuro,
+                dígitos que ruedan cuando el conteo cambia en vivo) */}
+            <span className='flex items-center justify-end gap-1.5 text-[11.5px] whitespace-nowrap'>
+                <AnalogCounter value={total} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#f1f5f9'} />
+                <span className={dim ? 'text-gray-400' : 'text-amber-500'}>➤</span>
+                <AnalogCounter value={enviadas} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#fbbf24'} />
+            </span>
+        </div>
+    );
+}
+
+
+/** "3 h 25 min" a partir de minutos. Para el tiempo sin cámaras. */
+function formatDowntime(minutes) {
+    if (!minutes) return '';
+    if (minutes < 60) return `${minutes} min`;
+    const horas = Math.floor(minutes / 60);
+    const resto = minutes % 60;
+    return resto ? `${horas} h ${resto} min` : `${horas} h`;
+}
