@@ -45,6 +45,44 @@ const fechaDe = (fecha) => (fecha
     : '—');
 
 
+/**
+ * Qué dice el mapa al pasar por encima de un día.
+ *
+ * Además del conteo, LOS NOMBRES: "3 establecimientos" obliga a irse al
+ * historial a averiguar cuáles, que es justo lo que el mapa debería ahorrar.
+ *
+ * Se listan hasta ocho. Un día malo puede llevarse quince locales por delante y
+ * un globo de quince renglones tapa media pantalla; a partir de ahí se resume,
+ * que para el detalle completo está el historial.
+ *
+ * Va en un `title` nativo, así que son saltos de línea de texto plano — sin
+ * viñetas ni sangrías, que en un tooltip del sistema no se ven.
+ */
+const MAX_NOMBRES = 8;
+
+const textoDelDia = (dia) => {
+    if (dia.valor === 0) return 'sin caídas';
+
+    const datos = dia.datos ?? {};
+    const cuantos = datos.locals ?? 0;
+    const nombres = datos.localNames ?? [];
+
+    const resumen = [
+        `${dia.valor} ${dia.valor === 1 ? 'caída' : 'caídas'}`,
+        `${cuantos} ${cuantos === 1 ? 'establecimiento' : 'establecimientos'}`,
+        `${formatDowntime(datos.downtimeMinutes)} sin cámaras`,
+    ].join(' · ');
+
+    if (nombres.length === 0) return resumen;
+
+    const visibles = nombres.slice(0, MAX_NOMBRES).map(n => `· ${n}`);
+    const restantes = nombres.length - visibles.length;
+    if (restantes > 0) visibles.push(`· y ${restantes} más`);
+
+    return `${resumen}\n${visibles.join('\n')}`;
+};
+
+
 export default function DvrFailures() {
 
     const { active, stats, history, loading, days } = useDvrFailures();
@@ -67,8 +105,17 @@ export default function DvrFailures() {
     //
     // El `?? []` va ADENTRO: afuera crea un arreglo nuevo en cada render y el
     // useMemo no memoriza nada.
+    //
+    // Los nombres se ordenan acá: el servidor los devuelve como vienen de un
+    // `$addToSet`, que no garantiza orden, y una lista que se reordena sola
+    // entre dos consultas del mismo día se lee como si hubiera cambiado.
     const datosDelMapa = useMemo(
-        () => (stats?.byDay ?? []).map(d => ({ ...d, date: d.date, value: d.failures })),
+        () => (stats?.byDay ?? []).map(d => ({
+            ...d,
+            date: d.date,
+            value: d.failures,
+            localNames: [...(d.localNames ?? [])].sort((a, b) => a.localeCompare(b, 'es')),
+        })),
         [stats],
     );
 
@@ -156,10 +203,7 @@ export default function DvrFailures() {
                     onRangeChange={alCambiarElRango}
                     title={`Caídas de DVR · ${diasEnElMapa ? `últimos ${diasEnElMapa} días` : 'último mes'}`}
                     unitLabel='caídas'
-                    tooltip={(dia) => (dia.valor === 0
-                        ? 'sin caídas'
-                        : `${dia.valor} ${dia.valor === 1 ? 'caída' : 'caídas'} · ${dia.datos?.locals ?? 0} ${dia.datos?.locals === 1 ? 'establecimiento' : 'establecimientos'} · ${formatDowntime(dia.datos?.downtimeMinutes)} sin cámaras`
-                    )}
+                    tooltip={textoDelDia}
                 />
             </div>
 

@@ -9,8 +9,6 @@ import ConnectedUsers from './assets/ConnectedUsers';
 import { TickerStat } from './assets/Ticker';
 import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
 import useDayCounts from '@/hook/useDayCounts';
-import useBonusCategories from '@/hook/useBonusCategories';
-import { listaDeCategorias } from '@/libs/alerts/categories';
 import useMonitoringLive from '@/hook/useMonitoringLive';
 import useLiveClock from '@/hook/useLiveClock';
 import { getAllMonitoringSchedules } from '@/libs/ajaxClient/schedule.fecth';
@@ -29,16 +27,20 @@ import { buildScheduleGroups } from '@/libs/parser/monitoringToday';
  *   · Lógica pura del horario: libs/time/operationalDay (eje del día) y
  *     libs/parser/monitoringToday (buildScheduleGroups)
  *   · UI: assets/Ticker (odómetros), assets/AlertsChart (ApexCharts),
- *     assets/LocalsOverview (panorama), assets/OperationsToday (personal)
+ *     assets/LocalsOverview (panorama), assets/DvrFailures (cámaras caídas),
+ *     assets/OperationsToday (personal)
  *
  * Disposición:
  *   ┌──────────────────────────────────────────────┬──────────────┐
  *   │ CINTA: contadores vivos · reloj · evento     │              │
  *   ├──────────────────────────────────────────────┤  VIENEN HOY  │
- *   │ [🔗 Horario + alertas] [📊 Gráfica detallada]│  (riel       │
+ *   │ [🔗 Horario+alertas] [📊 Gráfica] [⛔ DVR]   │  (riel       │
  *   ├──────────────────────────────────────────────┤  derecho a   │
  *   │ Pestaña activa a todo el alto                │  toda altura)│
  *   └──────────────────────────────────────────────┴──────────────┘
+ *
+ * Lo que se ve acá es SIEMPRE el día completo: no hay filtros. Ver la nota
+ * junto a `useDayCounts`.
  */
 
 export default function Dashboard() {
@@ -46,25 +48,21 @@ export default function Dashboard() {
     const clients = useSelector(store => store.clients);
 
     /*
-     * Filtros por categoría. Son DOS cosas distintas y por eso van separados:
+     * SIN FILTROS DE CATEGORÍA, a propósito.
      *
-     *   · La OPERATIVA ('delay', 'food'…) dice de qué se trata la alerta.
-     *   · La de BONIFICACIÓN dice con qué criterio cuenta para el bono.
+     * Acá había dos selectores —categoría operativa y categoría de
+     * bonificación— que recortaban todo el conteo del día. Se quitaron: esta es
+     * la sala de control, y lo que se mira en ella es el día COMPLETO. Un
+     * filtro puesto y olvidado deja la cinta, la gráfica y el panorama diciendo
+     * números que no son los del día, y quien entra a la sala a ver cómo va la
+     * jornada no tiene por qué comprobar primero si alguien dejó algo filtrado.
      *
-     * Se combinan: elegir las dos muestra solo lo que cumple ambas.
+     * El análisis por categoría vive donde importa el desglose: la ruta /bonus.
      *
-     * El filtrado ocurre en el SERVIDOR y no acá: el endpoint devuelve totales
-     * ya agregados por local, no la lista de novedades, así que no hay nada que
-     * recontar del lado del cliente. Cambiar un filtro vuelve a pedir el conteo.
+     * `useDayCounts` sigue aceptando los filtros —el endpoint los soporta y
+     * otras pantallas los usan—; acá simplemente no se le pasa ninguno.
      */
-    const [categoryFilter, setCategoryFilter] = useState('');
-    const [bonusFilter, setBonusFilter] = useState('');
-
-    const categoriasOperativas = useMemo(() => listaDeCategorias(), []);
-    const { categorias: categoriasDeBono, sinCatalogo: sinCatalogoDeBono } = useBonusCategories(false);
-
-    // Estado vivo (los sockets viven dentro de cada hook)
-    const dayCounts = useDayCounts({ category: categoryFilter, bonusCategory: bonusFilter });
+    const dayCounts = useDayCounts();
     const { liveByLocal, silentByLocal, exemptByLocal, lastEvent } = useMonitoringLive();
     const now = useLiveClock();
 
@@ -175,61 +173,6 @@ export default function Dashboard() {
                                 </button>
                             ))}
 
-                            {/* ── Filtros por categoría ──────────────────────────
-                                Afectan a TODO el conteo del día: la cinta de
-                                arriba, la gráfica y el panorama beben del mismo
-                                `dayCounts`. Por eso, con un filtro puesto se
-                                marca "filtrado": si no, los totales se leerían
-                                como si fueran los del día completo. */}
-                            <div className='ml-auto flex items-center gap-1.5'>
-
-                                {(categoryFilter || bonusFilter) && (
-                                    <button
-                                        type='button'
-                                        onClick={() => { setCategoryFilter(''); setBonusFilter(''); }}
-                                        title='Quitar los filtros y volver al día completo'
-                                        className='px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider
-                                                   text-amber-700 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition-colors'
-                                    >
-                                        Filtrado ✕
-                                    </button>
-                                )}
-
-                                <select
-                                    value={categoryFilter}
-                                    onChange={e => setCategoryFilter(e.target.value)}
-                                    title='Filtrar por categoría de la alerta'
-                                    className='px-2 py-1 rounded-lg text-[11px] font-semibold text-gray-600
-                                               bg-white border border-gray-200 hover:border-gray-300
-                                               focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors'
-                                >
-                                    <option value=''>Todas las categorías</option>
-                                    {categoriasOperativas.map(c => (
-                                        <option key={c.value} value={c.value}>{c.es}</option>
-                                    ))}
-                                </select>
-
-                                <select
-                                    value={bonusFilter}
-                                    onChange={e => setBonusFilter(e.target.value)}
-                                    disabled={sinCatalogoDeBono}
-                                    title={sinCatalogoDeBono
-                                        ? 'El catálogo de bonificación todavía no está disponible en el servidor'
-                                        : 'Filtrar por categoría de bonificación'}
-                                    className='px-2 py-1 rounded-lg text-[11px] font-semibold text-gray-600
-                                               bg-white border border-gray-200 hover:border-gray-300
-                                               focus:outline-none focus:ring-2 focus:ring-amber-400 transition-colors
-                                               disabled:opacity-50 disabled:cursor-not-allowed'
-                                >
-                                    <option value=''>
-                                        {sinCatalogoDeBono ? 'Bonificación no disponible' : 'Toda bonificación'}
-                                    </option>
-                                    {categoriasDeBono.map(c => (
-                                        <option key={c.value} value={c.value}>{c.es}</option>
-                                    ))}
-                                </select>
-
-                            </div>
                         </div>
 
                         <div className='flex-1 min-h-0 overflow-y-auto'>
