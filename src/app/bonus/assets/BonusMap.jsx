@@ -107,6 +107,10 @@ export default function BonusMap({
     const [correr, setCorrer] = useState(new Map());
     const correrRef = useRef(new Map());
 
+    // Si el movimiento se anima o es instantáneo. Arranca APAGADA: la primera
+    // colocación, al abrir la pantalla, tiene que ser instantánea.
+    const [animar, setAnimar] = useState(false);
+
     // El zoom del lienzo. Un mapa con muchas alertas no entra en pantalla, y
     // alejarlo para ver el conjunto es distinto de acercarlo para cablear fino.
     const zoom = useZoom({ nombre: 'mapa-de-bonificacion', min: 0.5, max: 1.5, paso: 0.1 });
@@ -147,6 +151,20 @@ export default function BonusMap({
 
 
     // ── Los cables, sobre las posiciones reales de las cajas ──────────
+    //
+    // TRES ETAPAS, Y EL ORDEN IMPORTA:
+    //
+    //   1. medir todo, con las reglas en su posición SIN corrimiento
+    //   2. decidir cuánto se corre cada regla
+    //   3. recién ahí trazar, apuntando los cables a donde la regla VA A
+    //      QUEDAR — no a donde está
+    //
+    // Antes se trazaba primero y se corría después, así que los cables
+    // quedaban clavados en la posición vieja de la caja. Y no alcanzaba con
+    // volver a medir: durante la animación `getBoundingClientRect` devuelve la
+    // posición INTERMEDIA, así que los cables perseguirían a la caja en vez de
+    // viajar con ella. Por eso el destino se calcula —base + corrimiento— en
+    // vez de medirse.
     const trazar = useCallback(() => {
         const base = lienzo.current?.getBoundingClientRect();
         if (!base) return setCables([]);
@@ -166,48 +184,85 @@ export default function BonusMap({
             };
         };
 
-        /** Una regla, medida SIN el desplazamiento que ya tiene puesto. */
-        const cajaDeRegla = (idRegla) =>
-            caja(`[data-nodo="regla-${idRegla}"]`, correrRef.current.get(String(idRegla)) || 0);
         const curva = (de, a) => {
             if (!de || !a) return null;
             const dx = Math.max(30, (a.x1 - de.x2) / 2);
             return `M ${de.x2} ${de.y} C ${de.x2 + dx} ${de.y}, ${a.x1 - dx} ${a.y}, ${a.x1} ${a.y}`;
         };
 
-        const nuevos = [];
-        const llegadas = new Map();     // idRegla → alturas de los alcances que la usan
+
+        // ── 1. Medir ──────────────────────────────────────────────────
+        const deAlerta = new Map();
+        const deAlcance = new Map();        // `${mid}-${i}` → caja
+        const llegadas = new Map();         // idRegla → alturas de sus alcances
 
         puestas.forEach(alerta => {
             const mid = String(alerta._id);
-            const dAlerta = caja(`[data-nodo="alerta-${mid}"]`);
+            deAlerta.set(mid, caja(`[data-nodo="alerta-${mid}"]`));
+
+            (alerta.bonusRules || []).forEach((asig, i) => {
+                const c = caja(`[data-nodo="alcance-${mid}-${i}"]`);
+                if (!c) return;
+                deAlcance.set(`${mid}-${i}`, c);
+
+                if (asig.rule) {
+                    const clave = String(asig.rule);
+                    if (!llegadas.has(clave)) llegadas.set(clave, []);
+                    llegadas.get(clave).push(c.y);
+                }
+            });
+
+            if (armando?.menuId === mid) {
+                deAlcance.set(`${mid}-nueva`, caja(`[data-nodo="alcance-${mid}-nueva"]`));
+            }
+        });
+
+        // Las reglas, medidas SIN el corrimiento que ya tienen puesto. Sin
+        // restarlo, la vuelta siguiente leería la posición ya corrida y la caja
+        // se iría yendo sola en cada pasada.
+        const deRegla = new Map();
+        for (const regla of reglas || []) {
+            const idRegla = String(regla._id);
+            const c = caja(`[data-nodo="regla-${idRegla}"]`, correrRef.current.get(idRegla) || 0);
+            if (c) deRegla.set(idRegla, c);
+        }
+
+
+        // ── 2. Decidir dónde va cada regla ────────────────────────────
+        const corrimientos = acomodarReglas(deRegla, llegadas);
+
+
+        // ── 3. Trazar ─────────────────────────────────────────────────
+        const nuevos = [];
+
+        puestas.forEach(alerta => {
+            const mid = String(alerta._id);
+            const dAlerta = deAlerta.get(mid);
 
             // Apagada, todo su cableado va en gris: el color en este mapa
             // significa "esto está pagando", y una alerta apagada no paga.
             const apagada = alerta.bonifies !== true;
 
             (alerta.bonusRules || []).forEach((asig, i) => {
-                const dAlc = caja(`[data-nodo="alcance-${mid}-${i}"]`);
+                const dAlc = deAlcance.get(`${mid}-${i}`);
 
-                // De dónde le llegan los cables a cada regla. Es lo que decide
-                // a qué altura se para: enfrente del promedio de los que la
-                // usan, no arriba de todo con el hueco debajo.
-                if (dAlc && asig.rule) {
-                    const clave = String(asig.rule);
-                    if (!llegadas.has(clave)) llegadas.set(clave, []);
-                    llegadas.get(clave).push(dAlc.y);
-                }
                 const d1 = curva(dAlerta, dAlc);
                 if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: apagada ? COLOR_APAGADO : COLOR_ALCANCE });
 
                 // El que se arrastra no se dibuja fijo: lo dibuja la goma.
                 if (tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === i) return;
-                // A la regla el cable llega a donde SE VE, o sea con su
-                // desplazamiento puesto.
-                const dRegla = caja(`[data-nodo="regla-${asig.rule}"]`);
-                const d2 = curva(dAlc, dRegla);
+
+                const idRegla = String(asig.rule);
+                const dRegla = deRegla.get(idRegla);
+                if (!dRegla) return;
+
+                // Acá está la clave: el cable apunta a donde la regla VA A
+                // QUEDAR, no a donde se la midió.
+                const destino = { ...dRegla, y: dRegla.y + (corrimientos.get(idRegla) || 0) };
+
+                const d2 = curva(dAlc, destino);
                 if (d2) {
-                    const regla = porId.get(String(asig.rule));
+                    const regla = porId.get(idRegla);
                     const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
                     const color = apagada ? COLOR_APAGADO : (cat?.color || COLOR_NEUTRO);
                     nuevos.push({ id: `r-${mid}-${i}`, d: d2, color });
@@ -218,18 +273,60 @@ export default function BonusMap({
             // derecha todavía no existe, y esa punta suelta es justo lo que se
             // ve que falta.
             if (armando?.menuId === mid) {
-                const d = curva(dAlerta, caja(`[data-nodo="alcance-${mid}-nueva"]`));
+                const d = curva(dAlerta, deAlcance.get(`${mid}-nueva`));
                 if (d) nuevos.push({ id: `a-${mid}-nueva`, d, color: COLOR_ALCANCE });
             }
         });
+
         setCables(nuevos);
-        acomodarReglas(llegadas, cajaDeRegla);
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [puestas, tirando, armando, porId, categoriaDe, escala, reglas]);
 
+    useEffect(() => { trazar(); }, [trazar]);
 
     /**
-     * Pone cada regla frente a los cables que le llegan.
+     * Se vuelve a medir cuando el lienzo cambia de tamaño, y ESO NO SE ANIMA.
+     *
+     * Al abrir la pantalla las cajas se acomodan por primera vez: animarlo
+     * significa que las cien se deslizan a la vez apenas carga, que es a la vez
+     * feo y caro —cien `transform` más cien `d` de path en el mismo frame—. Lo
+     * mismo al arrastrar el borde de la ventana: ahí cada píxel de resize
+     * dispararía un viaje de un segundo y las cajas irían siempre atrasadas.
+     *
+     * La animación se enciende sola un momento después de la primera medición,
+     * y se apaga mientras dure el resize. Se anima lo que el usuario CAMBIA, no
+     * lo que el navegador recalcula.
+     */
+    useEffect(() => {
+        const el = lienzo.current;
+        if (!el) return undefined;
+
+        let volverAAnimar;
+
+        const recalcular = () => {
+            setAnimar(false);
+            clearTimeout(volverAAnimar);
+            requestAnimationFrame(trazar);
+            volverAAnimar = setTimeout(() => setAnimar(true), 250);
+        };
+
+        const ro = new ResizeObserver(recalcular);
+        ro.observe(el);
+        addEventListener('resize', recalcular);
+
+        // Terminada la primera colocación, lo que venga después sí se anima.
+        volverAAnimar = setTimeout(() => setAnimar(true), 250);
+
+        return () => {
+            ro.disconnect();
+            removeEventListener('resize', recalcular);
+            clearTimeout(volverAAnimar);
+        };
+    }, [trazar]);
+
+
+    /**
+     * Dónde se para cada regla, y cuánto hay que correrla para llegar ahí.
      *
      * La columna de reglas se apila desde arriba, así que una regla que usan
      * tres alertas del medio de la lista queda arriba de todo con un hueco
@@ -243,27 +340,21 @@ export default function BonusMap({
      *
      * Las que no reciben ningún cable se quedan donde estén: correrlas no
      * apuntaría a nada y solo movería la lista.
+     *
+     * @returns {Map<string, number>} idRegla → píxeles a correr
      */
-    const acomodarReglas = (llegadas, cajaDeRegla) => {
+    const acomodarReglas = (deRegla, llegadas) => {
         const SEPARACION = 12;
 
-        // Cada regla con cables, en su posición base y con su altura deseada.
-        const objetivos = [];
-        for (const regla of reglas || []) {
-            const idRegla = String(regla._id);
+        const objetivos = [...deRegla.entries()].map(([idRegla, c]) => {
             const alturas = llegadas.get(idRegla);
-            const c = cajaDeRegla(idRegla);
-            if (!c) continue;
-
-            objetivos.push({
+            return {
                 idRegla,
                 base: c.y,
                 alto: c.alto,
-                deseada: alturas?.length
-                    ? alturas.reduce((s, y) => s + y, 0) / alturas.length
-                    : c.y,
-            });
-        }
+                deseada: alturas?.length ? alturas.reduce((s, y) => s + y, 0) / alturas.length : c.y,
+            };
+        });
 
         // De arriba abajo, respetando el orden en que están en la columna: una
         // no puede subir por encima de la anterior ni pisarla.
@@ -276,8 +367,8 @@ export default function BonusMap({
             const centro = Math.max(o.deseada, piso + o.alto / 2);
             piso = centro + o.alto / 2 + SEPARACION;
 
-            const desplazamiento = Math.round(centro - o.base);
-            if (desplazamiento) siguiente.set(o.idRegla, desplazamiento);
+            const corrimiento = Math.round(centro - o.base);
+            if (corrimiento) siguiente.set(o.idRegla, corrimiento);
         }
 
         // Solo se vuelve a pintar si de verdad cambió: sin esta comparación,
@@ -286,17 +377,9 @@ export default function BonusMap({
             correrRef.current = siguiente;
             setCorrer(siguiente);
         }
-    };
 
-    useEffect(() => { trazar(); }, [trazar]);
-    useEffect(() => {
-        const el = lienzo.current;
-        if (!el) return;
-        const ro = new ResizeObserver(() => requestAnimationFrame(trazar));
-        ro.observe(el);
-        addEventListener('resize', trazar);
-        return () => { ro.disconnect(); removeEventListener('resize', trazar); };
-    }, [trazar]);
+        return siguiente;
+    };
 
 
     // ── Escritura ─────────────────────────────────────────────────────
@@ -469,7 +552,7 @@ export default function BonusMap({
 
                     <div ref={montarLienzo} className='relative'>
 
-                        <Cables cables={cables} tirando={tirando} lienzo={lienzo} escala={escala} />
+                        <Cables cables={cables} tirando={tirando} lienzo={lienzo} escala={escala} animar={animar} />
 
                         {/* Las alertas con sus alcances a la izquierda, las reglas
                             en una columna compartida a la derecha: una regla que
@@ -523,6 +606,7 @@ export default function BonusMap({
                                 {(reglas || []).map(r => (
                                     <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
                                         correr={correr.get(String(r._id)) || 0}
+                                        animar={animar}
                                         categoria={categoriaDe.get(r.bonusCategory) || null}
                                         conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
                                         onEditar={() => onEditarRegla(r)} />
@@ -654,12 +738,16 @@ const CAJA = 'min-h-[190px] flex flex-col';
  * modernos. Donde no, el cable salta y la caja se desliza igual — que es
  * exactamente como se veía antes de esto.
  */
-const TRANSICION = {
-    transition: 'transform 1s ease-in-out, background-color .3s, border-color .3s',
-};
+const SIN_VIAJE = 'background-color .3s, border-color .3s';
+
+const transicionDeCaja = (animar) => ({
+    transition: animar ? `transform 1s ease-in-out, ${SIN_VIAJE}` : SIN_VIAJE,
+});
 
 /** El mismo segundo, para el `d` de los cables. */
-const TRANSICION_CABLE = { transition: 'd 1s ease-in-out, stroke .3s' };
+const transicionDeCable = (animar) => ({
+    transition: animar ? 'd 1s ease-in-out, stroke .3s' : 'stroke .3s',
+});
 
 const COLOR_ALCANCE = '#29c50c';
 const COLOR_NEUTRO = '#9aa6b5';
@@ -687,7 +775,7 @@ const Rotulo = ({ children }) => (
 
 
 /** La capa de cables. Va debajo de las cajas y no intercepta el puntero. */
-function Cables({ cables, tirando, lienzo, escala = 1 }) {
+function Cables({ cables, tirando, lienzo, escala = 1, animar = false }) {
     const base = lienzo.current?.getBoundingClientRect();
 
     let goma = null;
@@ -723,7 +811,7 @@ function Cables({ cables, tirando, lienzo, escala = 1 }) {
             </defs>
             {cables.map(c => (
                 <path key={c.id} d={c.d} fill='none' stroke={c.color} strokeWidth='2.5' className='mapa-anima'
-                    style={TRANSICION_CABLE}
+                    style={transicionDeCable(animar)}
                     markerEnd={`url(#punta-${c.color.replace('#', '')})`} />
             ))}
             {goma && <path d={goma} fill='none' stroke='#29c50c' strokeWidth='2.5' strokeDasharray='6 5' />}
@@ -979,14 +1067,14 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
 
 
 /** Una regla: destino de cables. Se ilumina si esta alerta la usa. */
-function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, onEditar }) {
+function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, animar, onEditar }) {
     const dia = bonusPerAlert(regla, 'day');
     const noche = bonusPerAlert(regla, 'night');
     const inactiva = regla.active === false;
 
     return (
         <div data-nodo={`regla-${regla._id}`} data-tipo='regla' data-regla={String(regla._id)}
-            style={{ transform: `translateY(${correr}px)`, ...TRANSICION }}
+            style={{ transform: `translateY(${correr}px)`, ...transicionDeCaja(animar) }}
             className={`${CAJA} mapa-anima border-2 rounded-xl px-4 py-3.5
                         ${conectada ? 'bg-[#fdf6e7] border-[#d9a441]' : 'bg-white border-gray-200'}
                         ${inactiva ? 'opacity-60' : ''}`}>
