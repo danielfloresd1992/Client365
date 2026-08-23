@@ -29,6 +29,21 @@ import {
  * eso «+ Asignar una regla» vive arriba de esa columna y pregunta a qué alerta
  * —el botón no puede saberlo, la columna no es de nadie en particular—.
  *
+ *
+ * LAS CAJAS SE PARAN FRENTE A SUS CABLES
+ *
+ * Las tres columnas se apilan desde arriba, así que sin acomodarlas la alerta
+ * queda pegada a su primer alcance y la regla arriba de todo, con huecos debajo
+ * y los cables cruzando en diagonal. Cada caja se corre —con `transform`, que
+ * no toca el layout— hasta quedar enfrente del promedio de lo que la conecta:
+ *
+ *     la ALERTA  al centro de SUS alcances (está sola en su fila)
+ *     la REGLA   al centro de los alcances que la usan, esquivando a las otras
+ *                reglas de la columna, que sí comparten espacio
+ *
+ * El viaje dura un segundo y lo hacen juntas la caja y sus cables; ver
+ * `trazar`, que por eso calcula el destino en vez de medirlo.
+ *
  * Con una sola asignación general, el mapa se ve como una línea recta:
  * alerta → todos → regla. Solo cuando la alerta necesita reglas distintas por
  * local aparecen más cajas.
@@ -106,6 +121,13 @@ export default function BonusMap({
     // aplicado y la caja se iría corriendo sola en cada pasada.
     const [correr, setCorrer] = useState(new Map());
     const correrRef = useRef(new Map());
+
+    // Lo mismo para la caja de la alerta, que se para frente a SUS alcances.
+    // Va aparte de `correr` porque se calcula distinto: la alerta se centra
+    // entre los suyos y nunca compite con otra, mientras que las reglas
+    // comparten una columna y tienen que esquivarse entre ellas.
+    const [correrAlerta, setCorrerAlerta] = useState(new Map());
+    const correrAlertaRef = useRef(new Map());
 
     // Si el movimiento se anima o es instantáneo. Arranca APAGADA: la primera
     // colocación, al abrir la pantalla, tiene que ser instantánea.
@@ -198,7 +220,9 @@ export default function BonusMap({
 
         puestas.forEach(alerta => {
             const mid = String(alerta._id);
-            deAlerta.set(mid, caja(`[data-nodo="alerta-${mid}"]`));
+            // Sin el corrimiento ya aplicado: igual que con las reglas, sin
+            // restarlo la caja se iría yendo sola en cada pasada.
+            deAlerta.set(mid, caja(`[data-nodo="alerta-${mid}"]`, correrAlertaRef.current.get(mid) || 0));
 
             (alerta.bonusRules || []).forEach((asig, i) => {
                 const c = caja(`[data-nodo="alcance-${mid}-${i}"]`);
@@ -228,8 +252,9 @@ export default function BonusMap({
         }
 
 
-        // ── 2. Decidir dónde va cada regla ────────────────────────────
+        // ── 2. Decidir dónde va cada caja ─────────────────────────────
         const corrimientos = acomodarReglas(deRegla, llegadas);
+        const corrimientosAlerta = acomodarAlertas(deAlerta, deAlcance);
 
 
         // ── 3. Trazar ─────────────────────────────────────────────────
@@ -237,7 +262,13 @@ export default function BonusMap({
 
         puestas.forEach(alerta => {
             const mid = String(alerta._id);
-            const dAlerta = deAlerta.get(mid);
+            const medida = deAlerta.get(mid);
+
+            // El cable SALE de donde la alerta va a quedar, no de donde se la
+            // midió — lo mismo que se hace del otro lado con la regla.
+            const dAlerta = medida
+                ? { ...medida, y: medida.y + (corrimientosAlerta.get(mid) || 0) }
+                : null;
 
             // Apagada, todo su cableado va en gris: el color en este mapa
             // significa "esto está pagando", y una alerta apagada no paga.
@@ -323,6 +354,48 @@ export default function BonusMap({
             clearTimeout(volverAAnimar);
         };
     }, [trazar]);
+
+
+    /**
+     * Centra la caja de cada alerta entre los alcances que salen de ella.
+     *
+     * La fila alinea sus dos columnas arriba, así que una alerta con dos o tres
+     * alcances queda pegada al primero y con un hueco debajo: los cables salen
+     * todos hacia abajo en abanico en vez de abrirse parejos. Centrada, el
+     * abanico queda simétrico y se lee que los alcances son hermanos.
+     *
+     * NO HACE FALTA ESQUIVAR NADA, a diferencia de las reglas. Cada alerta está
+     * sola en su columna dentro de su propia fila, y el alto de esa fila lo fija
+     * la columna de alcances —que siempre es la más alta—, así que la caja
+     * corrida no puede salirse de su fila ni pisar a la de al lado.
+     *
+     * @returns {Map<string, number>} idAlerta → píxeles a correr
+     */
+    const acomodarAlertas = (deAlerta, deAlcance) => {
+        const siguiente = new Map();
+
+        for (const [mid, c] of deAlerta.entries()) {
+            if (!c) continue;
+
+            // Los alcances de ESTA alerta, incluida la que se está armando.
+            const alturas = [...deAlcance.entries()]
+                .filter(([clave, caja]) => caja && clave.startsWith(`${mid}-`))
+                .map(([, caja]) => caja.y);
+
+            if (!alturas.length) continue;   // sin alcances no hay contra qué centrarla
+
+            const centro = alturas.reduce((s, y) => s + y, 0) / alturas.length;
+            const corrimiento = Math.round(centro - c.y);
+            if (corrimiento) siguiente.set(mid, corrimiento);
+        }
+
+        if (!mismoMapa(siguiente, correrAlertaRef.current)) {
+            correrAlertaRef.current = siguiente;
+            setCorrerAlerta(siguiente);
+        }
+
+        return siguiente;
+    };
 
 
     /**
@@ -570,6 +643,8 @@ export default function BonusMap({
                                         puedeEditar={puedeEditar}
                                         tirando={tirando}
                                         armando={armando?.menuId === String(alerta._id) ? armando : null}
+                                        correr={correrAlerta.get(String(alerta._id)) || 0}
+                                        animar={animar}
                                         onTirarAlerta={e => empezar(e, 'alerta', String(alerta._id))}
                                         onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
                                         onEditarAlcance={i => setEditandoAlcance(
@@ -672,7 +747,7 @@ export default function BonusMap({
  * de las demás — el mapa es una vista de relaciones, no un formulario único.
  */
 function FilaDeAlerta({
-    alerta, catalogo, puedeEditar, tirando, armando,
+    alerta, catalogo, puedeEditar, tirando, armando, correr, animar,
     onTirarAlerta, onTirar, onEditarAlcance, onQuitarAlcance, onAlternar, onSacar,
 }) {
     const asignaciones = alerta.bonusRules || [];
@@ -683,6 +758,7 @@ function FilaDeAlerta({
     return (
         <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
             <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} apagada={apagada}
+                correr={correr} animar={animar}
                 sinCablear={!asignaciones.length}
                 tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === mid}
                 onTirar={onTirarAlerta} onAlternar={onAlternar} onSacar={onSacar} />
@@ -950,12 +1026,13 @@ function Interruptor({ valor, editable, onAlternar }) {
 
 
 /** La alerta que se está mapeando. Su puerto abre una asignación nueva. */
-function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
+function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, animar, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
 
     return (
         <div data-nodo={`alerta-${alerta._id}`}
-            className={`${CAJA} relative bg-white border-[1.5px] rounded-xl px-4 py-3.5 transition-colors
+            style={{ transform: `translateY(${correr}px)`, ...transicionDeCaja(animar) }}
+            className={`${CAJA} mapa-anima relative bg-white border-[1.5px] rounded-xl px-4 py-3.5
                         ${apagada ? 'border-gray-300' : 'border-[#29c50c]'}`}>
 
             {/* Solo la identidad se apaga; el interruptor queda a todo color o
