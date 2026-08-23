@@ -72,9 +72,10 @@ import {
  * Cada caja tiene un puerto —el punto de su borde derecho— y de ahí nace su
  * cable. El gesto es el mismo en las dos, cambia lo que significa:
  *
- *   puerto de la ALERTA   ¿dónde bonifica? Soltarlo en una regla la asigna de
- *                         un gesto; soltarlo al aire pregunta dónde aplica y
- *                         deja la caja armada esperando su regla.
+ *   puerto de la ALERTA   ¿dónde bonifica? En una regla la asigna de un gesto;
+ *                         sobre el alcance de OTRA alerta copia esa asignación
+ *                         entera acá; al aire pregunta dónde aplica y deja la
+ *                         caja armada esperando su regla.
  *   puerto del ALCANCE    ¿con qué regla? Soltarlo en otra regla reapunta la
  *                         asignación; afuera, la borra —y eso pregunta antes,
  *                         porque soltar el cable a un centímetro de la caja es
@@ -93,6 +94,18 @@ import {
  *
  * Cada gesto arma la lista siguiente de asignaciones de ESA alerta y la manda
  * entera; las demás filas no se tocan.
+ *
+ *
+ * POR QUÉ COPIAR Y NO COMPARTIR
+ *
+ * En `Menu.bonusRules` la REGLA es una referencia y el ALCANCE es un objeto
+ * embebido, con `_id: false`. O sea que dos alertas pueden apuntar a la misma
+ * regla —por eso la columna de reglas se dibuja una vez— pero no a la misma
+ * caja del medio: esa caja no tiene identidad a la que apuntar.
+ *
+ * Por eso soltar el cable de una alerta sobre el alcance de otra COPIA
+ * `{ rule, scope }`. Se ve igual que compartirlo y se edita por separado, que
+ * es lo que el modelo permite decir.
  */
 export default function BonusMap({
     reglas, alertas, alcance, cargando, puedeEditar,
@@ -535,11 +548,61 @@ export default function BonusMap({
      */
     const sumar = (alerta, ruleId) => {
         const actuales = alerta.bonusRules || [];
-        const hayGeneral = actuales.some(a => a.scope?.mode === 'all');
-        const nueva = { rule: ruleId, scope: { mode: hayGeneral ? 'only' : 'all', franchises: [], locals: [] } };
 
-        if (!hayGeneral) return escribir(alerta, [...actuales, nueva]);
-        setEditandoAlcance({ alerta, provisoria: nueva });
+        // La pregunta es si la alerta YA TIENE alcances, no si tiene uno
+        // general. Antes se miraba `mode === 'all'`, y con una alerta que
+        // tuviera un «solo en» y un «todos menos» —ninguno general— el cable
+        // creaba en silencio un tercer alcance «todos los establecimientos»
+        // que solapaba a los otros dos. Cuál gana lo decide después la
+        // especificidad, que no es algo que nadie espere de arrastrar un cable.
+        const hayAlcances = actuales.length > 0;
+
+        if (!hayAlcances) {
+            // Vacía: el primero es general y queda lista de un gesto, que es
+            // el caso normal.
+            return escribir(alerta, [...actuales, {
+                rule: ruleId,
+                scope: { mode: 'all', franchises: [], locals: [] },
+            }]);
+        }
+
+        setEditandoAlcance({
+            alerta,
+            provisoria: { rule: ruleId, scope: { mode: 'only', franchises: [], locals: [] } },
+        });
+    };
+
+
+    /**
+     * Copiar una asignación de otra alerta.
+     *
+     * El alcance NO se comparte: en `Menu.bonusRules` es un objeto EMBEBIDO,
+     * con `_id: false`, así que no tiene identidad a la que otra alerta pueda
+     * apuntar. Lo que sí se comparte es la regla, que es una referencia.
+     *
+     * Por eso esto COPIA `{ rule, scope }` en la alerta que tira el cable, en
+     * vez de unir las dos a una misma caja. El resultado se ve igual —dos
+     * alertas con el mismo alcance apuntando a la misma regla— pero cada una
+     * tiene el suyo y se puede editar sin tocar la otra.
+     */
+    const copiarAlcance = (alerta, origen, indiceOrigen) => {
+        const asignacion = (origen.bonusRules || [])[indiceOrigen];
+        if (!asignacion?.rule) return;
+
+        const actuales = alerta.bonusRules || [];
+
+        // Ya la tiene: copiarla otra vez dejaría dos filas idénticas que suman
+        // dos veces la misma alerta.
+        const repetida = actuales.some(a =>
+            String(a.rule) === String(asignacion.rule)
+            && JSON.stringify(a.scope ?? {}) === JSON.stringify(asignacion.scope ?? {}));
+
+        if (repetida) return;
+
+        escribir(alerta, [...actuales, {
+            rule: String(asignacion.rule),
+            scope: { ...(asignacion.scope || { mode: 'all', franchises: [], locals: [] }) },
+        }]);
     };
 
 
@@ -559,13 +622,29 @@ export default function BonusMap({
 
         const alerta = puestas.find(a => String(a._id) === menuId);
         if (!alerta) return;
-        const regla = document.elementFromPoint(e.clientX, e.clientY)
-            ?.closest('[data-tipo="regla"]')?.dataset.regla || null;
+        const bajoElCursor = document.elementFromPoint(e.clientX, e.clientY);
+        const regla = bajoElCursor?.closest('[data-tipo="regla"]')?.dataset.regla || null;
+        const alcanceDestino = bajoElCursor?.closest('[data-tipo="alcance"]')?.dataset || null;
 
-        // Desde la alerta el cable nace sin destino: en una regla queda la
-        // asignación armada de un gesto; al aire, pregunta dónde aplica.
+        // Desde la alerta el cable nace sin destino, y lo que significa lo
+        // decide dónde cae:
+        //
+        //   en una REGLA    queda la asignación armada de un gesto
+        //   en un ALCANCE   copia esa asignación —regla y dónde— a esta alerta
+        //   al aire         pregunta dónde aplica
         if (desde === 'alerta') {
             if (regla) return sumar(alerta, regla);
+
+            if (alcanceDestino?.alerta && alcanceDestino.indice !== 'nueva') {
+                // Sobre sí misma no hace nada: copiarse un alcance propio
+                // dejaría dos filas idénticas.
+                if (alcanceDestino.alerta === menuId) return;
+
+                const origen = puestas.find(a => String(a._id) === alcanceDestino.alerta);
+                if (origen) return copiarAlcance(alerta, origen, Number(alcanceDestino.indice));
+                return;
+            }
+
             return setEditandoAlcance({ alerta, sinRegla: true });
         }
 
@@ -755,6 +834,11 @@ function FilaDeAlerta({
     const apagada = alerta.bonifies !== true;
     const tirandoDe = (indice) => tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === indice;
 
+    // Se está tirando el cable de OTRA alerta: los alcances de esta fila son
+    // destino válido —soltarlo ahí copia la asignación—. Marcarlos es lo que
+    // hace que el gesto se descubra; sin esto hay que adivinar que existe.
+    const esDestino = tirando?.desde === 'alerta' && tirando?.menuId !== mid;
+
     return (
         <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
             <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} apagada={apagada}
@@ -767,6 +851,7 @@ function FilaDeAlerta({
                 {asignaciones.map((asig, i) => (
                     <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
                         puedeEditar={puedeEditar} apagada={apagada} tirandoEsta={tirandoDe(i)}
+                        esDestino={esDestino}
                         onTirar={e => onTirar(e, i)}
                         onEditar={() => onEditarAlcance(i)}
                         onQuitar={() => onQuitarAlcance(i)} />
@@ -1079,7 +1164,7 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, anim
  * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
  * regla — se arrastra para reapuntarla, o afuera para borrarla.
  */
-function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, onTirar, onEditar, onQuitar }) {
+function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, esDestino, onTirar, onEditar, onQuitar }) {
     const s = asignacion.scope || { mode: 'all' };
     const nombres = nombresDelAlcance(s, catalogo);
 
@@ -1088,10 +1173,12 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
 
     return (
         <div data-nodo={`alcance-${alerta}-${indice}`}
+            data-tipo='alcance' data-alerta={alerta} data-indice={String(indice)}
             className={`${CAJA} relative bg-white rounded-xl px-4 py-3.5 transition-shadow border-[1.5px]
                         ${armando ? 'border-dashed' : ''}
-                        ${apagada ? `border-gray-300 ${APAGADO}`
-                            : tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
+                        ${esDestino ? 'border-[#29c50c] border-dashed shadow-md ring-2 ring-[#29c50c]/25'
+                            : apagada ? `border-gray-300 ${APAGADO}`
+                                : tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
             {/* El punto por donde LLEGA el cable de la alerta, y el botón para
                 cortarlo. Arrastrar el puerto de la derecha borra la asignación
                 cuando hay una sola; con dos o más, arrastrar es el gesto para
