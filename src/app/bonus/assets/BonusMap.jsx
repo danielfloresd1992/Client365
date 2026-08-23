@@ -19,15 +19,25 @@ import {
  *                  (todos)  ──→  Perimetrales 3x1
  *                  (Miami)  ──→  Miami reforzada
  *
- * Cada alerta es una fila con sus asignaciones: cada una es un alcance —una
- * caja del medio— con un cable hacia la regla que aplica ahí. La misma alerta
- * puede ir con reglas distintas según el establecimiento, y esta forma lo
- * muestra tal cual: tantas cajas del medio como asignaciones tenga.
+ * TRES COLUMNAS, Y LAS TRES SON COMPARTIDAS. Cada caja se dibuja UNA VEZ y le
+ * llegan tantos cables como cosas la usen:
  *
- * Las reglas van en una columna aparte, COMPARTIDA por todas las filas: una
- * regla que usan tres alertas se dibuja una vez y le llegan tres cables. Por
- * eso «+ Asignar una regla» vive arriba de esa columna y pregunta a qué alerta
- * —el botón no puede saberlo, la columna no es de nadie en particular—.
+ *   dos alertas con la misma regla y los mismos establecimientos comparten la
+ *   caja del medio; tres alcances con la misma regla comparten la de la
+ *   derecha.
+ *
+ * Dibujarlas repetidas obligaba a comparar dos listas largas de locales para
+ * descubrir que decían lo mismo. Compartiendo la caja, que sean lo mismo se ve.
+ *
+ * EN LA BASE SIGUEN SIENDO VARIAS. `Menu.bonusRules` guarda el alcance
+ * EMBEBIDO dentro de cada alerta, con `_id: false`: no hay nada a lo que dos
+ * alertas puedan apuntar. La regla sí es una referencia, y por eso la columna
+ * de la derecha ya se comportaba así. La unión de la columna del medio es de
+ * la PANTALLA — y por eso cada acción sobre una caja se aplica a todas las
+ * alertas que la usan, con un chip por alerta para sacar a una sola.
+ *
+ * «+ Asignar una regla» vive arriba de la columna de reglas y pregunta a qué
+ * alerta: el botón no puede saberlo, la columna no es de nadie en particular.
  *
  *
  * LAS CAJAS SE PARAN FRENTE A SUS CABLES
@@ -73,9 +83,9 @@ import {
  * cable. El gesto es el mismo en las dos, cambia lo que significa:
  *
  *   puerto de la ALERTA   ¿dónde bonifica? En una regla la asigna de un gesto;
- *                         sobre el alcance de OTRA alerta copia esa asignación
- *                         entera acá; al aire pregunta dónde aplica y deja la
- *                         caja armada esperando su regla.
+ *                         sobre una caja del medio que ya existe, esta alerta
+ *                         pasa a usarla TAMBIÉN; al aire pregunta dónde aplica
+ *                         y deja la caja armada esperando su regla.
  *   puerto del ALCANCE    ¿con qué regla? Soltarlo en otra regla reapunta la
  *                         asignación; afuera, la borra —y eso pregunta antes,
  *                         porque soltar el cable a un centímetro de la caja es
@@ -96,16 +106,6 @@ import {
  * entera; las demás filas no se tocan.
  *
  *
- * POR QUÉ COPIAR Y NO COMPARTIR
- *
- * En `Menu.bonusRules` la REGLA es una referencia y el ALCANCE es un objeto
- * embebido, con `_id: false`. O sea que dos alertas pueden apuntar a la misma
- * regla —por eso la columna de reglas se dibuja una vez— pero no a la misma
- * caja del medio: esa caja no tiene identidad a la que apuntar.
- *
- * Por eso soltar el cable de una alerta sobre el alcance de otra COPIA
- * `{ rule, scope }`. Se ve igual que compartirlo y se edita por separado, que
- * es lo que el modelo permite decir.
  */
 export default function BonusMap({
     reglas, alertas, alcance, cargando, puedeEditar,
@@ -135,12 +135,11 @@ export default function BonusMap({
     const [correr, setCorrer] = useState(new Map());
     const correrRef = useRef(new Map());
 
-    // Lo mismo para la caja de la alerta, que se para frente a SUS alcances.
-    // Va aparte de `correr` porque se calcula distinto: la alerta se centra
-    // entre los suyos y nunca compite con otra, mientras que las reglas
-    // comparten una columna y tienen que esquivarse entre ellas.
-    const [correrAlerta, setCorrerAlerta] = useState(new Map());
-    const correrAlertaRef = useRef(new Map());
+    // Lo mismo para la columna del medio. Las ALERTAS no se corren: son el
+    // ancla de la cascada —los alcances se paran frente a ellas y las reglas
+    // frente a los alcances—, así que moverlas volvería circular la cuenta.
+    const [correrAlcance, setCorrerAlcance] = useState(new Map());
+    const correrAlcanceRef = useRef(new Map());
 
     // Si el movimiento se anima o es instantáneo. Arranca APAGADA: la primera
     // colocación, al abrir la pantalla, tiene que ser instantánea.
@@ -185,21 +184,57 @@ export default function BonusMap({
     );
 
 
+    /**
+     * LOS ALCANCES, UNA CAJA POR COMBINACIÓN — NO POR ALERTA.
+     *
+     * Dos alertas con la misma regla y los mismos establecimientos son, para
+     * quien mira el mapa, la misma cosa; dibujarlas dos veces obliga a
+     * comparar dos listas largas para descubrir que dicen lo mismo. Se dibuja
+     * una caja y le llegan dos cables, igual que en la columna de reglas.
+     *
+     * En la BASE siguen siendo dos: `Menu.bonusRules` guarda el alcance
+     * embebido dentro de cada alerta, con `_id: false`. Esta unión es de la
+     * pantalla, no del modelo — por eso cada acción sobre la caja se aplica a
+     * TODAS las alertas que la usan.
+     */
+    const alcancesUnicos = useMemo(() => {
+        const mapa = new Map();
+
+        for (const alerta of puestas) {
+            (alerta.bonusRules || []).forEach((asig, indice) => {
+                if (!asig?.rule) return;
+
+                const clave = claveDeAsignacion(asig);
+                if (!mapa.has(clave)) {
+                    mapa.set(clave, { clave, rule: String(asig.rule), scope: asig.scope, usos: [] });
+                }
+                mapa.get(clave).usos.push({ alerta, indice });
+            });
+        }
+
+        return [...mapa.values()];
+    }, [puestas]);
+
+
     // ── Los cables, sobre las posiciones reales de las cajas ──────────
     //
     // TRES ETAPAS, Y EL ORDEN IMPORTA:
     //
-    //   1. medir todo, con las reglas en su posición SIN corrimiento
-    //   2. decidir cuánto se corre cada regla
-    //   3. recién ahí trazar, apuntando los cables a donde la regla VA A
-    //      QUEDAR — no a donde está
+    //   1. medir todo, con cada caja en su posición SIN corrimiento
+    //   2. decidir dónde se para cada una, en cascada de izquierda a derecha
+    //   3. recién ahí trazar, apuntando los cables a donde las cajas VAN A
+    //      QUEDAR — no a donde están
     //
-    // Antes se trazaba primero y se corría después, así que los cables
-    // quedaban clavados en la posición vieja de la caja. Y no alcanzaba con
-    // volver a medir: durante la animación `getBoundingClientRect` devuelve la
-    // posición INTERMEDIA, así que los cables perseguirían a la caja en vez de
-    // viajar con ella. Por eso el destino se calcula —base + corrimiento— en
-    // vez de medirse.
+    // Trazar primero y correr después dejaba los cables clavados en la
+    // posición vieja. Y volver a medir tampoco alcanza: durante la animación
+    // `getBoundingClientRect` devuelve la posición INTERMEDIA, así que los
+    // cables perseguirían a las cajas en vez de viajar con ellas. Por eso el
+    // destino se calcula —base + corrimiento— en vez de medirse.
+    //
+    // LA CASCADA NO ES CIRCULAR, y por eso las alertas no se mueven: son el
+    // ancla. Los alcances se paran frente a sus alertas y las reglas frente a
+    // sus alcances. Si además las alertas se centraran en sus alcances, cada
+    // una dependería de la otra y la cuenta no cerraría nunca.
     const trazar = useCallback(() => {
         const base = lienzo.current?.getBoundingClientRect();
         if (!base) return setCables([]);
@@ -228,103 +263,109 @@ export default function BonusMap({
 
         // ── 1. Medir ──────────────────────────────────────────────────
         const deAlerta = new Map();
-        const deAlcance = new Map();        // `${mid}-${i}` → caja
-        const llegadas = new Map();         // idRegla → alturas de sus alcances
-
         puestas.forEach(alerta => {
             const mid = String(alerta._id);
-            // Sin el corrimiento ya aplicado: igual que con las reglas, sin
-            // restarlo la caja se iría yendo sola en cada pasada.
-            deAlerta.set(mid, caja(`[data-nodo="alerta-${mid}"]`, correrAlertaRef.current.get(mid) || 0));
-
-            (alerta.bonusRules || []).forEach((asig, i) => {
-                const c = caja(`[data-nodo="alcance-${mid}-${i}"]`);
-                if (!c) return;
-                deAlcance.set(`${mid}-${i}`, c);
-
-                if (asig.rule) {
-                    const clave = String(asig.rule);
-                    if (!llegadas.has(clave)) llegadas.set(clave, []);
-                    llegadas.get(clave).push(c.y);
-                }
-            });
-
-            if (armando?.menuId === mid) {
-                deAlcance.set(`${mid}-nueva`, caja(`[data-nodo="alcance-${mid}-nueva"]`));
-            }
+            deAlerta.set(mid, caja(`[data-nodo="alerta-${mid}"]`));
         });
 
-        // Las reglas, medidas SIN el corrimiento que ya tienen puesto. Sin
-        // restarlo, la vuelta siguiente leería la posición ya corrida y la caja
-        // se iría yendo sola en cada pasada.
+        // Los alcances y las reglas, SIN el corrimiento que ya tienen puesto:
+        // sin restarlo, la vuelta siguiente leería la posición ya corrida y la
+        // caja se iría yendo sola en cada pasada.
+        const deAlcance = new Map();
+        alcancesUnicos.forEach(nodo => {
+            const c = caja(`[data-nodo="alcance-${nodo.clave}"]`, correrAlcance.get(nodo.clave) || 0);
+            if (c) deAlcance.set(nodo.clave, c);
+        });
+
         const deRegla = new Map();
-        for (const regla of reglas || []) {
+        (reglas || []).forEach(regla => {
             const idRegla = String(regla._id);
             const c = caja(`[data-nodo="regla-${idRegla}"]`, correrRef.current.get(idRegla) || 0);
             if (c) deRegla.set(idRegla, c);
-        }
+        });
 
 
-        // ── 2. Decidir dónde va cada caja ─────────────────────────────
-        const corrimientos = acomodarReglas(deRegla, llegadas);
-        const corrimientosAlerta = acomodarAlertas(deAlerta, deAlcance);
+        // ── 2. Decidir dónde va cada caja, de izquierda a derecha ─────
+        // Los alcances se paran frente a las alertas que los usan.
+        const aLosAlcances = new Map();
+        alcancesUnicos.forEach(nodo => {
+            const alturas = nodo.usos
+                .map(u => deAlerta.get(String(u.alerta._id))?.y)
+                .filter(y => typeof y === 'number');
+            if (alturas.length) aLosAlcances.set(nodo.clave, alturas);
+        });
+
+        const corrimientosAlcance = acomodarColumna(deAlcance, aLosAlcances, correrAlcanceRef, setCorrerAlcance);
+
+        // Y las reglas frente a los alcances que ya quedaron colocados.
+        const aLasReglas = new Map();
+        alcancesUnicos.forEach(nodo => {
+            const c = deAlcance.get(nodo.clave);
+            if (!c) return;
+            const y = c.y + (corrimientosAlcance.get(nodo.clave) || 0);
+            if (!aLasReglas.has(nodo.rule)) aLasReglas.set(nodo.rule, []);
+            aLasReglas.get(nodo.rule).push(y);
+        });
+
+        const corrimientosRegla = acomodarColumna(deRegla, aLasReglas, correrRef, setCorrer);
 
 
         // ── 3. Trazar ─────────────────────────────────────────────────
         const nuevos = [];
 
-        puestas.forEach(alerta => {
-            const mid = String(alerta._id);
-            const medida = deAlerta.get(mid);
+        const conCorrimiento = (c, px) => (c ? { ...c, y: c.y + (px || 0) } : null);
 
-            // El cable SALE de donde la alerta va a quedar, no de donde se la
-            // midió — lo mismo que se hace del otro lado con la regla.
-            const dAlerta = medida
-                ? { ...medida, y: medida.y + (corrimientosAlerta.get(mid) || 0) }
-                : null;
+        alcancesUnicos.forEach(nodo => {
+            const dAlc = conCorrimiento(deAlcance.get(nodo.clave), corrimientosAlcance.get(nodo.clave));
+            if (!dAlc) return;
 
-            // Apagada, todo su cableado va en gris: el color en este mapa
-            // significa "esto está pagando", y una alerta apagada no paga.
-            const apagada = alerta.bonifies !== true;
+            // Un cable por cada alerta que usa esta caja. Es lo que hace ver de
+            // un vistazo cuántas comparten la misma configuración.
+            nodo.usos.forEach(({ alerta, indice }) => {
+                const mid = String(alerta._id);
+                const apagada = alerta.bonifies !== true;
 
-            (alerta.bonusRules || []).forEach((asig, i) => {
-                const dAlc = deAlcance.get(`${mid}-${i}`);
-
-                const d1 = curva(dAlerta, dAlc);
-                if (d1) nuevos.push({ id: `a-${mid}-${i}`, d: d1, color: apagada ? COLOR_APAGADO : COLOR_ALCANCE });
-
-                // El que se arrastra no se dibuja fijo: lo dibuja la goma.
-                if (tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === i) return;
-
-                const idRegla = String(asig.rule);
-                const dRegla = deRegla.get(idRegla);
-                if (!dRegla) return;
-
-                // Acá está la clave: el cable apunta a donde la regla VA A
-                // QUEDAR, no a donde se la midió.
-                const destino = { ...dRegla, y: dRegla.y + (corrimientos.get(idRegla) || 0) };
-
-                const d2 = curva(dAlc, destino);
-                if (d2) {
-                    const regla = porId.get(idRegla);
-                    const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
-                    const color = apagada ? COLOR_APAGADO : (cat?.color || COLOR_NEUTRO);
-                    nuevos.push({ id: `r-${mid}-${i}`, d: d2, color });
+                const d = curva(deAlerta.get(mid), dAlc);
+                if (d) {
+                    nuevos.push({
+                        id: `a-${mid}-${indice}`,
+                        d,
+                        color: apagada ? COLOR_APAGADO : COLOR_ALCANCE,
+                    });
                 }
             });
 
-            // La que se está armando ya tiene su cable a la alerta; el de la
-            // derecha todavía no existe, y esa punta suelta es justo lo que se
-            // ve que falta.
-            if (armando?.menuId === mid) {
-                const d = curva(dAlerta, deAlcance.get(`${mid}-nueva`));
-                if (d) nuevos.push({ id: `a-${mid}-nueva`, d, color: COLOR_ALCANCE });
+            // El que se arrastra no se dibuja fijo: lo dibuja la goma.
+            if (tirando?.desde === 'alcance' && tirando?.clave === nodo.clave) return;
+
+            const dRegla = conCorrimiento(deRegla.get(nodo.rule), corrimientosRegla.get(nodo.rule));
+            const d2 = curva(dAlc, dRegla);
+
+            if (d2) {
+                // Gris si TODAS las alertas que la usan están apagadas: mientras
+                // alguna pague, ese cable está en uso.
+                const apagadas = nodo.usos.every(u => u.alerta.bonifies !== true);
+                const regla = porId.get(nodo.rule);
+                const cat = regla ? categoriaDe.get(regla.bonusCategory) : null;
+
+                nuevos.push({
+                    id: `r-${nodo.clave}`,
+                    d: d2,
+                    color: apagadas ? COLOR_APAGADO : (cat?.color || COLOR_NEUTRO),
+                });
             }
         });
 
+        // La que se está armando: su cable a la alerta ya existe, el de la
+        // derecha todavía no, y esa punta suelta es justo lo que se ve que falta.
+        if (armando?.menuId) {
+            const d = curva(deAlerta.get(armando.menuId), caja('[data-nodo="alcance-nueva"]'));
+            if (d) nuevos.push({ id: 'a-nueva', d, color: COLOR_ALCANCE });
+        }
+
         setCables(nuevos);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [puestas, tirando, armando, porId, categoriaDe, escala, reglas]);
+    }, [puestas, alcancesUnicos, tirando, armando, porId, categoriaDe, escala, reglas, correrAlcance]);
 
     useEffect(() => { trazar(); }, [trazar]);
 
@@ -370,55 +411,12 @@ export default function BonusMap({
 
 
     /**
-     * Centra la caja de cada alerta entre los alcances que salen de ella.
+     * Pone cada caja de una columna frente a los cables que le llegan.
      *
-     * La fila alinea sus dos columnas arriba, así que una alerta con dos o tres
-     * alcances queda pegada al primero y con un hueco debajo: los cables salen
-     * todos hacia abajo en abanico en vez de abrirse parejos. Centrada, el
-     * abanico queda simétrico y se lee que los alcances son hermanos.
-     *
-     * NO HACE FALTA ESQUIVAR NADA, a diferencia de las reglas. Cada alerta está
-     * sola en su columna dentro de su propia fila, y el alto de esa fila lo fija
-     * la columna de alcances —que siempre es la más alta—, así que la caja
-     * corrida no puede salirse de su fila ni pisar a la de al lado.
-     *
-     * @returns {Map<string, number>} idAlerta → píxeles a correr
-     */
-    const acomodarAlertas = (deAlerta, deAlcance) => {
-        const siguiente = new Map();
-
-        for (const [mid, c] of deAlerta.entries()) {
-            if (!c) continue;
-
-            // Los alcances de ESTA alerta, incluida la que se está armando.
-            const alturas = [...deAlcance.entries()]
-                .filter(([clave, caja]) => caja && clave.startsWith(`${mid}-`))
-                .map(([, caja]) => caja.y);
-
-            if (!alturas.length) continue;   // sin alcances no hay contra qué centrarla
-
-            const centro = alturas.reduce((s, y) => s + y, 0) / alturas.length;
-            const corrimiento = Math.round(centro - c.y);
-            if (corrimiento) siguiente.set(mid, corrimiento);
-        }
-
-        if (!mismoMapa(siguiente, correrAlertaRef.current)) {
-            correrAlertaRef.current = siguiente;
-            setCorrerAlerta(siguiente);
-        }
-
-        return siguiente;
-    };
-
-
-    /**
-     * Dónde se para cada regla, y cuánto hay que correrla para llegar ahí.
-     *
-     * La columna de reglas se apila desde arriba, así que una regla que usan
-     * tres alertas del medio de la lista queda arriba de todo con un hueco
-     * debajo, y sus tres cables cruzan la pantalla en diagonal. Corrida al
-     * promedio de sus llegadas, los cables salen casi rectos y se ve de un
-     * vistazo qué alertas la usan.
+     * Una columna se apila desde arriba, así que una caja que usan tres cosas
+     * del medio de la lista queda arriba de todo con un hueco debajo y sus
+     * cables cruzando en diagonal. Corrida al promedio de sus llegadas, salen
+     * casi rectos y se lee de un vistazo qué la usa.
      *
      * SE MUEVE CON `transform`, NO CON MARGEN. Un margen cambiaría el alto de
      * la columna, y eso vuelve a disparar la medición: la caja se correría de
@@ -427,15 +425,20 @@ export default function BonusMap({
      * Las que no reciben ningún cable se quedan donde estén: correrlas no
      * apuntaría a nada y solo movería la lista.
      *
-     * @returns {Map<string, number>} idRegla → píxeles a correr
+     * Es la misma cuenta para los alcances y para las reglas —las dos columnas
+     * se comportan igual— y por eso está escrita una vez.
+     *
+     * @param cajas     clave → { y, alto } ya medidas SIN corrimiento
+     * @param llegadas  clave → alturas de lo que le llega
+     * @returns {Map<string, number>} clave → píxeles a correr
      */
-    const acomodarReglas = (deRegla, llegadas) => {
+    const acomodarColumna = (cajas, llegadas, ref, aplicar) => {
         const SEPARACION = 12;
 
-        const objetivos = [...deRegla.entries()].map(([idRegla, c]) => {
-            const alturas = llegadas.get(idRegla);
+        const objetivos = [...cajas.entries()].map(([clave, c]) => {
+            const alturas = llegadas.get(clave);
             return {
-                idRegla,
+                clave,
                 base: c.y,
                 alto: c.alto,
                 deseada: alturas?.length ? alturas.reduce((s, y) => s + y, 0) / alturas.length : c.y,
@@ -454,14 +457,14 @@ export default function BonusMap({
             piso = centro + o.alto / 2 + SEPARACION;
 
             const corrimiento = Math.round(centro - o.base);
-            if (corrimiento) siguiente.set(o.idRegla, corrimiento);
+            if (corrimiento) siguiente.set(o.clave, corrimiento);
         }
 
         // Solo se vuelve a pintar si de verdad cambió: sin esta comparación,
         // cada medición dispararía un render y el render otra medición.
-        if (!mismoMapa(siguiente, correrRef.current)) {
-            correrRef.current = siguiente;
-            setCorrer(siguiente);
+        if (!mismoMapa(siguiente, ref.current)) {
+            ref.current = siguiente;
+            aplicar(siguiente);
         }
 
         return siguiente;
@@ -477,37 +480,86 @@ export default function BonusMap({
     const escribir = (alerta, bonusRules, bonifies = alerta.bonifies ?? null) =>
         onEscribirAsignaciones(alerta._id, { bonifies, bonusRules });
 
-    const reapuntar = (alerta, i, ruleId) =>
-        escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, rule: ruleId } : a)));
+    // ── Sobre una caja COMPARTIDA ─────────────────────────────────────
+    // La caja del medio es una combinación de regla y alcance que puede usar
+    // más de una alerta. Tocarla las toca a TODAS: es lo que significa que
+    // compartan la caja. Para que una sola cambie, primero se la desconecta y
+    // se le arma la suya.
+    //
+    // Cada alerta se escribe una vez —su `bonusRules` viaja entero— aunque
+    // tenga la misma asignación repetida.
 
-    const quitar = (alerta, i) =>
-        escribir(alerta, (alerta.bonusRules || []).filter((_, j) => j !== i));
-
-    /**
-     * Quitar preguntando.
-     *
-     * Soltar el cable a un centímetro de la caja borra una referencia
-     * guardada, y desde el mapa no se ve qué se perdió: la caja del medio
-     * desaparece con su alcance adentro. El mensaje nombra las dos cosas que
-     * el gesto toca —la alerta y dónde dejaba de aplicar— y aclara lo que NO
-     * toca, que es la regla.
-     */
-    const quitarPreguntando = (alerta, i) => {
-        const asignacion = (alerta.bonusRules || [])[i];
-        if (!asignacion) return;
-
-        const regla = porId.get(String(asignacion.rule));
-        confirmar({
-            titulo: '¿Quitar esta asignación?',
-            descripcion: `«${alerta.es || alerta.en}» va a dejar de bonificar en `
-                + `${describirAlcance(asignacion.scope, alcance)}. `
-                + `La regla${regla ? ` «${regla.name}»` : ''} no se borra: sigue disponible para otras alertas.`,
-            alAceptar: () => quitar(alerta, i),
-        });
+    const cambiarAlcanceCompartido = (nodo, scope) => {
+        for (const { alerta, indices } of usosPorAlerta(nodo.usos)) {
+            escribir(alerta, (alerta.bonusRules || [])
+                .map((a, j) => (indices.includes(j) ? { ...a, scope } : a)));
+        }
     };
 
-    const cambiarAlcance = (alerta, i, scope) =>
-        escribir(alerta, (alerta.bonusRules || []).map((a, j) => (j === i ? { ...a, scope } : a)));
+    const reapuntarCompartido = (nodo, ruleId) => {
+        for (const { alerta, indices } of usosPorAlerta(nodo.usos)) {
+            escribir(alerta, (alerta.bonusRules || [])
+                .map((a, j) => (indices.includes(j) ? { ...a, rule: ruleId } : a)));
+        }
+    };
+
+    const quitarCompartido = (nodo) => {
+        for (const { alerta, indices } of usosPorAlerta(nodo.usos)) {
+            escribir(alerta, (alerta.bonusRules || []).filter((_, j) => !indices.includes(j)));
+        }
+    };
+
+    /**
+     * ¿La alerta ya tiene otra asignación general?
+     *
+     * Dos generales en la misma alerta serían ambiguas —cuál gana lo decidiría
+     * el orden de carga— y el servidor las rechaza. Se comprueba sobre la
+     * primera alerta que use la caja, sin contar la que se está editando.
+     */
+    const hayOtraGeneral = (edicion) => {
+        const alerta = edicion?.alerta ?? edicion?.nodo?.usos?.[0]?.alerta;
+        if (!alerta) return false;
+
+        const propios = edicion?.nodo
+            ? edicion.nodo.usos.filter(u => String(u.alerta._id) === String(alerta._id)).map(u => u.indice)
+            : [];
+
+        return (alerta.bonusRules || []).some((a, j) => a.scope?.mode === 'all' && !propios.includes(j));
+    };
+
+
+    /** Desconectar UNA sola alerta de una caja que comparte con otras. */
+    const desconectar = (nodo, alerta) => {
+        const indices = nodo.usos
+            .filter(u => String(u.alerta._id) === String(alerta._id))
+            .map(u => u.indice);
+
+        escribir(alerta, (alerta.bonusRules || []).filter((_, j) => !indices.includes(j)));
+    };
+
+    /**
+     * Quitar la caja, preguntando.
+     *
+     * Soltar el cable a un centímetro de la caja borra referencias guardadas, y
+     * desde el mapa no se ve qué se perdió: la caja desaparece con su alcance
+     * adentro. El mensaje dice CUÁNTAS alertas quedan afectadas —una caja
+     * compartida por tres las desconecta a las tres— y aclara lo que NO toca,
+     * que es la regla.
+     */
+    const quitarCompartidoPreguntando = (nodo) => {
+        const cuantas = usosPorAlerta(nodo.usos).length;
+        const regla = porId.get(nodo.rule);
+
+        confirmar({
+            titulo: cuantas === 1 ? '¿Quitar esta asignación?' : `¿Quitar esta asignación de ${cuantas} alertas?`,
+            descripcion: (cuantas === 1
+                ? `«${nodo.usos[0].alerta.es || nodo.usos[0].alerta.en}» va a dejar de bonificar en `
+                : `Las ${cuantas} alertas que usan esta caja van a dejar de bonificar en `)
+                + `${describirAlcance(nodo.scope, alcance)}. `
+                + `La regla${regla ? ` «${regla.name}»` : ''} no se borra: sigue disponible para otras alertas.`,
+            alAceptar: () => quitarCompartido(nodo),
+        });
+    };
 
     /** El interruptor. Apagar deja las asignaciones donde están: es reversible. */
     const alternarBonifica = (alerta) =>
@@ -574,90 +626,91 @@ export default function BonusMap({
 
 
     /**
-     * Copiar una asignación de otra alerta.
+     * Esta alerta pasa a usar TAMBIÉN una caja que ya existe.
      *
-     * El alcance NO se comparte: en `Menu.bonusRules` es un objeto EMBEBIDO,
-     * con `_id: false`, así que no tiene identidad a la que otra alerta pueda
-     * apuntar. Lo que sí se comparte es la regla, que es una referencia.
-     *
-     * Por eso esto COPIA `{ rule, scope }` en la alerta que tira el cable, en
-     * vez de unir las dos a una misma caja. El resultado se ve igual —dos
-     * alertas con el mismo alcance apuntando a la misma regla— pero cada una
-     * tiene el suyo y se puede editar sin tocar la otra.
+     * En la pantalla es «se suma a esa caja»; en la base es una COPIA de
+     * `{ rule, scope }` dentro de su propio `bonusRules`, porque el alcance es
+     * un objeto embebido con `_id: false` y no hay nada a lo que apuntar. Las
+     * dos versiones son ciertas: comparten la caja del mapa, y cada una tiene
+     * su fila en su documento.
      */
-    const copiarAlcance = (alerta, origen, indiceOrigen) => {
-        const asignacion = (origen.bonusRules || [])[indiceOrigen];
-        if (!asignacion?.rule) return;
-
+    const sumarACaja = (alerta, nodo) => {
         const actuales = alerta.bonusRules || [];
 
-        // Ya la tiene: copiarla otra vez dejaría dos filas idénticas que suman
-        // dos veces la misma alerta.
-        const repetida = actuales.some(a =>
-            String(a.rule) === String(asignacion.rule)
-            && JSON.stringify(a.scope ?? {}) === JSON.stringify(asignacion.scope ?? {}));
-
-        if (repetida) return;
+        // Ya la usa: sumarla otra vez dejaría dos filas idénticas contando dos
+        // veces la misma alerta.
+        if (actuales.some(a => a.rule && claveDeAsignacion(a) === nodo.clave)) return;
 
         escribir(alerta, [...actuales, {
-            rule: String(asignacion.rule),
-            scope: { ...(asignacion.scope || { mode: 'all', franchises: [], locals: [] }) },
+            rule: nodo.rule,
+            scope: { ...(nodo.scope || { mode: 'all', franchises: [], locals: [] }) },
         }]);
     };
 
 
     // ── Arrastre ──────────────────────────────────────────────────────
-    const empezar = (e, desde, menuId, indice = null) => {
+    // `menuId` para el cable que sale de una alerta; `clave` para el que sale
+    // de una caja del medio, que ya no es de una alerta sola.
+    const empezar = (e, desde, { menuId = null, clave = null } = {}) => {
         if (!puedeEditar) return;
         e.preventDefault();
         lienzo.current.setPointerCapture(e.pointerId);
-        setTirando({ desde, menuId, indice, x: e.clientX, y: e.clientY });
+        setTirando({ desde, menuId, clave, x: e.clientX, y: e.clientY });
     };
 
     /** Dónde cayó el cable decide qué significó el gesto. */
     const soltar = async (e) => {
         if (!tirando) return;
-        const { desde, menuId, indice } = tirando;
+        const { desde, menuId, clave } = tirando;
         setTirando(null);
 
-        const alerta = puestas.find(a => String(a._id) === menuId);
-        if (!alerta) return;
         const bajoElCursor = document.elementFromPoint(e.clientX, e.clientY);
         const regla = bajoElCursor?.closest('[data-tipo="regla"]')?.dataset.regla || null;
-        const alcanceDestino = bajoElCursor?.closest('[data-tipo="alcance"]')?.dataset || null;
+        const claveDestino = bajoElCursor?.closest('[data-tipo="alcance"]')?.dataset.clave || null;
 
-        // Desde la alerta el cable nace sin destino, y lo que significa lo
-        // decide dónde cae:
+
+        // ── Desde una ALERTA ──────────────────────────────────────────
+        // El cable nace sin destino, y lo que significa lo decide dónde cae:
         //
         //   en una REGLA    queda la asignación armada de un gesto
-        //   en un ALCANCE   copia esa asignación —regla y dónde— a esta alerta
+        //   en un ALCANCE   esta alerta pasa a usar TAMBIÉN esa caja
         //   al aire         pregunta dónde aplica
         if (desde === 'alerta') {
+            const alerta = puestas.find(a => String(a._id) === menuId);
+            if (!alerta) return;
+
             if (regla) return sumar(alerta, regla);
 
-            if (alcanceDestino?.alerta && alcanceDestino.indice !== 'nueva') {
-                // Sobre sí misma no hace nada: copiarse un alcance propio
-                // dejaría dos filas idénticas.
-                if (alcanceDestino.alerta === menuId) return;
-
-                const origen = puestas.find(a => String(a._id) === alcanceDestino.alerta);
-                if (origen) return copiarAlcance(alerta, origen, Number(alcanceDestino.indice));
+            if (claveDestino && claveDestino !== 'nueva') {
+                const nodo = alcancesUnicos.find(x => x.clave === claveDestino);
+                if (nodo) sumarACaja(alerta, nodo);
                 return;
             }
 
             return setEditandoAlcance({ alerta, sinRegla: true });
         }
 
-        // La que se está armando solo se guarda si llegó a una regla; soltarla
-        // afuera la descarta, igual que soltar cualquier otro cable al aire.
-        if (indice === 'nueva') {
+
+        // ── Desde la caja a medio armar ───────────────────────────────
+        // Solo se guarda si llegó a una regla; soltarla afuera la descarta,
+        // igual que soltar cualquier otro cable al aire.
+        if (clave === 'nueva') {
+            const alerta = puestas.find(a => String(a._id) === armando?.menuId);
             setArmando(null);
-            if (regla) await escribir(alerta, [...(alerta.bonusRules || []), { rule: regla, scope: armando.scope }]);
+
+            if (regla && alerta) {
+                await escribir(alerta, [...(alerta.bonusRules || []), { rule: regla, scope: armando.scope }]);
+            }
             return;
         }
 
-        if (regla) await reapuntar(alerta, indice, regla);
-        else quitarPreguntando(alerta, indice);
+
+        // ── Desde una caja COMPARTIDA ─────────────────────────────────
+        const nodo = alcancesUnicos.find(x => x.clave === clave);
+        if (!nodo) return;
+
+        if (regla) reapuntarCompartido(nodo, regla);
+        else quitarCompartidoPreguntando(nodo);
     };
 
 
@@ -706,29 +759,28 @@ export default function BonusMap({
 
                         <Cables cables={cables} tirando={tirando} lienzo={lienzo} escala={escala} animar={animar} />
 
-                        {/* Las alertas con sus alcances a la izquierda, las reglas
-                            en una columna compartida a la derecha: una regla que
-                            usan tres alertas se ve una vez, con tres cables. */}
-                        <div className='relative z-[1] grid gap-x-16 items-start min-w-[900px] grid-cols-[minmax(0,2.1fr)_minmax(220px,1fr)]'>
+                        {/* TRES COLUMNAS, Y LAS TRES SON COMPARTIDAS: cada
+                            caja se dibuja una vez y le llegan tantos cables
+                            como cosas la usen. Dos alertas con el mismo
+                            alcance y la misma regla comparten la caja del
+                            medio; tres alcances con la misma regla comparten
+                            la de la derecha. */}
+                        <div className='relative z-[1] grid gap-x-16 items-start min-w-[1000px]
+                                        grid-cols-[minmax(210px,1fr)_minmax(230px,1.15fr)_minmax(220px,1fr)]'>
 
                             <div className='flex flex-col gap-5'>
-                                <Rotulo>Alertas · Menu.model  →  dónde aplica</Rotulo>
+                                <Rotulo>Alertas · Menu.model</Rotulo>
 
                                 {puestas.map(alerta => (
-                                    <FilaDeAlerta
+                                    <NodoAlerta
                                         key={alerta._id}
                                         alerta={alerta}
-                                        catalogo={alcance}
                                         puedeEditar={puedeEditar}
-                                        tirando={tirando}
-                                        armando={armando?.menuId === String(alerta._id) ? armando : null}
-                                        correr={correrAlerta.get(String(alerta._id)) || 0}
+                                        apagada={alerta.bonifies !== true}
+                                        sinCablear={!(alerta.bonusRules || []).length}
                                         animar={animar}
-                                        onTirarAlerta={e => empezar(e, 'alerta', String(alerta._id))}
-                                        onTirar={(e, i) => empezar(e, 'alcance', String(alerta._id), i)}
-                                        onEditarAlcance={i => setEditandoAlcance(
-                                            i === 'nueva' ? { alerta, sinRegla: true } : { alerta, indice: i })}
-                                        onQuitarAlcance={i => quitarPreguntando(alerta, i)}
+                                        tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === String(alerta._id)}
+                                        onTirar={e => empezar(e, 'alerta', { menuId: String(alerta._id) })}
                                         onAlternar={() => alternarBonifica(alerta)}
                                         onSacar={() => sacar(alerta)}
                                     />
@@ -737,6 +789,51 @@ export default function BonusMap({
                                 {!puestas.length && (
                                     <p className='text-[12.5px] text-gray-500 py-6'>
                                         El mapa está vacío. Tocá «+ Alerta» para traer una y empezar a conectarla.
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className='flex flex-col gap-3'>
+                                <Rotulo>Dónde aplica</Rotulo>
+
+                                {alcancesUnicos.map(nodo => (
+                                    <NodoAlcance
+                                        key={nodo.clave}
+                                        nodo={nodo}
+                                        catalogo={alcance}
+                                        puedeEditar={puedeEditar}
+                                        correr={correrAlcance.get(nodo.clave) || 0}
+                                        animar={animar}
+                                        tirandoEsta={tirando?.desde === 'alcance' && tirando?.clave === nodo.clave}
+                                        esDestino={tirando?.desde === 'alerta'}
+                                        onTirar={e => empezar(e, 'alcance', { clave: nodo.clave })}
+                                        onEditar={() => setEditandoAlcance({ nodo })}
+                                        onQuitar={() => quitarCompartidoPreguntando(nodo)}
+                                        onDesconectar={a => desconectar(nodo, a)}
+                                    />
+                                ))}
+
+                                {/* La que se está armando: ya sabe dónde, le falta
+                                    la regla. Vive solo en pantalla. */}
+                                {armando && (
+                                    <NodoAlcance
+                                        nodo={{ clave: 'nueva', scope: armando.scope, usos: [] }}
+                                        catalogo={alcance}
+                                        puedeEditar={puedeEditar}
+                                        animar={animar}
+                                        armando
+                                        tirandoEsta={tirando?.desde === 'alcance' && tirando?.clave === 'nueva'}
+                                        onTirar={e => empezar(e, 'alcance', { clave: 'nueva' })}
+                                        onEditar={() => setEditandoAlcance({
+                                            alerta: puestas.find(a => String(a._id) === armando.menuId),
+                                            sinRegla: true,
+                                        })}
+                                    />
+                                )}
+
+                                {!alcancesUnicos.length && !armando && puestas.length > 0 && (
+                                    <p className='text-[11.5px] text-gray-500'>
+                                        Tirá el punto de una alerta hasta una regla para decir dónde bonifica.
                                     </p>
                                 )}
                             </div>
@@ -762,7 +859,7 @@ export default function BonusMap({
                                         correr={correr.get(String(r._id)) || 0}
                                         animar={animar}
                                         categoria={categoriaDe.get(r.bonusCategory) || null}
-                                        conectada={puestas.some(a => (a.bonusRules || []).some(x => String(x.rule) === String(r._id)))}
+                                        conectada={alcancesUnicos.some(n => n.rule === String(r._id))}
                                         onEditar={() => onEditarRegla(r)} />
                                 ))}
                                 {!(reglas || []).length && (
@@ -797,77 +894,26 @@ export default function BonusMap({
             {editandoAlcance && (
                 <EditorDeAlcance
                     catalogo={alcance}
-                    inicial={editandoAlcance.provisoria?.scope
-                        ?? (editandoAlcance.alerta.bonusRules || [])[editandoAlcance.indice]?.scope}
-                    yaHayGeneral={(editandoAlcance.alerta.bonusRules || [])
-                        .some((a, j) => a.scope?.mode === 'all' && j !== editandoAlcance.indice)}
+                    inicial={editandoAlcance.nodo?.scope ?? editandoAlcance.provisoria?.scope}
+                    // Una alerta no puede tener DOS asignaciones generales: cuál
+                    // gana quedaría librado al orden de carga. Se mira sobre la
+                    // primera que use la caja, excluyendo la que se está
+                    // editando.
+                    yaHayGeneral={hayOtraGeneral(editandoAlcance)}
                     onCerrar={() => setEditandoAlcance(null)}
                     onGuardar={async (scope) => {
-                        const { alerta, provisoria, sinRegla, indice } = editandoAlcance;
+                        const { alerta, provisoria, sinRegla, nodo } = editandoAlcance;
                         setEditandoAlcance(null);
+
                         // Sin regla todavía: la caja queda en pantalla, cableada
                         // a la alerta, hasta que su puerto llegue a una regla.
                         if (sinRegla) return setArmando({ menuId: String(alerta._id), scope });
                         if (provisoria) return escribir(alerta, [...(alerta.bonusRules || []), { ...provisoria, scope }]);
-                        await cambiarAlcance(alerta, indice, scope);
+                        if (nodo) cambiarAlcanceCompartido(nodo, scope);
                     }}
                 />
             )}
         </>
-    );
-}
-
-
-/**
- * Una alerta con sus alcances, en una fila.
- *
- * La caja de la alerta a la izquierda y sus asignaciones a la derecha, alineadas
- * arriba. Cada fila es independiente: agregar o tocar una alerta no mueve nada
- * de las demás — el mapa es una vista de relaciones, no un formulario único.
- */
-function FilaDeAlerta({
-    alerta, catalogo, puedeEditar, tirando, armando, correr, animar,
-    onTirarAlerta, onTirar, onEditarAlcance, onQuitarAlcance, onAlternar, onSacar,
-}) {
-    const asignaciones = alerta.bonusRules || [];
-    const mid = String(alerta._id);
-    const apagada = alerta.bonifies !== true;
-    const tirandoDe = (indice) => tirando?.desde === 'alcance' && tirando?.menuId === mid && tirando?.indice === indice;
-
-    // Se está tirando el cable de OTRA alerta: los alcances de esta fila son
-    // destino válido —soltarlo ahí copia la asignación—. Marcarlos es lo que
-    // hace que el gesto se descubra; sin esto hay que adivinar que existe.
-    const esDestino = tirando?.desde === 'alerta' && tirando?.menuId !== mid;
-
-    return (
-        <div className='grid gap-x-16 items-start grid-cols-[minmax(210px,1fr)_minmax(230px,1.1fr)]'>
-            <NodoAlerta alerta={alerta} puedeEditar={puedeEditar} apagada={apagada}
-                correr={correr} animar={animar}
-                sinCablear={!asignaciones.length}
-                tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === mid}
-                onTirar={onTirarAlerta} onAlternar={onAlternar} onSacar={onSacar} />
-
-            <div className='flex flex-col gap-3'>
-                {asignaciones.map((asig, i) => (
-                    <NodoAlcance key={i} alerta={mid} indice={i} asignacion={asig} catalogo={catalogo}
-                        puedeEditar={puedeEditar} apagada={apagada} tirandoEsta={tirandoDe(i)}
-                        esDestino={esDestino}
-                        onTirar={e => onTirar(e, i)}
-                        onEditar={() => onEditarAlcance(i)}
-                        onQuitar={() => onQuitarAlcance(i)} />
-                ))}
-
-                {armando && (
-                    <NodoAlcance alerta={mid} indice='nueva' asignacion={{ scope: armando.scope }}
-                        catalogo={catalogo} puedeEditar={puedeEditar} apagada={apagada} armando tirandoEsta={tirandoDe('nueva')}
-                        onTirar={e => onTirar(e, 'nueva')}
-                        onEditar={() => onEditarAlcance('nueva')} />
-                )}
-
-                {/* Asignar una regla NO está acá: está arriba de la columna de
-                    reglas, que es donde se eligen. Ver `AsignarRegla`. */}
-            </div>
-        </div>
     );
 }
 
@@ -918,6 +964,40 @@ const COLOR_APAGADO = '#c3cad4';
 
 /** Lo apagado se muestra sin color, no se esconde. */
 const APAGADO = 'grayscale opacity-70';
+
+/**
+ * La identidad de una asignación: su regla y su alcance.
+ *
+ * Dos asignaciones con la misma clave son la misma caja en el mapa. Las listas
+ * se ORDENAN antes de comparar: los mismos seis locales cargados en distinto
+ * orden son el mismo alcance, y sin ordenar cada uno tendría su caja.
+ */
+const claveDeAsignacion = (asig) => {
+    const s = asig.scope || {};
+    const lista = (xs) => [...(xs || [])].map(String).sort().join(',');
+    return `${String(asig.rule)}|${s.mode || 'all'}|${lista(s.franchises)}|${lista(s.locals)}`;
+};
+
+
+/**
+ * Los usos de una caja, agrupados por alerta.
+ *
+ * Cada alerta se escribe UNA vez aunque tenga la misma asignación repetida:
+ * su `bonusRules` se manda entero, así que dos escrituras seguidas sobre la
+ * misma alerta harían que la segunda pisara a la primera.
+ */
+const usosPorAlerta = (usos = []) => {
+    const mapa = new Map();
+
+    for (const uso of usos) {
+        const clave = String(uso.alerta._id);
+        if (!mapa.has(clave)) mapa.set(clave, { alerta: uso.alerta, indices: [] });
+        mapa.get(clave).indices.push(uso.indice);
+    }
+
+    return [...mapa.values()];
+};
+
 
 /** ¿Dos mapas de desplazamiento dicen lo mismo? */
 const mismoMapa = (a, b) => {
@@ -1161,32 +1241,51 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, anim
 
 
 /**
- * Una asignación: DÓNDE aplica. El punto del borde derecho es el cable a la
- * regla — se arrastra para reapuntarla, o afuera para borrarla.
+ * DÓNDE APLICA: UNA CAJA POR COMBINACIÓN DE REGLA Y ALCANCE.
+ *
+ * No es de una alerta: la comparten todas las que tengan esa misma regla con
+ * esos mismos establecimientos, y por eso le llega un cable por cada una. Dos
+ * alertas configuradas igual se ven como lo que son —la misma cosa— en vez de
+ * obligar a comparar dos listas largas para descubrirlo.
+ *
+ * Y POR ESO CADA ACCIÓN LAS TOCA A TODAS. Cambiar el alcance lo cambia en las
+ * que la comparten; la cruz la desconecta de todas. Para que una sola cambie
+ * está el chip con su nombre, que la saca a ella y le deja armar la suya.
  */
-function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagada, armando, tirandoEsta, esDestino, onTirar, onEditar, onQuitar }) {
-    const s = asignacion.scope || { mode: 'all' };
+function NodoAlcance({
+    nodo, catalogo, puedeEditar, armando, correr = 0, animar,
+    tirandoEsta, esDestino, onTirar, onEditar, onQuitar, onDesconectar,
+}) {
+
+    const s = nodo.scope || { mode: 'all' };
     const nombres = nombresDelAlcance(s, catalogo);
+    const usos = usosPorAlerta(nodo.usos);
+
+    // Gris solo si TODAS las que la usan están apagadas: mientras alguna pague,
+    // la caja está en uso.
+    const apagada = usos.length > 0 && usos.every(u => u.alerta.bonifies !== true);
 
     const titulo = s.mode === 'all' ? 'Todos los establecimientos'
         : s.mode === 'only' ? 'Solo en' : 'Todos menos';
 
     return (
-        <div data-nodo={`alcance-${alerta}-${indice}`}
-            data-tipo='alcance' data-alerta={alerta} data-indice={String(indice)}
-            className={`${CAJA} relative bg-white rounded-xl px-4 py-3.5 transition-shadow border-[1.5px]
+        <div data-nodo={`alcance-${nodo.clave}`} data-tipo='alcance' data-clave={nodo.clave}
+            style={{ transform: `translateY(${correr}px)`, ...transicionDeCaja(animar) }}
+            className={`${CAJA} mapa-anima relative bg-white rounded-xl px-4 py-3.5 border-[1.5px]
                         ${armando ? 'border-dashed' : ''}
                         ${esDestino ? 'border-[#29c50c] border-dashed shadow-md ring-2 ring-[#29c50c]/25'
                             : apagada ? `border-gray-300 ${APAGADO}`
                                 : tirandoEsta ? 'border-[#29c50c] shadow-md' : 'border-[#29c50c]/60'}`}>
-            {/* El punto por donde LLEGA el cable de la alerta, y el botón para
-                cortarlo. Arrastrar el puerto de la derecha borra la asignación
-                cuando hay una sola; con dos o más, arrastrar es el gesto para
-                reapuntar y no queda ninguno para quitar la del medio. Acá está,
-                justo donde se ve el cable que se va a cortar. */}
+
+            {/* La cruz, en el borde por donde LLEGAN los cables. Arrastrar el
+                puerto de la derecha afuera hace lo mismo, pero con dos o más
+                cajas ese gesto es el de reapuntar y no queda ninguno para
+                quitar la del medio. */}
             {puedeEditar && onQuitar && (
                 <button type='button' onClick={onQuitar}
-                    title='Quitar esta asignación — la alerta deja de bonificar acá'
+                    title={usos.length > 1
+                        ? `Quitar esta asignación de las ${usos.length} alertas que la usan`
+                        : 'Quitar esta asignación — la alerta deja de bonificar acá'}
                     className='absolute -left-2.5 top-1/2 -translate-y-1/2 w-[18px] h-[18px] rounded-full z-[3]
                                grid place-items-center border-2 bg-white text-transparent
                                border-gray-400 hover:border-red-500 hover:text-red-600
@@ -1198,11 +1297,12 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
 
             <div className='flex items-start gap-2'>
                 <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
-                {puedeEditar && (
+                {puedeEditar && onEditar && (
                     <button type='button' onClick={onEditar}
                         className='shrink-0 text-[11px] font-bold text-[#1f9a08] hover:underline'>Cambiar</button>
                 )}
             </div>
+
             {s.mode !== 'all' && (
                 <ul className='mt-1.5 flex flex-wrap gap-1'>
                     {nombres.map((n, i) => (
@@ -1211,8 +1311,33 @@ function NodoAlcance({ alerta, indice, asignacion, catalogo, puedeEditar, apagad
                 </ul>
             )}
 
-            {/* Le falta el otro cable, y decirlo evita que la caja se
-                lea como una asignación ya guardada. */}
+            {/* Quiénes la usan, solo cuando son varias. Con una sola el cable
+                ya lo dice y el chip sería ruido; con dos o más es la única
+                forma de sacar a UNA sin tocar a las otras. */}
+            {usos.length > 1 && (
+                <div className='mt-auto pt-3 flex flex-wrap gap-1 items-center'>
+                    <span className='text-[9px] font-bold uppercase tracking-wider text-gray-400'>
+                        {usos.length} alertas
+                    </span>
+                    {usos.map(({ alerta }) => (
+                        <span key={alerta._id}
+                            className='inline-flex items-center gap-1 text-[10px] font-semibold rounded
+                                       px-1.5 py-0.5 bg-[#29c50c]/10 text-[#1f9a08] max-w-[130px]'>
+                            <span className='truncate'>{alerta.es || alerta.en}</span>
+                            {puedeEditar && onDesconectar && (
+                                <button type='button' onClick={() => onDesconectar(alerta)}
+                                    title={`Desconectar «${alerta.es || alerta.en}» — las demás siguen igual`}
+                                    className='shrink-0 text-[9px] font-black text-[#1f9a08]/60 hover:text-red-600 transition-colors'>
+                                    ✕
+                                </button>
+                            )}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            {/* Le falta el otro cable, y decirlo evita que la caja se lea como
+                una asignación ya guardada. */}
             {armando && (
                 <span className='mt-auto pt-3 text-[10.5px] font-bold text-[#1f9a08]'>
                     Falta la regla — llevá el punto hasta una
