@@ -245,3 +245,96 @@ export const getScopeOptions = async () => {
         franchises: [...porMarca.values()].sort((a, b) => a.name.localeCompare(b.name)),
     };
 };
+
+
+/**
+ * EL LIBRO DE BONOS: LO BONIFICADO EN UN PERÍODO, AGRUPADO.
+ *
+ *   GET /noveltie/bonos/since=…/until=…/operador=…/local=…/agrupar=…
+ *
+ * Es la consulta que en la hoja de cálculo se hace poniendo dos fechas y un
+ * nombre en la pestaña «Resumen». Acá la cuenta la hace Mongo con una
+ * agregación: agrupar cien mil novedades en el navegador no es una opción.
+ *
+ * TODO VA EN LA RUTA, INCLUIDOS LOS FILTROS VACÍOS. La ruta declara los cinco
+ * segmentos como obligatorios, así que «sin filtrar» se dice con un `0` y no
+ * omitiendo el segmento — omitirlo da un 404, no un resultado sin filtro.
+ *
+ * QUÉ CUENTA COMO BONO. Solo las novedades con el sello `bonus.applies` en
+ * true. Un `null` es «todavía no se evaluó», que no es lo mismo que valer
+ * cero: por eso viene aparte el conteo de `selladas`, y una fila con muchas
+ * alertas y pocas selladas está incompleta, no vacía.
+ *
+ * @param {object}  opciones
+ * @param {string}  opciones.desde     AAAA-MM-DD
+ * @param {string}  opciones.hasta     AAAA-MM-DD
+ * @param {string}  [opciones.operador]  id del usuario; null = todos
+ * @param {string}  [opciones.local]     id del establecimiento; null = todos
+ * @param {string}  [opciones.agrupar]   'operador' | 'dia' | 'turno' | 'local' |
+ *                                       'alerta', o varias separadas por coma.
+ *                                       Sin nada = el detalle completo.
+ *
+ * @returns {Promise<{
+ *   rango: { desde, hasta, dias, maximoDias },
+ *   agrupadoPor: string[],
+ *   totales: { novedades, filas, bonos, selladas },
+ *   catalogos: { locales, operadores, alertas },
+ *   filas: Array<{ alertas, bonos, selladas, nombre, … }>
+ * }>}
+ *
+ * Cada fila viene con `nombre` ya resuelto contra los catálogos: el id suelto
+ * no le sirve a ninguna pantalla, y hacer el cruce acá lo escribe una vez en
+ * lugar de una por consumidor.
+ *
+ * El servidor rechaza rangos de más de 92 días (400) y agrupados de más de
+ * 400.000 novedades (413). Los dos errores traen `message` en español, así que
+ * conviene mostrarlo tal cual en vez de inventar uno.
+ */
+export const getBonusLedger = async ({
+    desde,
+    hasta,
+    operador = null,
+    local = null,
+    agrupar = 'operador',
+} = {}) => {
+
+    if (!desde || !hasta) throw new Error('El libro de bonos necesita un desde y un hasta.');
+
+    const ruta = `/noveltie/bonos`
+        + `/since=${encodeURIComponent(desde)}`
+        + `/until=${encodeURIComponent(hasta)}`
+        + `/operador=${encodeURIComponent(operador || '0')}`
+        + `/local=${encodeURIComponent(local || '0')}`
+        + `/agrupar=${encodeURIComponent(agrupar || '0')}`;
+
+    const { data } = await axiosInstance.get(ruta);
+
+    const catalogos = data?.catalogos ?? {};
+    const filas = Array.isArray(data?.filas) ? data.filas : [];
+
+    return {
+        rango: data?.rango ?? null,
+        agrupadoPor: data?.agrupadoPor ?? [],
+        totales: data?.totales ?? { novedades: 0, filas: 0, bonos: 0, selladas: 0 },
+        catalogos,
+        filas: filas.map(f => ({ ...f, nombre: nombreDeLaFila(f, catalogos) })),
+    };
+};
+
+
+/**
+ * Cómo se llama lo que representa una fila.
+ *
+ * El orden importa: una fila agrupada por operador Y local se identifica por
+ * la persona, que es de quien es el bono. Sin ninguna columna de identidad
+ * —agrupado solo por día o por turno— el nombre es ese mismo valor.
+ */
+const nombreDeLaFila = (fila, catalogos = {}) => {
+    if (fila.operador) return catalogos.operadores?.[String(fila.operador)] || 'Sin nombre';
+    if (fila.local) return catalogos.locales?.[String(fila.local)] || 'Sin nombre';
+    if (fila.alerta) {
+        const a = catalogos.alertas?.[String(fila.alerta)];
+        return a?.es || a?.en || 'Sin nombre';
+    }
+    return fila.dia || fila.turno || 'Total';
+};

@@ -121,15 +121,15 @@ export default function BonosPage() {
                         />
                     )}
 
-                    {/* Los dos hooks juntos: el panel cruza el dinero con la
-                        cobertura, y por separado ninguno de los dos responde
-                        si el sistema está bien configurado. */}
+                    {/* Solo los ajustes: el panel consulta lo bonificado al
+                        servidor y lo único que necesita de acá es con qué
+                        multiplicar los bonos para dar el monto. Las reglas y
+                        las alertas las mostraba el «Estado del sistema», que
+                        repetía lo que la pestaña de configuración ya enseña. */}
                     {pestaña === 'info' && (
                         <InfoPanel
                             ajustes={ajustesBonos.ajustes}
-                            reglas={reglasBonos.reglas || []}
-                            alertas={reglasBonos.alertas || []}
-                            cargando={ajustesBonos.cargando || reglasBonos.cargando}
+                            cargando={ajustesBonos.cargando}
                         />
                     )}
                 </div>
