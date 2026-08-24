@@ -416,6 +416,31 @@ export default function BonusMap({
         };
     }, [trazar, listo]);
 
+    /**
+     * EL ZOOM TAMPOCO SE ANIMA. Es la misma regla del resize —se anima lo que
+     * el usuario cambia de contenido, no lo que el navegador recalcula— y el
+     * zoom es un cambio de cámara, no de contenido.
+     *
+     * Sin esto, al tocar zoom las cajas saltan al instante a su geometría
+     * nueva (el `zoom` de CSS no transiciona) pero los cables reciben su `d`
+     * con la transición de un segundo activa: las flechas persiguen durante un
+     * segundo a cajas que ya llegaron. Y el zoom − lo sufre doble, porque por
+     * debajo del ~80% los mínimos de letra agrandan los títulos en layout y
+     * las cajas cambian de alto además de escala.
+     *
+     * El ref evita apagarla en el montaje: de eso ya se ocupa el arranque en
+     * `false` de `animar`.
+     */
+    const escalaAnterior = useRef(escala);
+    useEffect(() => {
+        if (escalaAnterior.current === escala) return undefined;
+        escalaAnterior.current = escala;
+
+        setAnimar(false);
+        const timer = setTimeout(() => setAnimar(true), 250);
+        return () => clearTimeout(timer);
+    }, [escala]);
+
 
     /**
      * Pone cada caja de una columna frente a los cables que le llegan.
