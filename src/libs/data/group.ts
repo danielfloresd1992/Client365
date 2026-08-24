@@ -25,7 +25,7 @@ export const arrGroup: Group[] = [
     },
     {
         name: 'Información importante',
-        key: '120363402589311344@g.us',
+        key: '584127041220-1622467264@g.us',
         ico: '/ico/ico_group/important.jpg'
     }
 ];
