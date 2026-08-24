@@ -27,9 +27,15 @@ import { useCallback, useRef, useState } from 'react';
  * lo que se mira.
  *
  *     const paneo = usePaneo();
- *     <div ref={paneo.ref} className={paneo.paneando ? 'cursor-grabbing' : 'cursor-grab'}
+ *     <div ref={paneo.ref} className={paneo.puedeDesplazar ? 'cursor-grab' : ''}
  *          onPointerDown={paneo.alApretar} onPointerMove={paneo.alMover}
  *          onPointerUp={paneo.alSoltar} onPointerCancel={paneo.alSoltar}>
+ *
+ *
+ * EL CONTENEDOR NECESITA UN ALTO ACOTADO. Con `overflow:auto` pero sin `height`
+ * ni `max-height`, el div crece hasta contener todo y `scrollHeight` termina
+ * igual a `clientHeight`: no hay nada que desplazar y el paneo no mueve nada.
+ * Quien scrollea en ese caso es la página, y eso no lo maneja este hook.
  *
  * Los tres manejadores se devuelven sueltos —y no como un objeto para
  * esparcir— porque el contenedor que los recibe suele tener los suyos: acá el
@@ -41,9 +47,43 @@ export default function usePaneo({ ignorar = NO_ARRASTRA, activo = true } = {}) 
 
     const nodo = useRef(null);
     const inicio = useRef(null);
+    const observador = useRef(null);
     const [paneando, setPaneando] = useState(false);
 
-    const ref = useCallback((n) => { nodo.current = n; }, []);
+    /**
+     * SI HAY ALGO QUE DESPLAZAR.
+     *
+     * El contenedor puede no desbordar —contenido chico, pantalla ancha, zoom
+     * alejado— y entonces no hay paneo posible. Se expone para que la mano
+     * abierta del cursor no prometa un gesto que no va a hacer nada.
+     */
+    const [puedeDesplazar, setPuedeDesplazar] = useState(false);
+
+    const revisar = useCallback(() => {
+        const el = nodo.current;
+        if (!el) return;
+        // Un píxel de tolerancia: entre el redondeo del layout y el zoom, un
+        // contenedor que entra justo se declara desbordado por nada.
+        setPuedeDesplazar(
+            el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1,
+        );
+    }, []);
+
+    // El ref monta el observador: hay que mirar las dos cosas, porque el
+    // desbordamiento cambia tanto si se achica el contenedor como si crece lo
+    // que tiene adentro —y el zoom hace lo segundo—.
+    const ref = useCallback((n) => {
+        observador.current?.disconnect();
+        observador.current = null;
+        nodo.current = n;
+        if (!n) return;
+
+        const ro = new ResizeObserver(revisar);
+        ro.observe(n);
+        if (n.firstElementChild) ro.observe(n.firstElementChild);
+        observador.current = ro;
+        revisar();
+    }, [revisar]);
 
     const alApretar = useCallback((e) => {
         const el = nodo.current;
@@ -60,8 +100,13 @@ export default function usePaneo({ ignorar = NO_ARRASTRA, activo = true } = {}) 
         if (e.clientX - r.left > el.clientWidth) return;
         if (e.clientY - r.top > el.clientHeight) return;
 
+        // Y si no hay nada que desplazar, tampoco hay gesto: el cursor no
+        // debería cerrarse en un puño para después no mover nada.
+        if (el.scrollWidth <= el.clientWidth + 1 && el.scrollHeight <= el.clientHeight + 1) return;
+
         inicio.current = { x: e.clientX, y: e.clientY, left: el.scrollLeft, top: el.scrollTop };
-        el.setPointerCapture?.(e.pointerId);
+        try { el.setPointerCapture(e.pointerId); }
+        catch { /* el puntero se soltó entre el evento y esta línea */ }
         setPaneando(true);
     }, [ignorar, activo]);
 
@@ -84,5 +129,5 @@ export default function usePaneo({ ignorar = NO_ARRASTRA, activo = true } = {}) 
         catch { /* el puntero ya se había soltado */ }
     }, []);
 
-    return { ref, paneando, alApretar, alMover, alSoltar };
+    return { ref, paneando, puedeDesplazar, alApretar, alMover, alSoltar };
 }

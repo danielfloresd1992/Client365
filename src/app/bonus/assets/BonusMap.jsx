@@ -969,10 +969,20 @@ export default function BonusMap({
                     Y dos capas, cada una con su trabajo: la de afuera
                     desplaza, la de adentro escala. Si el zoom fuera sobre la
                     que desplaza, se escalaría también su propio ancho y la
-                    tarjeta entera crecería en vez de aparecer una barra. */}
+                    tarjeta entera crecería en vez de aparecer una barra.
+
+                    EL ALTO VA ACOTADO, Y NO ES DECORATIVO: con `overflow:auto`
+                    pero sin límite, el div crece hasta contener el mapa entero
+                    y `scrollHeight` queda igual a `clientHeight` — no hay nada
+                    que desplazar, y arrastrar el fondo no mueve nada porque
+                    quien scrollea es la página. Acotado se vuelve una ventana
+                    de verdad, y de paso la barra de herramientas —el zoom,
+                    «Reacomodar»— deja de irse de pantalla en un mapa largo. */}
                 <div ref={paneo.ref}
                     className={`lienzo-punteado p-5 overflow-auto select-none
-                                ${paneo.paneando ? 'cursor-grabbing' : 'cursor-grab'}`}
+                                min-h-[360px] max-h-[72vh]
+                                ${!paneo.puedeDesplazar ? ''
+                                    : paneo.paneando ? 'cursor-grabbing' : 'cursor-grab'}`}
                     onPointerDown={paneo.alApretar}
                     onPointerMove={e => {
                         paneo.alMover(e);
