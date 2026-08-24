@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityGreen } from '@/components/ui/mono-activity-green';
 import useDvrFailures from '@/hook/useDvrFailures';
 import { efectividadDe } from '@/libs/dvr/efectividad';
+import SelectorOscuro from './SelectorOscuro';
 
 /*
  * PESTAÑA "FALLA CON DVR" del panel analítico.
@@ -311,20 +312,20 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                 SOLO de él, y el ranking se reemplaza por su efectividad. El
                 bloque de arriba no cambia: lo caído ahora se mira entero. */}
             <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-4 py-2.5 flex items-center gap-3 flex-wrap'>
-                <label htmlFor='dvr-consulta'
-                    className='text-[9.5px] font-bold uppercase tracking-wider text-gray-500'>
+                <span className='text-[9.5px] font-bold uppercase tracking-wider text-gray-500'>
                     Consulta
-                </label>
+                </span>
 
-                <select id='dvr-consulta' value={localSel} onChange={e => setLocalSel(e.target.value)}
-                    className='h-8 min-w-[230px] rounded-lg bg-[#161b22] border border-[#2b3138] px-2.5
-                               text-[12px] font-semibold text-gray-200
-                               focus:outline-none focus:border-emerald-500'>
-                    <option value=''>Todos los establecimientos</option>
-                    {locales.map(l => (
-                        <option key={l.id} value={l.id}>{l.name}</option>
-                    ))}
-                </select>
+                {/* Propio y no un <select>: la lista desplegada de un select la
+                    dibuja el sistema operativo —blanca, con el resaltado azul de
+                    Windows— y sobre este panel negro se veía rota. Además con
+                    sesenta establecimientos hace falta buscador, no rueda. */}
+                <SelectorOscuro
+                    valor={localSel}
+                    opciones={locales}
+                    textoTodos='Todos los establecimientos'
+                    onElegir={setLocalSel}
+                />
 
                 {localSel && (
                     <button type='button' onClick={() => setLocalSel('')}
