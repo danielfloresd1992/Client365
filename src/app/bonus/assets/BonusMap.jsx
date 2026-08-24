@@ -13,7 +13,7 @@ import {
     nombresDelAlcance, describirAlcance,
 } from './bonusRuleFormat';
 import SeccionDelMapa from './SeccionDelMapa.jsx';
-import { COLUMNAS, sinAchicar, Rotulo, ChipCategoria } from './mapaEstilos.jsx';
+import { COLUMNAS, ANCHO_MAPA, sinAchicar, Rotulo, ChipCategoria } from './mapaEstilos.jsx';
 
 /**
  * EL MAPA DE UNA ALERTA.
@@ -995,7 +995,15 @@ export default function BonusMap({
 
                         <Cables cables={cables} tirando={tirando} lienzo={lienzo} escala={escala} animar={animando} />
 
-                        <div className='relative z-[1] flex flex-col gap-9 min-w-[1000px]'>
+                        {/* El mapa tiene ANCHO PROPIO, no el del contenedor.
+                            Es lo que hace que el zoom se vea en horizontal: con
+                            un ancho elástico el mapa se reajusta para llenar
+                            siempre la ventana, y alejarse no achica nada — solo
+                            entra más contenido en la misma franja. Con ancho
+                            propio, alejarse lo achica de verdad y deja lienzo
+                            libre alrededor, que es donde se pueden acomodar las
+                            cajas a mano. */}
+                        <div className={`relative z-[1] flex flex-col gap-9 ${ANCHO_MAPA}`}>
 
                             {/* Los rótulos, una sola vez para todas las
                                 secciones: repetirlos en cada una serían tres

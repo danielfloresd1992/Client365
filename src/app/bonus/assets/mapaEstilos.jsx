@@ -14,9 +14,36 @@ import { iconOf } from '@/libs/alerts/categoryIcons.js';
  * La usan la fila de rótulos y cada sección. Tiene que ser la misma cadena en
  * todas: si los rótulos declararan otro reparto, dirían «Reglas» encima de la
  * columna del medio.
+ *
+ *
+ * ANCHOS FIJOS, Y ESO ES LO QUE HACE QUE EL ZOOM SE VEA.
+ *
+ * Con tracks elásticos —`minmax(210px, 1fr)`— el ancho en pantalla no cambiaba
+ * NUNCA con el zoom. `zoom: 0.5` duplica el lienzo en píxeles de layout, así
+ * que `1fr` reparte el doble de ancho, y ese doble por 0.5 da lo mismo:
+ *
+ *     al 100%   1500px de layout  →  columna de 435  →  435 en pantalla
+ *     al  50%   3000px de layout  →  columna de 911  →  456 en pantalla
+ *
+ * El alto sí encogía, porque es intrínseco: no se reparte, se escala. De ahí
+ * que alejarse achatara las cajas en vez de achicarlas.
+ *
+ * Un lienzo con zoom necesita tamaño PROPIO. Con columnas elásticas se
+ * redimensiona solo para llenar siempre el contenedor, y entonces el zoom no
+ * tiene nada que escalar en horizontal.
  */
-export const COLUMNAS = `grid gap-x-16 items-start
-                         grid-cols-[minmax(210px,1fr)_minmax(230px,1.15fr)_minmax(220px,1fr)]`;
+export const COLUMNAS = 'grid gap-x-16 items-start grid-cols-[320px_380px_320px]';
+
+/**
+ * Y el ancho del mapa, que es la suma de lo de arriba: 320 + 380 + 320 más los
+ * dos huecos de `gap-x-16` (4rem = 64px cada uno).
+ *
+ * Va explícito y no como `w-max` porque el encabezado de cada sección termina
+ * en una línea que estira hasta el borde: sin un ancho declarado, esa línea se
+ * iría hasta el final del contenedor y quedaría mucho más larga que las cajas
+ * que encabeza.
+ */
+export const ANCHO_MAPA = 'w-[1148px]';
 
 
 /**
