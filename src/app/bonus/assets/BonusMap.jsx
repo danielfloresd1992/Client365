@@ -151,6 +151,13 @@ export default function BonusMap({
     const confirmar = useConfirm();
     const escala = zoom.escala;
 
+    // Nada se coloca hasta que el zoom sea el definitivo. Al recargar con un
+    // zoom guardado, el primer render viene al 100% y recién un momento
+    // después se restaura el 50%: medir en el medio significa colocar todo
+    // dos veces —una mal y otra bien— y, si la animación ya está encendida,
+    // ver el salto entero.
+    const listo = zoom.listo;
+
     // El mismo nodo es el que se escala y el que sirve de origen para medir las
     // cajas. Un ref de función los conecta a los dos sin envolver nada de más.
     const montarLienzo = useCallback((nodo) => {
@@ -367,7 +374,7 @@ export default function BonusMap({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [puestas, alcancesUnicos, tirando, armando, porId, categoriaDe, escala, reglas, correrAlcance]);
 
-    useEffect(() => { trazar(); }, [trazar]);
+    useEffect(() => { if (listo) trazar(); }, [trazar, listo]);
 
     /**
      * Se vuelve a medir cuando el lienzo cambia de tamaño, y ESO NO SE ANIMA.
@@ -384,7 +391,7 @@ export default function BonusMap({
      */
     useEffect(() => {
         const el = lienzo.current;
-        if (!el) return undefined;
+        if (!el || !listo) return undefined;
 
         let volverAAnimar;
 
@@ -407,7 +414,7 @@ export default function BonusMap({
             removeEventListener('resize', recalcular);
             clearTimeout(volverAAnimar);
         };
-    }, [trazar]);
+    }, [trazar, listo]);
 
 
     /**
@@ -769,7 +776,7 @@ export default function BonusMap({
                                         grid-cols-[minmax(210px,1fr)_minmax(230px,1.15fr)_minmax(220px,1fr)]'>
 
                             <div className='flex flex-col gap-5'>
-                                <Rotulo>Alertas · Menu.model</Rotulo>
+                                <Rotulo escala={escala}>Alertas · Menu.model</Rotulo>
 
                                 {puestas.map(alerta => (
                                     <NodoAlerta
@@ -779,6 +786,7 @@ export default function BonusMap({
                                         apagada={alerta.bonifies !== true}
                                         sinCablear={!(alerta.bonusRules || []).length}
                                         animar={animar}
+                                        escala={escala}
                                         tirandoDeEsta={tirando?.desde === 'alerta' && tirando?.menuId === String(alerta._id)}
                                         onTirar={e => empezar(e, 'alerta', { menuId: String(alerta._id) })}
                                         onAlternar={() => alternarBonifica(alerta)}
@@ -794,7 +802,7 @@ export default function BonusMap({
                             </div>
 
                             <div className='flex flex-col gap-3'>
-                                <Rotulo>Dónde aplica</Rotulo>
+                                <Rotulo escala={escala}>Dónde aplica</Rotulo>
 
                                 {alcancesUnicos.map(nodo => (
                                     <NodoAlcance
@@ -804,6 +812,7 @@ export default function BonusMap({
                                         puedeEditar={puedeEditar}
                                         correr={correrAlcance.get(nodo.clave) || 0}
                                         animar={animar}
+                                        escala={escala}
                                         tirandoEsta={tirando?.desde === 'alcance' && tirando?.clave === nodo.clave}
                                         esDestino={tirando?.desde === 'alerta'}
                                         onTirar={e => empezar(e, 'alcance', { clave: nodo.clave })}
@@ -821,6 +830,7 @@ export default function BonusMap({
                                         catalogo={alcance}
                                         puedeEditar={puedeEditar}
                                         animar={animar}
+                                        escala={escala}
                                         armando
                                         tirandoEsta={tirando?.desde === 'alcance' && tirando?.clave === 'nueva'}
                                         onTirar={e => empezar(e, 'alcance', { clave: 'nueva' })}
@@ -839,7 +849,7 @@ export default function BonusMap({
                             </div>
 
                             <div className='flex flex-col gap-3'>
-                                <Rotulo>Reglas de bonificación</Rotulo>
+                                <Rotulo escala={escala}>Reglas de bonificación</Rotulo>
 
                                 {/* Asignar se hace desde acá, que es donde están
                                     las reglas. Como esta columna la comparten
@@ -858,6 +868,7 @@ export default function BonusMap({
                                     <NodoRegla key={r._id} regla={r} puedeEditar={puedeEditar}
                                         correr={correr.get(String(r._id)) || 0}
                                         animar={animar}
+                                        escala={escala}
                                         categoria={categoriaDe.get(r.bonusCategory) || null}
                                         conectada={alcancesUnicos.some(n => n.rule === String(r._id))}
                                         onEditar={() => onEditarRegla(r)} />
@@ -927,6 +938,34 @@ export default function BonusMap({
  * alturas distintas y el mapa dejaría de leerse como una fila.
  */
 const CAJA = 'min-h-[190px] flex flex-col';
+
+
+/**
+ * EL TEXTO QUE NO SE ACHICA CON EL ZOOM.
+ *
+ * La propiedad `zoom` escala TODO por igual, así que al 50% un título de
+ * 13,5px se dibuja a 6,75 y el mapa se vuelve un diagrama de cajas sin
+ * nombres — que es justo lo contrario de para qué se aleja: alejarse es para
+ * ver el conjunto, y el conjunto son los nombres.
+ *
+ * Estos textos declaran un MÍNIMO EN PANTALLA y se agrandan en el layout lo
+ * necesario para sostenerlo:
+ *
+ *     al 100%   13,5px de layout  →  13,5px en pantalla
+ *     al  50%   22px de layout    →  11px en pantalla   (el mínimo)
+ *     al 150%   13,5px de layout  →  20px en pantalla   (crece normal)
+ *
+ * Solo se compensa lo que identifica una caja —su nombre— y los rótulos de
+ * las columnas. Las listas de establecimientos y los detalles se achican como
+ * todo lo demás: alejado no se leen, y no tienen por qué.
+ *
+ * @param base    el tamaño en píxeles de layout, al 100%
+ * @param escala  el zoom actual
+ * @param minimo  cuánto no puede bajar EN PANTALLA
+ */
+const sinAchicar = (base, escala = 1, minimo = 11) => ({
+    fontSize: `${Math.max(base, minimo / (escala || 1))}px`,
+});
 
 /**
  * Los colores de los cables. Cada cable toma el de la caja a la que APUNTA: el
@@ -1010,8 +1049,11 @@ const Marco = ({ children }) => (
     <section className='bg-white rounded-xl shadow-sm border overflow-hidden'>{children}</section>
 );
 
-const Rotulo = ({ children }) => (
-    <span className='text-[10px] font-bold uppercase tracking-wider text-gray-500'>{children}</span>
+const Rotulo = ({ children, escala }) => (
+    <span style={sinAchicar(10, escala, 10)}
+        className='font-bold uppercase tracking-wider text-gray-500'>
+        {children}
+    </span>
 );
 
 
@@ -1191,7 +1233,7 @@ function Interruptor({ valor, editable, onAlternar }) {
 
 
 /** La alerta que se está mapeando. Su puerto abre una asignación nueva. */
-function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, animar, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
+function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, animar, escala, tirandoDeEsta, onTirar, onAlternar, onSacar }) {
     const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
 
     return (
@@ -1204,7 +1246,10 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, anim
                 no se vería con qué volver a encenderla. */}
             <div className={apagada ? APAGADO : ''}>
                 <div className='flex items-start gap-2'>
-                    <span className='flex-1 text-[13.5px] font-bold text-gray-800 leading-tight'>{alerta?.es || alerta?.en}</span>
+                    <span style={sinAchicar(13.5, escala)}
+                        className='flex-1 font-bold text-gray-800 leading-tight'>
+                        {alerta?.es || alerta?.en}
+                    </span>
                     {puedeEditar && sinCablear && (
                         <button type='button' onClick={onSacar} title='Sacar del mapa: la deja sin decidir'
                             className='shrink-0 text-[11px] font-bold text-gray-400 hover:text-gray-700 transition-colors'>✕</button>
@@ -1253,7 +1298,7 @@ function NodoAlerta({ alerta, puedeEditar, apagada, sinCablear, correr = 0, anim
  * está el chip con su nombre, que la saca a ella y le deja armar la suya.
  */
 function NodoAlcance({
-    nodo, catalogo, puedeEditar, armando, correr = 0, animar,
+    nodo, catalogo, puedeEditar, armando, correr = 0, animar, escala,
     tirandoEsta, esDestino, onTirar, onEditar, onQuitar, onDesconectar,
 }) {
 
@@ -1296,7 +1341,10 @@ function NodoAlcance({
             )}
 
             <div className='flex items-start gap-2'>
-                <span className='flex-1 text-[12.5px] font-bold text-gray-800 leading-tight'>{titulo}</span>
+                <span style={sinAchicar(12.5, escala)}
+                    className='flex-1 font-bold text-gray-800 leading-tight'>
+                    {titulo}
+                </span>
                 {puedeEditar && onEditar && (
                     <button type='button' onClick={onEditar}
                         className='shrink-0 text-[11px] font-bold text-[#1f9a08] hover:underline'>Cambiar</button>
@@ -1356,7 +1404,7 @@ function NodoAlcance({
 
 
 /** Una regla: destino de cables. Se ilumina si esta alerta la usa. */
-function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, animar, onEditar }) {
+function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, animar, escala, onEditar }) {
     const dia = bonusPerAlert(regla, 'day');
     const noche = bonusPerAlert(regla, 'night');
     const inactiva = regla.active === false;
@@ -1368,7 +1416,10 @@ function NodoRegla({ regla, categoria, conectada, puedeEditar, correr = 0, anima
                         ${conectada ? 'bg-[#fdf6e7] border-[#d9a441]' : 'bg-white border-gray-200'}
                         ${inactiva ? 'opacity-60' : ''}`}>
             <div className='flex items-start gap-2'>
-                <span className='flex-1 text-[13px] font-black text-slate-900 leading-tight'>{regla.name}</span>
+                <span style={sinAchicar(13, escala)}
+                    className='flex-1 font-black text-slate-900 leading-tight'>
+                    {regla.name}
+                </span>
                 {puedeEditar && (
                     <button type='button' onClick={onEditar}
                         className='shrink-0 text-[11px] font-bold text-[#8a5a2b] hover:underline'>Editar</button>

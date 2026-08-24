@@ -8,6 +8,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
  * moverlo. El hook no dibuja nada: quién muestra los botones, dónde y con qué
  * estilos lo decide quien lo usa.
  *
+ * También devuelve `listo`, en `false` hasta que se restaura el zoom guardado.
+ * Quien mida el layout tiene que esperarlo: medir antes es medir con el zoom
+ * equivocado.
+ *
  *     const zoom = useZoom({ nombre: 'mapa-de-bonificacion' });
  *
  *     <ControlesDeZoom zoom={zoom} className='ml-auto' />
@@ -69,11 +73,21 @@ export default function useZoom({
     const [escala, setEscala] = useState(() => acotar(inicial));
     const restaurado = useRef(false);
 
+    // `listo` avisa que el zoom ya es el definitivo. Importa para quien mida
+    // el layout: entre el primer render y la restauración hay un momento con
+    // el zoom en su valor inicial, y colocar cosas ahí significa colocarlas
+    // dos veces —una mal y otra bien— con el salto a la vista.
+    //
+    // Sin nombre no hay nada que restaurar, así que arranca listo.
+    const [listo, setListo] = useState(!nombre);
+
     useEffect(() => {
         if (restaurado.current || !nombre) return;
         restaurado.current = true;
+
         const guardado = leer(nombre);
         if (guardado !== null) setEscala(acotar(guardado));
+        setListo(true);
     }, [nombre, acotar]);
 
     useEffect(() => {
@@ -97,13 +111,14 @@ export default function useZoom({
     return useMemo(() => ({
         ref,
         escala,
+        listo,
         porcentaje: Math.round(escala * 100),
         acercar,
         alejar,
         restablecer,
         puedeAcercar: escala < max,
         puedeAlejar: escala > min,
-    }), [escala, acercar, alejar, restablecer, min, max]);
+    }), [escala, listo, acercar, alejar, restablecer, min, max]);
 }
 
 
