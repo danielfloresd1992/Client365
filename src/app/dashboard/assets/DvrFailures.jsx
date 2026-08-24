@@ -2,6 +2,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityGreen } from '@/components/ui/mono-activity-green';
 import useDvrFailures from '@/hook/useDvrFailures';
+import { efectividadDe } from '@/libs/dvr/efectividad';
 
 /*
  * PESTAÑA "FALLA CON DVR" del panel analítico.
@@ -83,9 +84,109 @@ const textoDelDia = (dia) => {
 };
 
 
-export default function DvrFailures() {
+/**
+ * Horas de monitoreo del horario contra horas perdidas por caídas.
+ *
+ * La cuenta vive en libs/dvr/efectividad y su detalle importa: lo que se
+ * compara contra lo programado es el tiempo caído DENTRO de las ventanas de
+ * monitoreo — un local que se cae de madrugada sin monitoreo nocturno no
+ * perdió nada. El total de reloj corrido se muestra aparte, como contexto.
+ */
+function Efectividad({ nombre, datos, etiqueta }) {
 
-    const { active, stats, history, loading, days } = useDvrFailures();
+    const horas = (min) => formatDowntime(min) || '0 min';
+
+    if (datos.sinHorario) {
+        return (
+            <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
+                <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
+                    <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Efectividad</h3>
+                    <span className='text-[9.5px] text-gray-400 truncate'>{nombre}</span>
+                </header>
+                <div className='px-4 py-6 text-center'>
+                    <p className='text-[11px] text-gray-500'>
+                        Este establecimiento no tiene horario de monitoreo cargado, así que no hay
+                        contra qué comparar las caídas.
+                    </p>
+                    {datos.perdidosTotales > 0 && (
+                        <p className='text-[10.5px] text-gray-400 mt-2'>
+                            En el período estuvo <b className='text-gray-600'>{horas(datos.perdidosTotales)}</b> sin
+                            cámaras, en {datos.episodios} episodio{datos.episodios === 1 ? '' : 's'}.
+                        </p>
+                    )}
+                </div>
+            </div>
+        );
+    }
+
+    const porcentaje = Math.round(datos.efectividad * 1000) / 10;
+    const color = porcentaje >= 99 ? 'text-emerald-600'
+        : porcentaje >= 95 ? 'text-amber-600' : 'text-red-600';
+    const barra = porcentaje >= 99 ? 'bg-emerald-500'
+        : porcentaje >= 95 ? 'bg-amber-500' : 'bg-red-500';
+
+    return (
+        <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
+            <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
+                <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Efectividad</h3>
+                <span className='text-[9.5px] text-gray-400 truncate'>{nombre} · {etiqueta}</span>
+            </header>
+
+            <div className='px-4 py-3 flex items-center gap-4'>
+                <span className={`text-[30px] font-black tabular-nums leading-none ${color}`}>
+                    {porcentaje}%
+                </span>
+
+                <div className='flex-1 min-w-0'>
+                    <span className='relative block h-[9px] rounded-full bg-gray-100 overflow-hidden'>
+                        <span className={`absolute inset-y-0 left-0 rounded-full ${barra}`}
+                            style={{ width: `${porcentaje}%` }} />
+                    </span>
+                    <span className='block mt-1 text-[9.5px] text-gray-400'>
+                        del tiempo de monitoreo programado, con cámaras
+                    </span>
+                </div>
+            </div>
+
+            <dl className='px-4 pb-3 space-y-1'>
+                <Renglon etiqueta='Monitoreo programado (estimado)' valor={horas(datos.programados)} />
+                <Renglon etiqueta='Perdido por caídas, dentro del horario' valor={horas(datos.perdidosEnVentana)}
+                    resaltado={datos.perdidosEnVentana > 0} />
+                <Renglon etiqueta='Sin cámaras en total (reloj corrido)' valor={horas(datos.perdidosTotales)} />
+                <Renglon etiqueta='Episodios' valor={String(datos.episodios)} />
+            </dl>
+
+            <p className='px-4 pb-3 text-[9px] leading-relaxed text-gray-400'>
+                Estimado con el horario vigente aplicado a todo el período. Solo cuenta como perdido
+                lo caído dentro de las ventanas de monitoreo: una caída de madrugada sin monitoreo
+                nocturno no resta.
+            </p>
+        </div>
+    );
+}
+
+
+function Renglon({ etiqueta, valor, resaltado }) {
+    return (
+        <div className='flex items-baseline justify-between gap-3'>
+            <dt className='text-[10.5px] text-gray-500'>{etiqueta}</dt>
+            <dd className={`text-[11px] font-bold tabular-nums ${resaltado ? 'text-red-600' : 'text-gray-700'}`}>
+                {valor}
+            </dd>
+        </div>
+    );
+}
+
+
+export default function DvrFailures({ locales = [], schedules = [], isWinter = false }) {
+
+    // '' = todos. Con un local elegido, la estadística y el historial vienen
+    // acotados a él desde el servidor; lo caído AHORA sigue siendo global.
+    const [localSel, setLocalSel] = useState('');
+
+    const { active, stats, history, loading, days } = useDvrFailures({ local: localSel || null });
+
+    const nombreSel = locales.find(l => l.id === localSel)?.name ?? null;
 
     // Cuántos días acabó mostrando el mapa. No se sabe hasta medir el panel: la
     // rejilla estira el rango hacia atrás hasta llenar el ancho, así que en una
@@ -120,6 +221,21 @@ export default function DvrFailures() {
     );
 
     const hayCaidos = caidos.length > 0;
+
+    // La comparación horario ↔ caídas del local elegido. Los episodios ya
+    // vienen filtrados por el hook; el horario sale de lo que la página ya
+    // tenía cargado, así que no cuesta ninguna consulta nueva.
+    // Depende de `history` y no de `episodios`: el `?? []` de arriba fabrica un
+    // arreglo nuevo en cada render y el memo no memorizaría nada.
+    const efectividad = useMemo(() => {
+        if (!localSel) return null;
+        return efectividadDe({
+            episodios: history?.failures ?? [],
+            schedule: schedules.find(s => String(s.idLocal) === localSel) ?? null,
+            isWinter,
+            dias: days,
+        });
+    }, [localSel, history, schedules, isWinter, days]);
 
     // "6 meses" se lee mejor que "182 días" cuando el rango es largo.
     const etiquetaDelRango = days >= 60
@@ -190,6 +306,35 @@ export default function DvrFailures() {
             </div>
 
 
+            {/* ── La consulta: global o de un establecimiento ──────────
+                Con un local elegido, el mapa y las tarjetas de abajo hablan
+                SOLO de él, y el ranking se reemplaza por su efectividad. El
+                bloque de arriba no cambia: lo caído ahora se mira entero. */}
+            <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-4 py-2.5 flex items-center gap-3 flex-wrap'>
+                <label htmlFor='dvr-consulta'
+                    className='text-[9.5px] font-bold uppercase tracking-wider text-gray-500'>
+                    Consulta
+                </label>
+
+                <select id='dvr-consulta' value={localSel} onChange={e => setLocalSel(e.target.value)}
+                    className='h-8 min-w-[230px] rounded-lg bg-[#161b22] border border-[#2b3138] px-2.5
+                               text-[12px] font-semibold text-gray-200
+                               focus:outline-none focus:border-emerald-500'>
+                    <option value=''>Todos los establecimientos</option>
+                    {locales.map(l => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                    ))}
+                </select>
+
+                {localSel && (
+                    <button type='button' onClick={() => setLocalSel('')}
+                        className='text-[10.5px] font-bold text-gray-400 hover:text-white transition-colors'>
+                        ✕ volver a todos
+                    </button>
+                )}
+            </div>
+
+
             {/* ── 2. El último mes ─────────────────────────────────────── */}
             <div className='rounded-xl border border-gray-200 bg-[#0d1117] p-4'>
                 <ActivityGreen
@@ -201,16 +346,19 @@ export default function DvrFailures() {
                        datos y no por falta de caídas. */
                     maxDays={days}
                     onRangeChange={alCambiarElRango}
-                    title={`Caídas de DVR · ${diasEnElMapa ? `últimos ${diasEnElMapa} días` : 'último mes'}`}
+                    title={`Caídas de DVR${nombreSel ? ` · ${nombreSel}` : ''} · ${diasEnElMapa ? `últimos ${diasEnElMapa} días` : 'último mes'}`}
                     unitLabel='caídas'
                     tooltip={textoDelDia}
                 />
             </div>
 
 
-            {/* ── 3. Quién se cae más ──────────────────────────────────── */}
+            {/* ── 3. Quién se cae más — o la efectividad del elegido ───── */}
             <div className='grid grid-cols-1 lg:grid-cols-2 gap-4'>
 
+                {efectividad ? (
+                    <Efectividad nombre={nombreSel} datos={efectividad} etiqueta={etiquetaDelRango} />
+                ) : (
                 <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
                     <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Se caen más</h3>
@@ -260,6 +408,7 @@ export default function DvrFailures() {
                         </ul>
                     )}
                 </div>
+                )}
 
 
                 <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>

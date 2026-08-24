@@ -90,6 +90,15 @@ export default function Dashboard() {
         [schedules, clients, isWinter, opDate, minuteNowAxis, liveByLocal, silentByLocal, exemptByLocal, dayCounts],
     );
 
+    // Para el selector de la pestaña de DVR: todos los locales con horario de
+    // monitoreo, sin importar en qué estado estén ahora.
+    const localesDeMonitoreo = useMemo(() => {
+        const todos = [...scheduleGroups.live, ...scheduleGroups.upcoming, ...scheduleGroups.done];
+        return todos
+            .map(l => ({ id: String(l.id), name: l.name }))
+            .sort((a, b) => a.name.localeCompare(b.name, 'es'));
+    }, [scheduleGroups]);
+
     // Formato analógico 12 h con segundos, sin espacio: "00:09:23AM" (la hora
     // 00 = medianoche/mediodía, tal cual el visor mecánico)
     const clockLabel = now
@@ -197,7 +206,7 @@ export default function Dashboard() {
                             día solo sabe quién está caído AHORA — para el
                             historial hace falta la colección. */}
                         {centralTab === 'dvr' && (
-                        <DvrFailures />
+                        <DvrFailures locales={localesDeMonitoreo} schedules={schedules} isWinter={isWinter} />
                         )}
                         </div>
                 </div>

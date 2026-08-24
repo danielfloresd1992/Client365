@@ -10,7 +10,9 @@ import {
 /**
  * Caídas de DVR: las de AHORA en vivo, y el historial hacia atrás.
  *
- * @param {{ days?: number, limit?: number }} [opciones]
+ * @param {{ days?: number, limit?: number, local?: string|null }} [opciones]
+ *        `local` acota la estadística y el historial a UN establecimiento;
+ *        `active` sigue siendo global — lo caído AHORA se mira entero.
  *        `days` cuántos días hacia atrás se piden (default 371 = 53 semanas).
  *        Es el mismo tope que el del mapa: pedir menos de lo que la rejilla
  *        puede llegar a pintar dejaría meses en cero por falta de datos, no
@@ -43,7 +45,7 @@ import {
  * responder, así que sin volver a preguntar se congelaría. Por eso hay un
  * refresco periódico de `active` aunque no llegue ningún evento.
  */
-export default function useDvrFailures({ days = 371, limit = 200 } = {}) {
+export default function useDvrFailures({ days = 371, limit = 200, local = null } = {}) {
 
     const [active, setActive] = useState(null);
     const [stats, setStats] = useState(null);
@@ -75,9 +77,10 @@ export default function useDvrFailures({ days = 371, limit = 200 } = {}) {
 
     const cargarHistorial = useCallback(() => {
         const { from, to } = rango();
+        const filtro = local ? { local } : {};
         return Promise.all([
-            getDvrFailureStats({ from, to }),
-            getDvrFailureHistory({ from, to, limit }),
+            getDvrFailureStats({ from, to, ...filtro }),
+            getDvrFailureHistory({ from, to, limit, ...filtro }),
         ])
             .then(([estadistica, historial]) => {
                 setStats(estadistica);
@@ -88,7 +91,7 @@ export default function useDvrFailures({ days = 371, limit = 200 } = {}) {
                 setStats({ totals: null, byLocal: [], byDay: [] });
                 setHistory({ failures: [], total: 0 });
             });
-    }, [rango, limit]);
+    }, [rango, limit, local]);
 
     const reload = useCallback(() => {
         setLoading(true);
