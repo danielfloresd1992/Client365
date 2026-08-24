@@ -96,7 +96,7 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
                         />
                     </div>
 
-                    <ul role='listbox' className='max-h-64 overflow-y-auto p-1'>
+                    <ul role='listbox' className='max-h-64 overflow-y-auto scroll-oscuro p-1'>
 
                         {/* "Todos" siempre primero y fuera del filtro: es la
                             salida, y una búsqueda sin resultados no debería
@@ -131,8 +131,8 @@ function Opcion({ activa, onClick, children }) {
                 className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-md
                             text-[12.5px] font-semibold transition-colors
                             ${activa
-                                ? 'bg-emerald-500/20 text-emerald-300 font-bold'
-                                : 'text-gray-100 hover:bg-white/10'}`}>
+                                ? 'bg-emerald-500/25 text-emerald-100 font-bold'
+                                : 'text-white hover:bg-white/10'}`}>
                 <span className='flex-1 min-w-0 truncate'>{children}</span>
                 {activa && (
                     <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3'

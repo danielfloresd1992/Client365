@@ -8095,6 +8095,54 @@ tfoot {
         .mapa-anima { transition: none !important; }
     }
 
+    /* ========================================================================
+       BARRA DE DESPLAZAMIENTO PARA PANELES OSCUROS
+       ========================================================================
+       La del sistema es clara y ancha: sobre un panel negro aparece como una
+       franja gris que parte la lista al medio y no se parece a nada más de la
+       aplicación.
+
+       Van las dos formas. `scrollbar-color` es la estándar —Firefox de
+       siempre, Chrome desde la 121— y `::-webkit-scrollbar` cubre el resto,
+       incluido el WebView de Cordova. Donde no haya ninguna, se ve la del
+       sistema: fea, pero funciona.
+
+       El pulgar se aclara al pasar el mouse, que es la única señal de que se
+       puede arrastrar. */
+    .scroll-oscuro {
+        scrollbar-width: thin;
+        scrollbar-color: #3d444d transparent;
+    }
+
+    .scroll-oscuro::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .scroll-oscuro::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scroll-oscuro::-webkit-scrollbar-thumb {
+        background-color: #3d444d;
+        border-radius: 999px;
+
+        /* El borde transparente deja aire a los lados sin achicar el área que
+           se puede agarrar: el pulgar se ve fino y se toma igual de fácil. */
+        border: 2px solid transparent;
+        background-clip: content-box;
+    }
+
+    .scroll-oscuro:hover::-webkit-scrollbar-thumb {
+        background-color: #565e68;
+    }
+
+    /* Las esquinas, donde se cruzan las dos barras. Sin esto queda un cuadrito
+       blanco del sistema. */
+    .scroll-oscuro::-webkit-scrollbar-corner {
+        background: transparent;
+    }
+
     .lienzo-punteado {
         background-color: #f6f7f9;
         background-image: radial-gradient(circle, #aab4c4 1px, transparent 1px);
