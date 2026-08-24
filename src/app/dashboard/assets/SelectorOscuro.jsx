@@ -71,7 +71,7 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
                            flex items-center gap-2 text-[12.5px] font-bold text-white
                            hover:border-[#3d444d] transition-colors
                            focus:outline-none focus-visible:border-emerald-500'>
-                <span className='flex-1 min-w-0 truncate text-left'>{nombreActual}</span>
+                <span className='flex-1 min-w-0 truncate text-left text-white'>{nombreActual}</span>
                 <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2.5'
                     strokeLinecap='round' strokeLinejoin='round'
                     className={`w-3 h-3 shrink-0 text-gray-500 transition-transform ${abierto ? 'rotate-180' : ''}`}>
@@ -91,7 +91,7 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
                             onChange={e => setBusqueda(e.target.value)}
                             placeholder='Buscar establecimiento…'
                             className='w-full h-8 px-2.5 rounded-md bg-[#0d1117] border border-[#2b3138]
-                                       text-[12.5px] text-white placeholder:text-gray-500
+                                       text-[12.5px] text-white placeholder:text-gray-400
                                        focus:outline-none focus:border-emerald-500'
                         />
                     </div>
@@ -112,7 +112,7 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
                         ))}
 
                         {visibles.length === 0 && (
-                            <li className='px-2.5 py-4 text-center text-[11px] text-gray-600'>
+                            <li className='px-2.5 py-4 text-center text-[11px] text-gray-400'>
                                 Ninguno coincide.
                             </li>
                         )}
@@ -129,14 +129,24 @@ function Opcion({ activa, onClick, children }) {
         <li role='option' aria-selected={activa}>
             <button type='button' onClick={onClick}
                 className={`w-full text-left flex items-center gap-2 px-2.5 py-1.5 rounded-md
-                            text-[12.5px] font-semibold transition-colors
-                            ${activa
-                                ? 'bg-emerald-500/25 text-emerald-100 font-bold'
-                                : 'text-white hover:bg-white/10'}`}>
-                <span className='flex-1 min-w-0 truncate'>{children}</span>
+                            text-[12.5px] transition-colors
+                            ${activa ? 'bg-emerald-500/25' : 'hover:bg-white/10'}`}>
+
+                {/* EL COLOR VA EN EL SPAN, NO EN EL BOTÓN.
+                    styles.css pinta `span { color: var(--app-text) }` sin capa
+                    y sin clase, y un color aplicado DIRECTO le gana siempre a
+                    uno heredado — la especificidad ni siquiera entra en la
+                    cuenta. Puesto en el botón, el span lo pisaba y cada opción
+                    salía en #3c4350 sobre el #161b22 del panel. */}
+                <span className={`flex-1 min-w-0 truncate font-semibold
+                                  ${activa ? 'text-emerald-100 font-bold' : 'text-white'}`}>
+                    {children}
+                </span>
+
                 {activa && (
                     <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='3'
-                        strokeLinecap='round' strokeLinejoin='round' className='w-3 h-3 shrink-0'>
+                        strokeLinecap='round' strokeLinejoin='round'
+                        className='w-3 h-3 shrink-0 text-emerald-100'>
                         <path d='m5 13 4 4L19 7' />
                     </svg>
                 )}
