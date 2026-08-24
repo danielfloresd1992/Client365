@@ -160,10 +160,19 @@ export default function BonusMap({
 
     // El mismo nodo es el que se escala y el que sirve de origen para medir las
     // cajas. Un ref de función los conecta a los dos sin envolver nada de más.
+    // Desestructurado porque es lo único estable del hook: el objeto `zoom`
+    // cambia con cada escala, y depender de él recrearía este callback —y React
+    // desmonta y remonta un callback ref que cambia— en cada toque de zoom.
+    const refDeZoom = zoom.ref;
+
     const montarLienzo = useCallback((nodo) => {
         lienzo.current = nodo;
-        zoom.ref.current = nodo;
-    }, [zoom.ref]);
+        // Se LLAMA, no se le asigna `.current`: el ref del zoom es una función
+        // que aplica la escala en cuanto el nodo existe. Importa cuando el
+        // lienzo monta tarde, detrás del "cargando": con un ref objeto el zoom
+        // guardado quedaba sin aplicar y toda la colocación salía al doble.
+        refDeZoom(nodo);
+    }, [refDeZoom]);
 
     const porId = useMemo(() => new Map((reglas || []).map(r => [String(r._id), r])), [reglas]);
 

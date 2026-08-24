@@ -4,9 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 /**
  * ZOOM SOBRE UN ELEMENTO, RECORDADO ENTRE SESIONES.
  *
- * Devuelve un `ref` que se le pone al elemento a escalar y los controles para
- * moverlo. El hook no dibuja nada: quién muestra los botones, dónde y con qué
- * estilos lo decide quien lo usa.
+ * Devuelve un `ref` —una FUNCIÓN, se usa igual: `<div ref={zoom.ref}>`— que
+ * se le pone al elemento a escalar, y los controles para moverlo. El hook no
+ * dibuja nada: quién muestra los botones, dónde y con qué estilos lo decide
+ * quien lo usa.
+ *
+ * Es un callback y no un ref objeto a propósito: aplica el zoom en cuanto el
+ * nodo monta, aunque monte tarde —detrás de un estado de carga—. Quien
+ * combine este ref con otro propio tiene que LLAMARLO (`zoom.ref(nodo)`), no
+ * asignarle `.current`.
  *
  * También devuelve `listo`, en `false` hasta que se restaura el zoom guardado.
  * Quien mida el layout tiene que esperarlo: medir antes es medir con el zoom
@@ -58,7 +64,7 @@ export default function useZoom({
     inicial = 1,
 } = {}) {
 
-    const ref = useRef(null);
+    const nodoRef = useRef(null);
 
     // Dos decimales: sumar 0,1 diez veces da 0,9999999999999999, y ese número
     // termina escrito en localStorage y mostrado como 99%.
@@ -94,14 +100,32 @@ export default function useZoom({
         if (nombre && restaurado.current) guardar(nombre, escala);
     }, [nombre, escala]);
 
-    // El zoom se escribe sobre el nodo en vez de devolverse como estilo: así
-    // el elemento no depende de que quien lo use se acuerde de aplicarlo, que
-    // es justo lo que el ref viene a resolver.
+    // La escala también en un ref, para que el callback de abajo lea siempre
+    // la vigente sin tener que recrearse (recrearlo desmontaría y remontaría
+    // el nodo en cada cambio de zoom).
+    const escalaRef = useRef(escala);
+    escalaRef.current = escala;
+
+    // EL REF ES UNA FUNCIÓN, Y APLICA EL ZOOM AL MONTAR. No alcanza con un
+    // efecto que dependa de `escala`: el nodo puede montarse DESPUÉS de que el
+    // zoom guardado se restauró —mientras cargan los datos, la pantalla suele
+    // mostrar un "cargando" y el elemento no existe—. Con un ref objeto, el
+    // efecto corría contra `null`, no volvía a intentarlo, y el contenido
+    // quedaba al 100% visual mientras todo lo que medía dividía por la escala
+    // guardada: la colocación entera salía al doble hasta el próximo cambio
+    // de zoom.
+    //
+    // El callback corre en el commit, ANTES de los efectos de quien lo usa:
+    // cualquier medición posterior ya ve el nodo escalado.
+    const ref = useCallback((nodo) => {
+        nodoRef.current = nodo;
+        if (nodo) nodo.style.zoom = String(escalaRef.current);
+    }, []);
+
+    // Y los cambios de escala con el nodo ya montado los sigue este efecto.
     useEffect(() => {
-        const nodo = ref.current;
-        if (!nodo) return undefined;
-        nodo.style.zoom = String(escala);
-        return () => { nodo.style.zoom = ''; };
+        const nodo = nodoRef.current;
+        if (nodo) nodo.style.zoom = String(escala);
     }, [escala]);
 
     const acercar = useCallback(() => setEscala(e => acotar(e + paso)), [acotar, paso]);
@@ -118,7 +142,7 @@ export default function useZoom({
         restablecer,
         puedeAcercar: escala < max,
         puedeAlejar: escala > min,
-    }), [escala, listo, acercar, alejar, restablecer, min, max]);
+    }), [ref, escala, listo, acercar, alejar, restablecer, min, max]);
 }
 
 
