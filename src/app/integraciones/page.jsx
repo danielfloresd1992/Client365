@@ -261,7 +261,23 @@ function SecretoRecienCreado({ llave, onDescartar }) {
 }
 
 
-/** La lista. Sin secretos: solo lo que hace falta para decidir cuál apagar. */
+/**
+ * La lista. Sin secretos: solo lo que hace falta para decidir cuál apagar.
+ *
+ * Tres decisiones que la separan de una tabla corriente:
+ *
+ *   1. QUIÉN LA CREÓ Y CUÁNDO SE USÓ bajan a una segunda línea bajo el nombre.
+ *      Eran dos columnas que casi siempre repetían el mismo nombre y dejaban la
+ *      tabla llena de aire; juntas ocupan menos y se leen mejor.
+ *
+ *   2. EL ESTADO ES UN PUNTO DE COLOR, no una palabra en una celda. Se lee sin
+ *      leer, que es lo que uno quiere al abrir esta pantalla: ¿hay algo raro?
+ *
+ *   3. LA PAPELERA SOLO SE TIÑE en la fila donde está el cursor. Una columna de
+ *      botones rojos grita desde todas las filas y acaba ignorándose.
+ *
+ * La barra de arriba contesta «¿está todo bien?» antes de la primera fila.
+ */
 function TablaDeLlaves({ llaves, cargando, guardando, confirmando, onPedirConfirmacion, onRevocar }) {
 
     if (cargando) {
@@ -286,99 +302,112 @@ function TablaDeLlaves({ llaves, cargando, guardando, confirmando, onPedirConfir
         );
     }
 
+    const activas = llaves.filter(l => estadoDeLlave(l) === 'activa').length;
+    const sinUsar = llaves.filter(l => estadoDeLlave(l) === 'sin-usar').length;
+    const apagadas = llaves.length - activas - sinUsar;
+
     return (
-        <div className='overflow-hidden rounded-xl border border-gray-200'>
+        <div className='overflow-hidden rounded-xl border border-gray-200 shadow-sm'>
+
+            {/* Contesta «¿está todo bien?» antes de leer una sola fila */}
+            <div className='flex items-center gap-2 px-4 py-2.5 border-b border-gray-200 bg-slate-50'>
+                <span className='text-xs font-semibold text-slate-900'>
+                    {llaves.length} {llaves.length === 1 ? 'llave' : 'llaves'}
+                </span>
+                {activas > 0 && <><Punto /><span className='text-xs text-slate-600'>{activas} {activas === 1 ? 'activa' : 'activas'}</span></>}
+                {sinUsar > 0 && <><Punto /><span className='text-xs font-medium text-amber-700'>{sinUsar} sin usar</span></>}
+                {apagadas > 0 && <><Punto /><span className='text-xs text-slate-400'>{apagadas} {apagadas === 1 ? 'apagada' : 'apagadas'}</span></>}
+            </div>
+
             <div className='overflow-x-auto'>
                 <table className='w-full text-sm'>
                     <thead className='bg-slate-50 border-b border-gray-200'>
-                        <tr className='text-[11px] uppercase tracking-wider text-slate-500'>
-                            <th className='text-center font-semibold px-4 py-2.5'>Nombre</th>
-                            <th className='text-center font-semibold px-4 py-2.5'>Identificador</th>
-                            <th className='text-center font-semibold px-4 py-2.5'>Creada por</th>
-                            <th className='text-center font-semibold px-4 py-2.5'>Último uso</th>
-                            <th className='text-center font-semibold px-4 py-2.5'>Usos</th>
-                            <th className='px-4 py-2.5'></th>
+                        <tr className='text-[10.5px] uppercase tracking-[0.08em] text-slate-500'>
+                            <th className='text-left font-bold px-4 py-2.5'>Integración</th>
+                            <th className='text-left font-bold px-4 py-2.5'>Identificador</th>
+                            <th className='text-left font-bold px-4 py-2.5'>Estado</th>
+                            <th className='text-right font-bold px-4 py-2.5'>Usos</th>
+                            <th className='w-12'></th>
                         </tr>
                     </thead>
-                    <tbody className='divide-y divide-gray-100'>
+                    <tbody className='divide-y divide-slate-100'>
                         {llaves.map(llave => {
-                            const caducada = llave.expiresAt && new Date(llave.expiresAt).getTime() <= Date.now();
-                            const apagada = !llave.active || caducada;
+                            const estado = estadoDeLlave(llave);
+                            const apagada = estado === 'caducada' || estado === 'revocada';
 
                             return (
-                                <tr key={llave._id} className='hover:bg-slate-50/70 transition-colors'>
+                                <tr key={llave._id} className='group hover:bg-slate-50/70 transition-colors'>
 
-                                    <td className='px-4 py-3'>
-                                        <div className='flex items-center justify-center gap-2.5'>
-                                            <span className={`shrink-0 grid place-items-center w-8 h-8 rounded-lg ${
-                                                apagada ? 'bg-slate-100 text-slate-400' : 'bg-[#29c50c]/10 text-[#1f9a08]'
+                                    <td className='px-4 py-2.5'>
+                                        <div className='flex items-center gap-2.5'>
+                                            <span className={`shrink-0 grid place-items-center w-[30px] h-[30px] rounded-lg ${
+                                                estado === 'activa' ? 'bg-[#29c50c]/10 text-[#1f9a08]'
+                                                    : estado === 'sin-usar' ? 'bg-amber-50 text-amber-700'
+                                                        : 'bg-slate-100 text-slate-400'
                                             }`}>
-                                                <KeyIcon size={16} />
+                                                <KeyIcon size={15} />
                                             </span>
-                                            <div className='min-w-0 text-left'>
-                                                <span className={`block font-medium truncate ${apagada ? 'text-slate-400' : 'text-slate-900'}`}>
+                                            <div className='min-w-0'>
+                                                <div className={`font-semibold leading-[1.3] truncate ${apagada ? 'text-slate-400' : 'text-slate-900'}`}>
                                                     {llave.name}
-                                                </span>
-                                                {llave.expiresAt && (
-                                                    <span className={`block text-[11px] ${caducada ? 'text-rose-600 font-medium' : 'text-slate-500'}`}>
-                                                        {caducada ? 'caducada el ' : 'caduca el '}{formatearFecha(llave.expiresAt, true)}
-                                                    </span>
-                                                )}
+                                                </div>
+                                                <div className='text-[11.5px] leading-[1.3] text-slate-400 truncate'>
+                                                    {llave.createdByName || 'origen desconocido'}
+                                                    {' · '}
+                                                    {llave.lastUsedAt
+                                                        ? `última consulta ${haceCuanto(llave.lastUsedAt)}`
+                                                        : `creada ${haceCuanto(llave.createdAt)}`}
+                                                </div>
                                             </div>
                                         </div>
                                     </td>
 
-                                    <td className='px-4 py-3 text-center'>
+                                    <td className='px-4 py-2.5'>
                                         <code className='inline-block rounded-md bg-slate-100 px-2 py-1 font-mono text-[11px] text-slate-600'>
                                             {llave.pista}
                                         </code>
                                     </td>
 
-                                    <td className='px-4 py-3 text-center text-slate-600'>{llave.createdByName || '—'}</td>
-
-                                    <td className='px-4 py-3 text-center'>
-                                        {llave.lastUsedAt ? (
-                                            <span className='text-slate-600'>{formatearFecha(llave.lastUsedAt)}</span>
-                                        ) : (
-                                            <span className='inline-flex items-center rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-medium text-amber-700'>
-                                                sin usar
-                                            </span>
-                                        )}
+                                    <td className='px-4 py-2.5'>
+                                        <Estado estado={estado} expiresAt={llave.expiresAt} />
                                     </td>
 
-                                    <td className='px-4 py-3 text-center tabular-nums text-slate-600'>
-                                        {llave.usageCount ?? 0}
+                                    <td className='px-4 py-2.5 text-right tabular-nums'>
+                                        <span className={`font-semibold ${llave.usageCount > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+                                            {(llave.usageCount ?? 0).toLocaleString('es-VE')}
+                                        </span>
                                     </td>
 
-                                    <td className='px-4 py-3 text-center whitespace-nowrap'>
+                                    <td className='px-4 py-2.5 text-right whitespace-nowrap'>
                                         {confirmando === llave._id ? (
                                             <span className='inline-flex items-center gap-1.5'>
-                                                <span className='text-xs text-slate-600'>¿Seguro?</span>
                                                 <button
                                                     type='button'
                                                     disabled={guardando}
                                                     onClick={() => onRevocar(llave._id)}
                                                     className='px-2.5 py-1 rounded-md text-xs font-medium bg-rose-600 text-white hover:bg-rose-700 transition-colors disabled:opacity-50'
                                                 >
-                                                    Sí, eliminar
+                                                    Eliminar
                                                 </button>
                                                 <button
                                                     type='button'
                                                     onClick={() => onPedirConfirmacion(null)}
-                                                    className='px-2 py-1 rounded-md text-xs text-slate-600 hover:bg-slate-100 transition-colors'
+                                                    className='px-2 py-1 rounded-md text-xs text-slate-500 hover:bg-slate-100 transition-colors'
                                                 >
                                                     No
                                                 </button>
                                             </span>
                                         ) : (
+                                            /* Gris hasta que el cursor entra en la fila: una columna de
+                                               botones rojos grita desde todas y acaba ignorándose. */
                                             <button
                                                 type='button'
                                                 onClick={() => onPedirConfirmacion(llave._id)}
-                                                title='Eliminar esta llave'
-                                                className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors'
+                                                title={`Eliminar «${llave.name}»`}
+                                                aria-label={`Eliminar la llave ${llave.name}`}
+                                                className='grid place-items-center w-7 h-7 ml-auto rounded-md text-slate-300 group-hover:text-slate-500 hover:!text-rose-600 hover:!bg-rose-50 transition-colors'
                                             >
                                                 <TrashIcon size={15} />
-                                                Eliminar
                                             </button>
                                         )}
                                     </td>
@@ -390,6 +419,81 @@ function TablaDeLlaves({ llaves, cargando, guardando, confirmando, onPedirConfir
             </div>
         </div>
     );
+}
+
+
+/** El separador de la barra de resumen. */
+const Punto = () => <span className='w-[3px] h-[3px] rounded-full bg-slate-300' />;
+
+
+/**
+ * En qué estado está una llave.
+ *
+ * «Sin usar» es un estado propio y no un detalle: una llave emitida que nunca
+ * se usó suele ser una que se copió mal, o una integración que quedó a medias.
+ * Es la que conviene mirar primero.
+ */
+function estadoDeLlave(llave) {
+    if (llave.active === false) return 'revocada';
+    if (llave.expiresAt && new Date(llave.expiresAt).getTime() <= Date.now()) return 'caducada';
+    if (!llave.lastUsedAt) return 'sin-usar';
+    return 'activa';
+}
+
+
+/** El estado, como un punto de color con su palabra. */
+function Estado({ estado, expiresAt }) {
+
+    const estilos = {
+        'activa':   { color: 'text-[#1f9a08]', punto: 'bg-[#29c50c]', halo: 'rgba(41,197,12,0.16)', texto: 'Activa' },
+        'sin-usar': { color: 'text-amber-700', punto: 'bg-amber-500', halo: 'rgba(245,158,11,0.18)', texto: 'Sin usar' },
+        'caducada': { color: 'text-slate-400', punto: 'bg-slate-300', halo: 'transparent', texto: 'Caducada' },
+        'revocada': { color: 'text-slate-400', punto: 'bg-slate-300', halo: 'transparent', texto: 'Revocada' },
+    }[estado];
+
+    return (
+        <span className={`inline-flex items-center gap-[7px] text-[11.5px] font-semibold ${estilos.color}`}>
+            <span
+                className={`w-1.5 h-1.5 rounded-full ${estilos.punto}`}
+                style={{ boxShadow: `0 0 0 3px ${estilos.halo}` }}
+            />
+            {estilos.texto}
+            {estado === 'caducada' && expiresAt && (
+                <span className='font-normal text-slate-400'>el {formatearFecha(expiresAt, true)}</span>
+            )}
+        </span>
+    );
+}
+
+
+/**
+ * «hace 4 min», «hace 3 días».
+ *
+ * Una fecha exacta obliga a restar mentalmente para saber si una llave sigue
+ * viva. Lo que se pregunta al mirar esta columna es «¿hace mucho?», y a eso
+ * responde mejor un tiempo relativo.
+ */
+function haceCuanto(valor) {
+    if (!valor) return '—';
+
+    const ms = Date.now() - new Date(valor).getTime();
+    if (!Number.isFinite(ms)) return '—';
+    if (ms < 0) return 'recién';
+
+    const minutos = Math.floor(ms / 60000);
+    if (minutos < 1) return 'recién';
+    if (minutos < 60) return `hace ${minutos} min`;
+
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `hace ${horas} h`;
+
+    const dias = Math.floor(horas / 24);
+    if (dias < 30) return `hace ${dias} ${dias === 1 ? 'día' : 'días'}`;
+
+    const meses = Math.floor(dias / 30);
+    if (meses < 12) return `hace ${meses} ${meses === 1 ? 'mes' : 'meses'}`;
+
+    return `el ${formatearFecha(valor, true)}`;
 }
 
 
