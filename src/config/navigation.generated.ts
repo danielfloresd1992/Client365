@@ -65,5 +65,15 @@ export const NAV_SECTIONS: NavSection[] = [
                 "icon": "star"
             }
         ]
+    },
+    {
+        "label": "Sistema",
+        "items": [
+            {
+                "name": "Herramienta de integraciones",
+                "path": "/integraciones",
+                "icon": "plug"
+            }
+        ]
     }
 ];

@@ -16,6 +16,7 @@ export type NavIconKey =
     | 'star'
     | 'store'
     | 'gear'
+    | 'plug'
     | 'logout';
 
 // Metadata que cada ruta declara en su `nav.meta.ts` (co-locada con su page).

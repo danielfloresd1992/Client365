@@ -18,6 +18,11 @@ export const ADMIN_ROUTES: string[] = [
     '/clients&manasgement',
     '/alertmanasgement',
     '/Corte365',
+
+    // Emite las credenciales con las que otros sistemas entran a la API. Basta
+    // con estar en esta lista: el menú la oculta (navSections) y LoadingGuard
+    // devuelve un 403 a quien escriba la URL a mano.
+    '/integraciones',
 ];
 
 

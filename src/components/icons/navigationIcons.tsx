@@ -138,3 +138,20 @@ export const StarIcon = ({ size = 24, ...props }: IconProps): ReactElement => (
     </svg>
 );
 StarIcon.displayName = 'StarIcon';
+
+
+/**
+ * ENCHUFE — las herramientas de integración.
+ *
+ * Un enchufe y no una llave inglesa: lo que la pantalla administra son las
+ * credenciales con las que OTROS sistemas se conectan a este. La llave inglesa
+ * habría dicho «ajustes», que es lo que ya dice el engranaje de Configuración.
+ */
+export const PlugIcon = createIcon('PlugIcon', (
+    <>
+        <path d='M9 2v6' />
+        <path d='M15 2v6' />
+        <path d='M6 8h12v3a6 6 0 0 1-6 6 6 6 0 0 1-6-6V8Z' />
+        <path d='M12 17v5' />
+    </>
+));

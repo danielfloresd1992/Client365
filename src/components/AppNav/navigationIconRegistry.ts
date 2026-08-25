@@ -10,6 +10,7 @@ import {
     StarIcon,
     StoreIcon,
     SettingsIcon,
+    PlugIcon,
     LogoutIcon,
 } from '@/components/icons';
 
@@ -58,6 +59,7 @@ export const navigationIconByKey: Record<NavIconKey, NavIconEntry> = {
     bell: { Icon: BellIcon },
     store: { Icon: StoreIcon },
     gear: { Icon: SettingsIcon },
+    plug: { Icon: PlugIcon },
     logout: { Icon: LogoutIcon },
 
     // La estrella del sistema de bonificación. Trae su propio dorado y va un
