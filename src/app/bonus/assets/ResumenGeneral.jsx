@@ -67,12 +67,20 @@ export default function ResumenGeneral({ datos, ajustes, cargando, error }) {
         );
     }
 
+    // `items-start` y no el estirado por defecto: con el top corto y el
+    // resumen largo, estirar dejaría media tarjeta en blanco. Cada una mide lo
+    // suyo, y las dos topan en el mismo alto.
     return (
-        <div className='grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
+        <div className='grid gap-4 items-start xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]'>
 
             {/* ── El resumen ─────────────────────────────────────────── */}
-            <Marco>
-                <div className='flex items-baseline justify-between gap-3 flex-wrap'>
+            <Marco className={ALTO}>
+
+                {/* Lo que NO scrollea. Las cifras del período y el aviso de
+                    incompleto son el encabezado de lectura de la tabla: si se
+                    fueran de vista al bajar, las filas quedarían sin contra
+                    qué compararse, que es justo cuando hacen falta. */}
+                <div className='shrink-0 flex items-baseline justify-between gap-3 flex-wrap'>
                     <h2 className='text-base font-bold text-gray-800 leading-tight'>Resumen general</h2>
                     <span className='text-[11px] text-gray-500'>
                         {filas.length} operador{filas.length === 1 ? '' : 'es'}
@@ -80,7 +88,7 @@ export default function ResumenGeneral({ datos, ajustes, cargando, error }) {
                     </span>
                 </div>
 
-                <div className='mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3'>
+                <div className='shrink-0 mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3'>
                     <Cifra etiqueta='Alertas' valor={entero(totales?.novedades)} />
                     <Cifra etiqueta='Bonos' valor={decimal(totales?.bonos)} destacado />
                     <Cifra etiqueta='En dólares'
@@ -94,16 +102,21 @@ export default function ResumenGeneral({ datos, ajustes, cargando, error }) {
                 </div>
 
                 {incompleto && (
-                    <p className='mt-3 text-[11px] text-[#8a5a2b] bg-[#fdf6e7] rounded-lg px-3 py-2'>
+                    <p className='shrink-0 mt-3 text-[11px] text-[#8a5a2b] bg-[#fdf6e7] rounded-lg px-3 py-2'>
                         {entero(totales.novedades - totales.selladas)} de {entero(totales.novedades)} alertas
                         todavía no tienen el bono evaluado. Lo de abajo es lo que ya está sellado, no el total del período.
                     </p>
                 )}
 
-                <div className='mt-4 -mx-1 overflow-x-auto'>
+                {/* EL ÚNICO QUE SCROLLEA.
+                    `min-h-0` no es decorativo: un hijo de flex arranca con
+                    `min-height:auto`, así que sin esto se niega a achicarse por
+                    debajo de su contenido y el `overflow` nunca llega a actuar
+                    — la tarjeta crecería y el max-h no serviría de nada. */}
+                <div className='flex-1 min-h-0 mt-4 -mx-1 px-1 overflow-auto'>
                     <table className='w-full min-w-[420px] border-collapse'>
                         <thead>
-                            <tr className='border-b border-gray-200'>
+                            <tr>
                                 <Th>Operador</Th>
                                 <Th derecha>Alertas</Th>
                                 <Th derecha>Bonos</Th>
@@ -138,7 +151,7 @@ export default function ResumenGeneral({ datos, ajustes, cargando, error }) {
                 </div>
 
                 {pointValue !== null && (
-                    <p className='mt-3 text-[10.5px] text-gray-400 leading-relaxed'>
+                    <p className='shrink-0 mt-3 pt-3 border-t border-gray-100 text-[10.5px] text-gray-400 leading-relaxed'>
                         El monto se calcula con el valor de bono VIGENTE ({enDolares(pointValue)}). Cada novedad
                         guarda además el valor que tenía al sellarse, que es el que manda al liquidar un
                         período viejo.
@@ -168,8 +181,8 @@ function ComparativaDeBonos({ filas }) {
     const escala = Math.max(1, ...top.map(f => Math.max(f.alertas ?? 0, f.bonos ?? 0)));
 
     return (
-        <Marco>
-            <div className='flex items-baseline justify-between gap-3 flex-wrap'>
+        <Marco className={ALTO}>
+            <div className='shrink-0 flex items-baseline justify-between gap-3 flex-wrap'>
                 <h2 className='text-base font-bold text-gray-800 leading-tight'>Top {top.length} · más bonos</h2>
                 <div className='flex items-center gap-3 text-[10.5px] font-semibold'>
                     <span className='flex items-center gap-1.5 text-gray-500'>
@@ -181,11 +194,13 @@ function ComparativaDeBonos({ filas }) {
                 </div>
             </div>
 
-            <p className='text-[11.5px] text-gray-500 mt-0.5'>
+            <p className='shrink-0 text-[11.5px] text-gray-500 mt-0.5'>
                 Cuánto de lo reportado terminó pagando.
             </p>
 
-            <ul className='mt-4 space-y-3'>
+            {/* El `pr-1` deja aire entre las barras y la barra de scroll: sin
+                eso la de la derecha queda pegada y parece cortada. */}
+            <ul className='flex-1 min-h-0 mt-4 pr-1 overflow-y-auto space-y-3'>
                 {top.map((f, i) => {
                     const alertas = f.alertas ?? 0;
                     const bonos = f.bonos ?? 0;
@@ -232,12 +247,35 @@ function Barra({ ancho, clase }) {
 
 // ══════════════════════════════════════════════════════════════════════
 
-const Marco = ({ children }) => (
-    <section className='bg-white rounded-xl shadow-sm border p-5'>{children}</section>
+/**
+ * EL TOPE DE ALTO DE LAS DOS TARJETAS.
+ *
+ * Una consulta de un mes trae sesenta operadores, y sesenta filas empujan la
+ * página hacia abajo hasta dejar los filtros fuera de pantalla: para cambiar
+ * el rango habría que volver a subir. Acotadas, el panel entra de una y cada
+ * tarjeta se recorre por dentro.
+ *
+ * Va en las DOS con el mismo valor para que topen parejas cuando están una al
+ * lado de la otra.
+ */
+const ALTO = 'max-h-[68vh] flex flex-col';
+
+const Marco = ({ children, className = '' }) => (
+    <section className={`bg-white rounded-xl shadow-sm border p-5 ${className}`}>{children}</section>
 );
 
+/**
+ * El encabezado se queda arriba mientras las filas pasan por debajo. Sin eso,
+ * a la fila cuarenta ya no se sabe cuál columna es cuál.
+ *
+ * La línea de abajo va como SOMBRA y no como borde: con `border-collapse` el
+ * borde de una celda fija se queda en su sitio original al scrollear, y la
+ * tabla aparece con una raya suelta en el medio. Una sombra interior viaja
+ * con la celda.
+ */
 const Th = ({ children, derecha }) => (
-    <th className={`pb-2 text-[10px] font-bold uppercase tracking-wider text-gray-500 ${derecha ? 'text-right' : 'text-left'}`}>
+    <th className={`sticky top-0 z-[1] bg-white pb-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-gray-500
+                    shadow-[inset_0_-1px_0_#e5e7eb] ${derecha ? 'text-right' : 'text-left'}`}>
         {children}
     </th>
 );
