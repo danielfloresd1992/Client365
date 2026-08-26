@@ -165,12 +165,27 @@ export default function BonusMap({
     const [correr, setCorrer] = useState(new Map());
     const correrRef = useRef(new Map());
 
-    // Las medidas de la última pasada completa. Mientras una caja va en la
-    // mano, las BASES no cambian: lo único que se mueve es un `transform`, y
-    // el transform no toca el layout. Volver a medir cien cajas en cada píxel
-    // sería leer cien veces algo que ya sabemos, y con cien cajas eso es lo
-    // que separa un arrastre suave de uno a los tirones.
+    /**
+     * LAS BASES MEDIDAS, Y CUÁNDO DEJAN DE VALER.
+     *
+     * La base de una caja —dónde cae su hueco en la columna— solo cambia
+     * cuando cambia el LAYOUT: el zoom, el tamaño del lienzo, qué secciones
+     * están abiertas, qué cajas hay. NO cambia cuando cambia un corrimiento,
+     * porque un corrimiento es un `transform`, y un transform mueve lo que se
+     * dibuja sin tocar el hueco que la caja ocupa.
+     *
+     * MEDIR DE NUEVO EN CADA CORRIMIENTO ERA EL ERROR, y se veía justo al
+     * tocar «Reacomodar»: las cajas arrancan un viaje de un segundo y
+     * `getBoundingClientRect` devuelve la posición ANIMADA, no la de destino.
+     * Esa lectura, menos el corrimiento nuevo, daba una base corrida — y como
+     * después de esa pasada ya nada vuelve a disparar el trazado, los cables
+     * quedaban apuntando al aire hasta que se tocara el zoom.
+     *
+     * Con la época, un cambio de corrimiento no vuelve a medir NADA: reusa las
+     * bases y solo recalcula destinos. Que además es lo más barato.
+     */
     const medidas = useRef(new Map());
+    const epocaRef = useRef({});
 
     // Lo mismo para la columna del medio. Las ALERTAS no se corren: son el
     // ancla de la cascada —los alcances se paran frente a ellas y las reglas
@@ -406,7 +421,15 @@ export default function BonusMap({
         // ella, con sus cables. Recalcular la colocación en cada píxel haría
         // bailar a las demás debajo del cursor.
         const congelado = Boolean(cajas.moviendo);
-        if (!congelado) medidas.current.clear();
+
+        // ¿Sigue siendo el mismo layout que cuando se midió? Se compara por
+        // IDENTIDAD y no por contenido: `secciones` es un memo y `plegadas` un
+        // Set nuevo en cada cambio, así que la referencia ya dice todo.
+        const epoca = epocaRef.current;
+        if (epoca.escala !== escala || epoca.secciones !== secciones || epoca.plegadas !== plegadas) {
+            medidas.current.clear();
+            epocaRef.current = { escala, secciones, plegadas };
+        }
 
         // Los rects llegan en píxeles de pantalla, ya multiplicados por el
         // zoom; el SVG dibuja en coordenadas de layout. Sin dividir, al 150%
@@ -417,10 +440,10 @@ export default function BonusMap({
         // incluiría el desplazamiento ya aplicado y la caja se iría corriendo
         // sola en cada pasada.
         const caja = (clave, quita) => {
-            if (congelado) {
-                const guardada = medidas.current.get(clave);
-                if (guardada) return guardada;
-            }
+            // El cache guarda la BASE, ya sin corrimiento. Mientras el layout
+            // no cambie vale para siempre, arrastre y reacomodo incluidos.
+            const guardada = medidas.current.get(clave);
+            if (guardada) return guardada;
 
             const n = lienzo.current.querySelector(`[data-nodo="${clave}"]`);
             if (!n) return null;
@@ -611,6 +634,12 @@ export default function BonusMap({
         const recalcular = () => {
             setAnimar(false);
             clearTimeout(volverAAnimar);
+
+            // El único caso en que el layout cambia sin que cambie ninguna de
+            // las tres cosas que forman la época. Se invalida a mano.
+            medidas.current.clear();
+            epocaRef.current = {};
+
             requestAnimationFrame(() => trazarRef.current());
             volverAAnimar = setTimeout(() => setAnimar(true), 250);
         };
