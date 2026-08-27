@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import useSpeckAlert from '@/hook/useSpeckAlert';
+import useAuthOnServer from '@/hook/auth';
 
 
 // Bandera por idioma de la voz. Piper trae es-ES/es-MX/en-US/pt-BR; las
@@ -48,6 +49,49 @@ function VolumeIcon({ level }) {
 
 
 /*
+ * EL CANDADO DE LA SECCIÓN.
+ *
+ * Se dibuja ENCIMA de los controles y los deja desenfocados detrás, en vez de
+ * esconderlos: así se ve que la consola existe y está configurada, y lo único
+ * que falta es el permiso. Quitarlos de la pantalla haría creer que la voz no
+ * está andando — y sí lo está.
+ *
+ * Los controles además van `disabled` de verdad. Este panel explica; no es lo
+ * que impide tocarlos, porque una capa encima se saltea con el teclado.
+ */
+function CandadoDeAdmin() {
+    return (
+        <div className='candado-admin absolute inset-0 z-10 grid place-items-center rounded-xl
+                        bg-white/55 backdrop-blur-[3px] px-4 text-center'>
+
+            <div className='flex flex-col items-center gap-2'>
+                <span className='relative grid place-items-center h-12 w-12 rounded-2xl
+                                 bg-white ring-1 ring-emerald-200 text-emerald-600
+                                 shadow-[0_8px_22px_-10px_rgba(41,197,12,.55)]'>
+                    {/* El halo respira despacio: llama la atención sin pedirla. */}
+                    <span className='candado-halo absolute inset-0 rounded-2xl ring-2 ring-emerald-400/45' aria-hidden='true' />
+                    <svg width='21' height='21' viewBox='0 0 24 24' fill='none' stroke='currentColor'
+                        strokeWidth='1.9' strokeLinecap='round' strokeLinejoin='round'>
+                        <rect x='4' y='10.5' width='16' height='10' rx='2.5' />
+                        <path d='M8 10.5V7a4 4 0 0 1 8 0v3.5' />
+                        <path d='M12 14.5v2' />
+                    </svg>
+                </span>
+
+                <p className='text-[0.82rem] font-semibold tracking-tight text-slate-800'>
+                    Sección para administradores
+                </p>
+                <p className='max-w-[30ch] text-[0.66rem] leading-relaxed text-slate-500'>
+                    Las alertas se siguen escuchando con la voz configurada. Cambiarla es una
+                    preferencia de toda la sala, y por eso la ajusta un administrador.
+                </p>
+            </div>
+        </div>
+    );
+}
+
+
+/*
  * Consola de voz de las alertas habladas (drawer "Parlante" del Lobby y
  * ventana de configuración). Tarjeta CLARA en armonía con el resto del
  * sistema (blanco/slate + verde de marca #29c50c):
@@ -63,6 +107,24 @@ export default function SectionConfigVoice() {
         listVoicesState, voice_definitive, changeVoice, changueVolume,
         volumeState, speak, stop, currentEngine, downloadProgress, isLoading, isSupported,
     } = useSpeckAlert();
+
+    /*
+     * QUIÉN PUEDE CAMBIAR LA VOZ.
+     *
+     * El motor sigue funcionando para todos: `useSpeckAlert` arranca igual,
+     * descarga su modelo y habla las alertas con lo que haya configurado. Lo
+     * que se cierra es la manija — elegir voz, probarla y mover el volumen—,
+     * porque es una preferencia de la sala entera y no de quien la mira.
+     *
+     * SE ESPERA A QUE LA SESIÓN CONTESTE. Mientras `stateSession` está en
+     * 'loading', `admin` todavía es undefined: bloquear ahí le mostraría el
+     * candado a un administrador durante el primer instante, que se lee como
+     * que le quitaron el permiso.
+     */
+    const { dataSessionState } = useAuthOnServer();
+    const sesionResuelta = Boolean(dataSessionState?.stateSession)
+        && dataSessionState.stateSession !== 'loading';
+    const bloqueado = sesionResuelta && dataSessionState?.dataSession?.admin !== true;
 
     // Feedback visual de "hablando": el hook no expone evento de fin, así que
     // se estima por la frase de prueba (o se corta con Detener).
@@ -129,6 +191,13 @@ export default function SectionConfigVoice() {
                     )}
                 </div>
 
+                {/* LOS CONTROLES, EN UN SOLO GRUPO.
+                    Van juntos porque se bloquean juntos: el candado se dibuja
+                    encima de este bloque y no de la tarjeta entera, así el
+                    encabezado y la voz activa siguen legibles — saber QUÉ voz
+                    está sonando le sirve a cualquiera. */}
+                <div className='relative flex flex-col gap-4'>
+
                 {/* Selector de voz (nativo: nunca se recorta dentro del drawer) */}
                 <label className='block'>
                     <span className='text-[0.58rem] uppercase tracking-[0.18em] text-slate-500'>Cambiar voz</span>
@@ -136,7 +205,7 @@ export default function SectionConfigVoice() {
                         <select
                             aria-label='Voz para las alertas'
                             value={voice_definitive || ''}
-                            disabled={isLoading || listVoicesState.length === 0}
+                            disabled={bloqueado || isLoading || listVoicesState.length === 0}
                             onChange={e => changeVoice(e.target.value)}
                             className='w-full appearance-none rounded-xl bg-white text-slate-800 text-[0.82rem] pl-3 pr-9 py-2.5 ring-1 ring-slate-300 outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50'
                         >
@@ -159,7 +228,7 @@ export default function SectionConfigVoice() {
                 <button
                     type='button'
                     onClick={handleTest}
-                    disabled={isLoading || !selected}
+                    disabled={bloqueado || isLoading || !selected}
                     aria-label={testing ? 'Detener prueba de voz' : 'Probar voz'}
                     className={`group flex items-center gap-3 rounded-xl px-3 py-3 ring-1 transition disabled:opacity-40 disabled:cursor-not-allowed ${testing ? 'bg-emerald-50 ring-emerald-300' : 'bg-slate-50 ring-slate-200 hover:bg-slate-100'}`}
                 >
@@ -192,11 +261,17 @@ export default function SectionConfigVoice() {
                             max={1}
                             step={0.05}
                             value={volumeState}
+                            disabled={bloqueado}
                             onChange={e => changueVolume(Number(e.target.value))}
                             aria-label='Volumen de las alertas'
                             className='voice-range flex-1'
                         />
                     </div>
+                </div>
+
+                    {/* El candado va al final del grupo para quedar por encima
+                        en el orden de pintado, sin necesidad de z-index. */}
+                    {bloqueado && <CandadoDeAdmin />}
                 </div>
 
                 {/* Estados: descarga del modelo / carga del motor / no soportado */}

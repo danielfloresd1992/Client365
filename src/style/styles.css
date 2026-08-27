@@ -8724,3 +8724,38 @@ body .jarvis-cell-highlight::after {
        importa. El brillo era el adorno, no la información. */
     .estrella-brillo { animation: none; opacity: 0; }
 }
+
+
+/* ════════════════════════════════════════════════════════════════════
+   EL CANDADO DE LA CONSOLA DE VOZ
+   Aparece sobre los controles cuando quien mira no es administrador. La
+   entrada es corta a propósito: es un aviso, no una escena.
+   ════════════════════════════════════════════════════════════════════ */
+@layer components {
+
+    .candado-admin {
+        animation: candado-entra .22s cubic-bezier(.2, .8, .3, 1) both;
+    }
+
+    @keyframes candado-entra {
+        from { opacity: 0; backdrop-filter: blur(0); }
+        to   { opacity: 1; }
+    }
+
+    /* El halo respira despacio. Solo `transform` y `opacity`: animar el
+       `ring` obligaría a repintar la caja en cada cuadro. */
+    .candado-halo {
+        animation: candado-halo 2.6s ease-in-out infinite;
+    }
+
+    @keyframes candado-halo {
+        0%, 100% { transform: scale(1);    opacity: .55; }
+        50%      { transform: scale(1.09); opacity: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .candado-admin,
+        .candado-halo { animation: none; }
+        .candado-halo { opacity: .5; }
+    }
+}
