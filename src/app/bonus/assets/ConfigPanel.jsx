@@ -106,7 +106,7 @@ export default function ConfigPanel({
                 puedeEditar={puedeEditar}
                 onEscribirAsignaciones={onEscribirAsignaciones}
                 onEditarRegla={regla => setEditando(reglaParaFormulario(regla))}
-                onNuevaRegla={() => setEditando(reglaNueva())}
+                onNuevaRegla={categoria => setEditando(reglaNueva(categoria || null))}
             />
         </div>
     );

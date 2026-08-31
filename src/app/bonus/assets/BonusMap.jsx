@@ -1,6 +1,5 @@
 'use client';
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { CATEGORIAS_OPERATIVAS } from '@/libs/alerts/categories';
 import useBonusCategories from '@/hook/useBonusCategories.js';
 import useZoom from '@/hook/useZoom.js';
 import usePaneo from '@/hook/usePaneo.js';
@@ -13,7 +12,7 @@ import {
     nombresDelAlcance, describirAlcance,
 } from './bonusRuleFormat';
 import SeccionDelMapa from './SeccionDelMapa.jsx';
-import { COLUMNAS, ANCHO_MAPA, sinAchicar, Rotulo, ChipCategoria } from './mapaEstilos.jsx';
+import { ANCHO_MAPA, MOSAICO, sinAchicar, Rotulo, ChipCategoria } from './mapaEstilos.jsx';
 
 /**
  * EL MAPA DE UNA ALERTA.
@@ -211,6 +210,15 @@ export default function BonusMap({
         });
     }, []);
 
+    // El catálogo de categorías: pinta el ícono y el color de cada regla y del
+    // cable que le llega, y —desde el mosaico— ABRE una baldosa por categoría.
+    // Con las inactivas: una regla cuya categoría se dio de baja tiene que
+    // seguir mostrándola, no quedar en blanco.
+    //
+    // Va acá arriba, antes que nada, porque `listo` lo necesita: el catálogo
+    // decide el layout, así que forma parte de la compuerta de más abajo.
+    const { categorias, cargando: cargandoCategorias, sinCatalogo } = useBonusCategories(true);
+
     // El zoom del lienzo. Un mapa con muchas alertas no entra en pantalla, y
     // alejarlo para ver el conjunto es distinto de acercarlo para cablear fino.
     const zoom = useZoom({ nombre: 'mapa-de-bonificacion', min: 0.5, max: 1.5, paso: 0.1 });
@@ -225,7 +233,17 @@ export default function BonusMap({
     // resto las guardadas se siguen respetando, porque son parte de cómo se ve
     // el mapa y no de lo que se puede cambiar.
     const cajas = useCajasArrastrables({
-        nombre: 'mapa-de-bonificacion:cajas',
+        // El nombre lleva el del layout a propósito. Las CLAVES no cambiaron
+        // —la baldosa sigue siendo la categoría, con el mismo `value`, que el
+        // servidor no deja editar— pero el marco de referencia sí: lo guardado
+        // es un desplazamiento CONTRA el hueco natural de la caja, y el mosaico
+        // le movió el hueco a todas. Un `+400` que en una franja de 1148 a todo
+        // lo ancho dejaba la caja al lado de su regla, adentro de un recuadro la
+        // deja encima de la baldosa vecina — y se aplicaría en silencio, porque
+        // la cascada saltea a las fijadas. Se prefiere olvidar una vez a mostrar
+        // posiciones que ya no quieren decir nada. Lo viejo queda en
+        // localStorage sin leerse.
+        nombre: 'mapa-de-bonificacion:cajas:mosaico',
         escala,
         activo: Boolean(puedeEditar),
     });
@@ -235,7 +253,15 @@ export default function BonusMap({
     // puesto a mano, y recién un momento después se restauran los dos: medir
     // en el medio significa colocar todo dos veces —una mal y otra bien— y, si
     // la animación ya está encendida, ver el salto entero.
-    const listo = zoom.listo && cajas.listo;
+    //
+    // Y EL CATÁLOGO entra en esa lista desde que cada categoría abre su
+    // baldosa. Antes sólo decidía el color del chip y el orden, y llegar tarde
+    // reacomodaba; ahora decide CUÁNTAS baldosas hay, o sea el layout entero:
+    // `useBonusCategories` arranca en `[]`, así que el primer pintado tendría
+    // dos baldosas y el segundo veinte, re-midiendo todo a mitad del viaje de
+    // un segundo — que es exactamente cómo se envenenó el cache de bases la
+    // última vez.
+    const listo = zoom.listo && cajas.listo && !cargandoCategorias;
 
     // Mientras una caja va en la mano nada se anima: la caja tiene que seguir
     // al cursor, no llegar un segundo después.
@@ -268,10 +294,6 @@ export default function BonusMap({
 
     const porId = useMemo(() => new Map((reglas || []).map(r => [String(r._id), r])), [reglas]);
 
-    // El catálogo de categorías, para pintar ícono y color en cada regla y en
-    // el cable que le llega. Con las inactivas: una regla cuya categoría se dio
-    // de baja tiene que seguir mostrándola, no quedar en blanco.
-    const { categorias } = useBonusCategories(true);
     const categoriaDe = useMemo(() => new Map(categorias.map(c => [c.value, c])), [categorias]);
 
     // Qué alertas trae el mapa al abrir:
@@ -325,19 +347,29 @@ export default function BonusMap({
 
 
     /**
-     * EL MAPA, PARTIDO POR LA CATEGORÍA DE LA REGLA.
+     * EL MAPA, UNA BALDOSA POR CATEGORÍA.
      *
      * La categoría es la de la REGLA y no la de la alerta a propósito: es la
-     * que agrupa en el corte, la que decide cuánto se paga. La categoría
-     * operativa de la alerta ('delay', 'food'…) sigue en su chip, dentro de
-     * la caja.
+     * que agrupa en el corte, la que decide cuánto se paga. La alerta ya no
+     * muestra su categoría operativa en el mapa: acá lo que se arma es quién
+     * paga, no cómo se clasifica el incidente.
      *
-     * LAS REGLAS ABREN LAS SECCIONES. Una categoría del catálogo sin ninguna
-     * regla no es una sección vacía: es una fila que nadie usó todavía, y
-     * dibujarle tres columnas en blanco sería inventar trabajo que no existe.
-     * Al revés sí: una categoría con reglas que nadie usa se muestra igual,
-     * porque «estas reglas están y no las usa nadie» es justo lo que hay que
-     * poder ver.
+     * EL CATÁLOGO ABRE LAS BALDOSAS, NO LAS REGLAS. Es al revés de como estaba,
+     * y el motivo cambió con el mosaico: antes una categoría sin reglas no
+     * aparecía en ningún lado hasta tener la primera —que es justo cuando hace
+     * falta verla: había que crear la regla a ciegas y descubrir después dónde
+     * aterrizaba—. El mosaico es el inventario de categorías, y una baldosa en
+     * blanco no es un hueco: es el lugar donde se le crean sus reglas.
+     *
+     * Al revés también sigue valiendo: una categoría con reglas que nadie usa
+     * se muestra igual, porque «estas reglas están y no las usa nadie» es justo
+     * lo que hay que poder ver.
+     *
+     * ABREN BALDOSA SÓLO LAS ACTIVAS. El catálogo se pide CON las inactivas
+     * para que una regla cuya categoría se dio de baja siga mostrando su chip,
+     * pero desactivar una categoría es dejar de ofrecerla, y darle recuadro
+     * propio invitando a llenarlo sería lo contrario. Una inactiva CON reglas
+     * aparece igual: la abren ellas, dos líneas más abajo.
      */
     const secciones = useMemo(() => {
         const orden = new Map(categorias.map((c, i) => [c.value, i]));
@@ -359,6 +391,14 @@ export default function BonusMap({
             }
             return grupos.get(id);
         };
+
+        // El catálogo primero: es lo único que hace que una categoría sin
+        // ninguna regla tenga su baldosa igual.
+        //
+        //   sin `value` no se siembra: `grupo` manda todo lo falsy al centinela
+        //   SIN_CATEGORIA, así que una entrada rota se apropiaría de la baldosa
+        //   «Sin categoría» con nombre y color propios.
+        categorias.forEach(c => { if (c.value && c.active !== false) grupo(c.value); });
 
         (reglas || []).forEach(r => grupo(r.bonusCategory).reglas.push(r));
 
@@ -501,28 +541,53 @@ export default function BonusMap({
 
 
             // ── 1. Medir ──────────────────────────────────────────────
+            //
+            // Y de paso EL MARCO DE LA BALDOSA, que sale de estas mismas medidas
+            // y no de una consulta al DOM: arriba, el borde superior de la caja
+            // más alta; abajo, el inferior de la más baja. Las tres columnas
+            // arrancan a la misma altura y la fila mide lo que la más larga, así
+            // que ese par es el recuadro por dentro.
+            //
+            // Sobre las BASES más lo puesto A MANO, y nunca sobre los
+            // corrimientos automáticos: los dos primeros son entradas estables
+            // —no cambian dentro de una época— y el tercero es la SALIDA de esta
+            // cuenta; mezclarlos la volvería circular. Que la mano agrande el
+            // marco es lo correcto: una caja arrastrada ya sale legítimamente
+            // del recuadro, y lo que le cuelga tiene que poder seguirla.
+            let arriba = Infinity, abajo = -Infinity;
+            const enMarco = (c, mano) => {
+                if (c) {
+                    const dy = mano?.y || 0;
+                    arriba = Math.min(arriba, c.y + dy - c.alto / 2);
+                    abajo = Math.max(abajo, c.y + dy + c.alto / 2);
+                }
+                return c;
+            };
+
             // Las ALERTAS no se acomodan solas: son el ancla de la cascada, y
             // lo único que las corre es la mano.
             const deAlerta = new Map();
             sec.alertas.forEach(alerta => {
                 const k = kAlerta(alerta._id);
-                const c = caja(k, fijas.get(k));
+                const c = enMarco(caja(k, fijas.get(k)), fijas.get(k));
                 if (c) deAlerta.set(k, llevar(c, fijas.get(k)));
             });
 
             const deAlcance = new Map();
             sec.alcances.forEach(nodo => {
                 const k = kAlcance(nodo.clave);
-                const c = caja(k, puestoDe(k, correrAlcanceRef.current));
+                const c = enMarco(caja(k, puestoDe(k, correrAlcanceRef.current)), fijas.get(k));
                 if (c) deAlcance.set(k, c);
             });
 
             const deRegla = new Map();
             sec.reglas.forEach(regla => {
                 const k = kRegla(regla._id);
-                const c = caja(k, puestoDe(k, correrRef.current));
+                const c = enMarco(caja(k, puestoDe(k, correrRef.current)), fijas.get(k));
                 if (c) deRegla.set(k, c);
             });
+
+            const marco = { arriba, abajo };
 
 
             // ── 2. Decidir dónde va cada caja, de izquierda a derecha ──
@@ -537,7 +602,7 @@ export default function BonusMap({
 
             const autoAlcance = congelado
                 ? vigentes(correrAlcanceRef.current, deAlcance.keys())
-                : acomodarColumna(deAlcance, aLosAlcances, fijas);
+                : acomodarColumna(deAlcance, aLosAlcances, fijas, marco);
 
             // Y las reglas frente a los alcances que ya quedaron colocados.
             const aLasReglas = new Map();
@@ -552,7 +617,7 @@ export default function BonusMap({
 
             const autoRegla = congelado
                 ? vigentes(correrRef.current, deRegla.keys())
-                : acomodarColumna(deRegla, aLasReglas, fijas);
+                : acomodarColumna(deRegla, aLasReglas, fijas, marco);
 
             for (const [k, v] of autoAlcance) sigAlcance.set(k, v);
             for (const [k, v] of autoRegla) sigRegla.set(k, v);
@@ -958,6 +1023,11 @@ export default function BonusMap({
     const activasReglas = (reglas || []).filter(r => r.active !== false);
     const aMano = cajas.posiciones.size;
 
+    // Cuántas baldosas están esperando su primera regla. Es lo que el número de
+    // secciones dejó de decir cuando las abre el catálogo: ese total pasó a ser
+    // el tamaño del catálogo, que ya lo dice el gestor de categorías.
+    const vacias = secciones.filter(s => !s.banco && !s.alertas.length && !s.reglas.length).length;
+
     /** El desplazamiento que lleva puesto una caja: la mano si la hay, si no el automático. */
     const puestaDe = (clave, automatico) => cajas.posiciones.get(clave) || { x: 0, y: automatico || 0 };
 
@@ -970,7 +1040,27 @@ export default function BonusMap({
                         <p className='text-[11.5px] text-gray-500'>
                             {puestas.length} alerta{puestas.length === 1 ? '' : 's'} en el mapa
                             {' · '}{(reglas || []).length} regla{(reglas || []).length === 1 ? '' : 's'}
-                            {' · '}{secciones.length} {secciones.length === 1 ? 'sección' : 'secciones'}
+                            {' · '}{secciones.length} baldosa{secciones.length === 1 ? '' : 's'}
+                            {vacias > 0 && ` · ${vacias} sin reglas todavía`}
+                        </p>
+
+                        {/* El sentido de lectura, una sola vez y FUERA del nodo
+                            que escala. Los rótulos ya no pueden ir arriba de las
+                            columnas: caían sobre las suyas porque compartían
+                            `COLUMNAS` con cada sección, y en el mosaico hay un
+                            juego de columnas por baldosa. Repetirlos adentro de
+                            cada una serían tres renglones de ruido por categoría
+                            —y ahora las baldosas son TODAS las categorías—. Acá
+                            afuera no encogen con el zoom, así que no gastan un
+                            mínimo de letra, y «Menu.model» no se pierde: sacado
+                            el chip operativo, es lo único que dice de dónde salen
+                            esas alertas. */}
+                        <p className='mt-1 flex flex-wrap items-center gap-1.5'>
+                            <Rotulo>Alertas · Menu.model</Rotulo>
+                            <span aria-hidden='true' className='text-gray-300'>→</span>
+                            <Rotulo>Dónde aplica</Rotulo>
+                            <span aria-hidden='true' className='text-gray-300'>→</span>
+                            <Rotulo>Reglas de bonificación</Rotulo>
                         </p>
                     </div>
 
@@ -1005,7 +1095,12 @@ export default function BonusMap({
                                     </button>
                                 )}
 
-                                <button type='button' onClick={onNuevaRegla}
+                                {/* La flecha NO es cosmética: `onClick={onNuevaRegla}`
+                                    le pasa el evento del clic como primer argumento, y
+                                    ese argumento ahora es la categoría. La regla nacería
+                                    con un SyntheticEvent en `bonusCategory` y no tiraría
+                                    ningún error hasta guardar. */}
+                                <button type='button' onClick={() => onNuevaRegla()}
                                     className='h-8 px-3 rounded-lg text-[11.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
                                     + Regla
                                 </button>
@@ -1055,18 +1150,24 @@ export default function BonusMap({
                             propio, alejarse lo achica de verdad y deja lienzo
                             libre alrededor, que es donde se pueden acomodar las
                             cajas a mano. */}
-                        <div className={`relative z-[1] flex flex-col gap-9 ${ANCHO_MAPA}`}>
+                        <div className={`relative z-[1] flex flex-col gap-4 ${ANCHO_MAPA}`}>
 
-                            {/* Los rótulos, una sola vez para todas las
-                                secciones: repetirlos en cada una serían tres
-                                renglones de ruido por categoría. Comparten la
-                                definición de columnas, así que caen sobre las
-                                suyas. */}
-                            <div className={`${COLUMNAS} -mb-5`}>
-                                <Rotulo escala={escala}>Alertas · Menu.model</Rotulo>
-                                <Rotulo escala={escala}>Dónde aplica</Rotulo>
-                                <Rotulo escala={escala}>Reglas de bonificación</Rotulo>
-                            </div>
+                            {/* Los avisos van FUERA de la grilla: adentro cada
+                                hijo es una CELDA, y un párrafo se volvería una
+                                baldosa fantasma de 1190px que además correría la
+                                primera categoría a la segunda columna. */}
+
+                            {/* Con las baldosas saliendo del catálogo, un 404 deja
+                                el mosaico sin un solo recuadro, y eso es
+                                indistinguible de «todavía no hay categorías». El
+                                hook separa los dos casos justamente porque la API
+                                se despliega a mano. */}
+                            {sinCatalogo && (
+                                <p className='text-[12.5px] text-[#8a5a2b]'>
+                                    No se pudo leer el catálogo de categorías: el mapa se dibuja igual,
+                                    pero las baldosas vacías y los colores van a faltar hasta que responda.
+                                </p>
+                            )}
 
                             {!puestas.length && (
                                 <p className='text-[12.5px] text-gray-500'>
@@ -1080,6 +1181,11 @@ export default function BonusMap({
                                 </p>
                             )}
 
+                            {/* EL MOSAICO. Dos baldosas por fila, en píxeles
+                                declarados: cuántas entran no lo decide el
+                                navegador, porque un ancho elástico apaga el zoom
+                                en horizontal. */}
+                            <div className={MOSAICO}>
                             {secciones.map(sec => {
                                 const kNueva = llave(sec.id, 'alcance', 'nueva');
 
@@ -1087,6 +1193,30 @@ export default function BonusMap({
                                     <SeccionDelMapa key={sec.id} seccion={sec} escala={escala}
                                         abierta={!plegadas.has(sec.id)}
                                         onAlternar={() => alternarSeccion(sec.id)}
+
+                                        // El vacío se arma acá y no en la baldosa: qué
+                                        // puede hacer quien mira es asunto del mapa, y
+                                        // bajarlo sería pasarle los permisos a una
+                                        // sección que no los necesita para nada más.
+                                        // Quién lo muestra —y cuándo— lo decide ella.
+                                        vacio={<>
+                                            <p style={sinAchicar(12, escala, 11)} className='text-gray-500'>
+                                                Todavía no hay reglas en esta categoría.
+                                            </p>
+                                            {puedeEditar && sec.categoria && (
+                                                // Con la categoría puesta: se tocó el botón
+                                                // que está ADENTRO de esta baldosa, y volver
+                                                // a preguntarla en el formulario es preguntar
+                                                // lo que se acaba de decir.
+                                                <button type='button'
+                                                    onClick={() => onNuevaRegla(sec.categoria.value)}
+                                                    style={sinAchicar(11.5, escala, 11)}
+                                                    className='h-8 px-3 rounded-lg font-bold text-white
+                                                               bg-[#29c50c] hover:bg-[#1f9a08] transition-colors'>
+                                                    + Regla en {sec.categoria.es}
+                                                </button>
+                                            )}
+                                        </>}
 
                                         alertas={sec.alertas.map(alerta => {
                                             const k = llave(sec.id, 'alerta', alerta._id);
@@ -1184,6 +1314,7 @@ export default function BonusMap({
                                     />
                                 );
                             })}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1291,12 +1422,38 @@ const SIN_ASIGNAR = '~sin-asignar';
  * escrita una vez. Es pura: se la llama una vez por columna y por sección, y
  * quien acumula y guarda los resultados es `trazar`.
  *
+ * Y NO SE SALE DE LA BALDOSA. El corrimiento es un `transform`: no ocupa
+ * layout, así que una caja empujada 300px hacia abajo se DIBUJA 300px más abajo
+ * pero su hueco sigue arriba y el recuadro no crece con ella. Mientras el mapa
+ * era una pila de franjas sin marco eso caía sobre el punteado y no se notaba;
+ * adentro de un recuadro se lee como un error, y peor: la caja aterriza en la
+ * baldosa de al lado, que es de otra categoría.
+ *
+ * El marco manda en los dos sentidos. Por arriba, el piso arranca en el borde
+ * superior en vez de en -Infinity —ahí ahora está el encabezado con el nombre—.
+ * Por abajo, cada caja lleva su TECHO, y el techo no es el borde de abajo: es
+ * el borde de abajo menos todo lo que además tiene que entrar DEBAJO de ella,
+ * calculado de la última a la primera. Con ese techo la cuenta cierra exacta,
+ * porque la separación mínima de acá es la misma con la que la columna se apila
+ * en el layout: nunca hace falta empujar más allá del techo de la siguiente.
+ *
+ * Lo que se paga: una caja que no llega a pararse frente a su cable se queda en
+ * el borde y el cable sale en diagonal. Es preferible a una caja flotando
+ * afuera de su categoría — un cable torcido se entiende, una caja en la baldosa
+ * equivocada miente.
+ *
  * @param cajas     clave → { y, alto } ya medidas SIN corrimiento
  * @param llegadas  clave → alturas de lo que le llega
  * @param fijas     clave → { x, y } de las puestas a mano
+ * @param marco     { arriba, abajo } del recuadro, en coordenadas del lienzo
  * @returns {Map<string, number>} clave → píxeles a correr
  */
-const acomodarColumna = (cajas, llegadas, fijas) => {
+const acomodarColumna = (cajas, llegadas, fijas, marco) => {
+    // El mismo `gap-3` (12px) con que se apilan las columnas de alcances y de
+    // reglas. Que coincidan es lo que hace que una caja sin cables entrantes se
+    // quede exactamente donde el layout la puso, y también lo que hace que el
+    // techo de acá abajo cierre exacto. Si algún día los gaps de las columnas
+    // dejan de ser iguales, esto deja de poder ser una constante.
     const SEPARACION = 12;
 
     const objetivos = [];
@@ -1316,11 +1473,19 @@ const acomodarColumna = (cajas, llegadas, fijas) => {
     // puede subir por encima de la anterior ni pisarla.
     objetivos.sort((a, b) => a.base - b.base);
 
-    let piso = -Infinity;
+    // El techo de cada una, de la última a la primera: lo que queda del borde
+    // de abajo una vez reservado el lugar de todas las que van debajo.
+    let libre = marco?.abajo ?? Infinity;
+    for (let i = objetivos.length - 1; i >= 0; i--) {
+        objetivos[i].techo = libre - objetivos[i].alto / 2;
+        libre -= objetivos[i].alto + SEPARACION;
+    }
+
+    let piso = marco?.arriba ?? -Infinity;
     const siguiente = new Map();
 
     for (const o of objetivos) {
-        const centro = Math.max(o.deseada, piso + o.alto / 2);
+        const centro = Math.max(Math.min(o.deseada, o.techo), piso + o.alto / 2);
         piso = centro + o.alto / 2 + SEPARACION;
 
         const corrimiento = Math.round(centro - o.base);
@@ -1645,8 +1810,6 @@ function NodoAlerta({
     dataNodo, puesta, fijada, moviendo, onTomar, onLiberar,
     tirandoDeEsta, onTirar, onAlternar, onSacar,
 }) {
-    const categoria = CATEGORIAS_OPERATIVAS[alerta?.category];
-
     return (
         <div data-nodo={dataNodo} data-caja='1'
             onPointerDown={puedeEditar ? onTomar : undefined}
@@ -1677,15 +1840,20 @@ function NodoAlerta({
                 {alerta?.en && alerta.en !== alerta.es && (
                     <span className='block text-[11px] text-gray-500 leading-tight mt-0.5'>{alerta.en}</span>
                 )}
-                <div className='flex flex-wrap items-center gap-1.5 mt-1.5'>
-                    {categoria && (
-                        <span className='text-[10px] font-bold rounded px-1.5 py-0.5'
-                            style={{ backgroundColor: categoria.bg, color: categoria.color }}>{categoria.es}</span>
-                    )}
-                    {!alerta?.bonusReviewed && (
-                        <span className='text-[10px] font-bold rounded px-1.5 py-0.5 bg-[#fdf6e7] text-[#8a5a2b]'>Sin revisar</span>
-                    )}
-                </div>
+                {/* La categoría operativa de la alerta ya no se pinta acá:
+                    adentro de una baldosa que declara su categoría de
+                    bonificación con todas las letras, un segundo chip de otra
+                    clasificación sobre la misma caja se leía como si fueran lo
+                    mismo. Y se va también el contenedor, no sólo el chip: con un
+                    hijo condicional, una alerta ya revisada dejaba un div de
+                    alto cero con `mt-1.5` puesto, seis píxeles de aire fantasma
+                    arriba del interruptor —nueve al 150%—. */}
+                {!alerta?.bonusReviewed && (
+                    <span className='inline-block mt-1.5 text-[10px] font-bold rounded px-1.5 py-0.5
+                                     bg-[#fdf6e7] text-[#8a5a2b]'>
+                        Sin revisar
+                    </span>
+                )}
                 </div>
 
             <div className='mt-auto pt-3'>

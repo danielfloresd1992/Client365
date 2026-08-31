@@ -58,14 +58,21 @@ export const mismoEnAmbosTurnos = (regla) =>
     Number(regla?.bonusAwarded?.day) === Number(regla?.bonusAwarded?.night);
 
 
-/** Una regla vacía, la que abre el formulario al crear. */
-export const reglaNueva = () => ({
+/**
+ * Una regla vacía, la que abre el formulario al crear.
+ *
+ * Puede nacer con categoría: el «+ Regla» de una baldosa vacía ya la eligió —se
+ * tocó el botón que está ADENTRO de esa categoría—, y abrir en blanco obligaría
+ * a volver a elegir a mano lo que se acaba de decir. Sin argumento sigue siendo
+ * la de siempre, la del botón de la barra, que no está adentro de ninguna.
+ */
+export const reglaNueva = (bonusCategory = null) => ({
     name: '',
     description: '',
     regulationCode: '',
     alertsRequired: 1,
     bonusAwarded: { day: 1, night: 1 },
-    bonusCategory: null,
+    bonusCategory,
     overrides: [],
     active: true,
 });

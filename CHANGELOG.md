@@ -10,6 +10,43 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-09-01
+- **El mapa de bonificación pasa de franjas apiladas a un MOSAICO de baldosas,
+  una por categoría del catálogo.** (Claude Code, Fable 5 · diseño verificado
+  con panel de 11 agentes.) Antes el mapa era una pila de secciones a todo el
+  ancho y **las abrían las reglas**: una categoría recién creada no aparecía en
+  ningún lado hasta tener su primera regla — justo cuando hacía falta verla,
+  porque había que crear la regla a ciegas y descubrir después dónde aterrizaba.
+  Ahora **el catálogo abre las baldosas**: cada categoría activa de
+  `category.model` tiene su recuadro de 1190px, dos por fila, con su mini-mapa
+  completo adentro (alerta → dónde aplica → regla). Una categoría sin reglas
+  aparece vacía, con «+ Regla en \<nombre\>» que abre el formulario con esa
+  categoría ya elegida (`reglaNueva` acepta la categoría). Se conservan «Sin
+  categoría» —que sigue naciendo por demanda— y el banco «Sin asignar», que va
+  último en fila propia.
+- La baldosa va **con borde y sin relleno**: los cables son un SVG que se pinta
+  debajo del mapa, así que un fondo no los atenuaría, los borraría enteros y sin
+  ningún error. Tampoco recorta: una caja arrastrada de más tiene que quedar
+  sobre el lienzo, no desaparecer.
+- **La caja de alerta pierde el chip de categoría operativa del `Menu.model`.**
+  Adentro de una baldosa que declara su categoría de bonificación con todas las
+  letras, un segundo chip de otra clasificación sobre la misma caja se leía como
+  si fueran lo mismo. Los tres rótulos de columna se mudan al encabezado de la
+  tarjeta como una leyenda de un renglón.
+- El catálogo entra en la compuerta de `listo`: ahora decide cuántas baldosas
+  hay, o sea el layout entero, y llegar tarde re-mediría todo a mitad del viaje
+  de un segundo — la forma exacta en que se envenenó el cache de bases el
+  31/08. Las posiciones de cajas puestas a mano arrancan de cero (clave nueva):
+  lo guardado era un desplazamiento contra el hueco natural, y el mosaico le
+  movió el hueco a todas.
+- **La cascada de corrimientos ya no se sale de la baldosa** (commit aparte, y
+  el único cambio de motor): `acomodarColumna` recibe el marco del recuadro y le
+  pone piso y techo a cada caja. Una que no llega a pararse frente a su cable se
+  queda en el borde y el cable sale en diagonal — preferible a una caja flotando
+  dentro de la categoría de al lado.
+
+---
+
 ## 2026-08-31
 - **Mapa de bonificación: arrancar con un zoom guardado distinto de 100% ya no
   deja los cables apuntando al aire.** (Claude Code, Fable 5.) La restauración
