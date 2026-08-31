@@ -248,8 +248,17 @@ export default function BonusMap({
     // desmonta y remonta un callback ref que cambia— en cada toque de zoom.
     const refDeZoom = zoom.ref;
 
+    // El montaje del lienzo, también en estado. El lienzo aparece TARDE,
+    // detrás del «Cargando…», y para entonces `listo` ya se encendió: el
+    // efecto de los observadores corrió contra null y, como un callback ref
+    // no re-dispara efectos, no volvía a intentarlo en toda la sesión —sin
+    // ResizeObserver y con el encendido de `animar` huérfano—. Anotarlo en
+    // estado es lo que trae ese efecto de vuelta cuando el nodo existe.
+    const [lienzoMontado, setLienzoMontado] = useState(false);
+
     const montarLienzo = useCallback((nodo) => {
         lienzo.current = nodo;
+        setLienzoMontado(Boolean(nodo));
         // Se LLAMA, no se le asigna `.current`: el ref del zoom es una función
         // que aplica la escala en cuanto el nodo existe. Importa cuando el
         // lienzo monta tarde, detrás del "cargando": con un ref objeto el zoom
@@ -624,6 +633,11 @@ export default function BonusMap({
      * La animación se enciende sola un momento después de la primera medición,
      * y se apaga mientras dure el resize. Se anima lo que el usuario CAMBIA, no
      * lo que el navegador recalcula.
+     *
+     * `lienzoMontado` está en las dependencias porque en el arranque frío
+     * `listo` se enciende detrás del «Cargando…», con el lienzo todavía sin
+     * montar: sin esa dependencia este efecto salía por el guard una vez y no
+     * volvía a correr nunca.
      */
     useEffect(() => {
         const el = lienzo.current;
@@ -656,7 +670,7 @@ export default function BonusMap({
             removeEventListener('resize', recalcular);
             clearTimeout(volverAAnimar);
         };
-    }, [listo]);
+    }, [listo, lienzoMontado]);
 
     /**
      * EL ZOOM TAMPOCO SE ANIMA. Es la misma regla del resize —se anima lo que
@@ -677,6 +691,15 @@ export default function BonusMap({
     useEffect(() => {
         if (escalaAnterior.current === escala) return undefined;
         escalaAnterior.current = escala;
+
+        // Sin lienzo no hubo gesto: este cambio de escala es la RESTAURACIÓN
+        // del zoom guardado, que llega detrás del «Cargando…». Programar acá
+        // el encendido rompía la primera colocación —que tiene que ser
+        // instantánea— y una tanda tardía de datos re-medía cajas en pleno
+        // viaje de un segundo: la base quedaba corta en el cache y los cables
+        // apuntaban al aire hasta el próximo toque de zoom. Del encendido tras
+        // el montaje ya se ocupa el efecto de los observadores.
+        if (!lienzo.current) return undefined;
 
         setAnimar(false);
         const timer = setTimeout(() => setAnimar(true), 250);

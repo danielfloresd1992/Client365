@@ -10,6 +10,23 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-08-31
+- **Mapa de bonificación: arrancar con un zoom guardado distinto de 100% ya no
+  deja los cables apuntando al aire.** (Claude Code, Fable 5.) La restauración
+  del zoom guardado (1 → 0.7) se leía como un gesto del usuario y encendía la
+  animación durante la pantalla de «Cargando…»: la primera colocación salía
+  animada y, si el catálogo de categorías llegaba dentro de ese segundo de
+  viaje, se re-medían cajas a mitad de camino y el cache de bases quedaba
+  envenenado hasta el próximo toque de zoom. Ahora ese efecto ignora los
+  cambios de escala sin lienzo montado (restaurar no es un gesto). Además, el
+  efecto de los observadores —ResizeObserver, `resize` y el encendido de
+  `animar`— corría una sola vez detrás del «Cargando…», contra un lienzo que
+  aún no existía, y quedaba muerto toda la sesión; el montaje del lienzo ahora
+  se anota en estado (`lienzoMontado`) y lo vuelve a disparar. Diagnóstico
+  verificado con panel de agentes (17), sólo front: `BonusMap.jsx`.
+
+---
+
 ## 2026-08-19
 - **El interruptor de la alerta pasa a ser un toggle de administrador, y lo
   apagado se muestra en grises en vez de desaparecer.** `Menu.bonifies` decide
