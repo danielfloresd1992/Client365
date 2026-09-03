@@ -65,7 +65,7 @@ export default function LocalsOverview({ groups, now }) {
         <section className='flex flex-col' aria-label='Horario y alertas de los locales de hoy'>
 
             {/* Resumen por estado + leyenda de la vista */}
-            <div className='shrink-0 px-4 pt-2 pb-1 flex items-center gap-2.5 flex-wrap text-[10px] font-bold'>
+            <div className='shrink-0 px-3 lg:px-4 pt-2 pb-1 flex items-center gap-2 lg:gap-2.5 flex-wrap text-[10px] font-bold'>
                 {/* Resúmenes por estado — mismo estilo contorno, número resaltado */}
                 <span className='flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-lg bg-white border-2 border-emerald-500 text-emerald-700'>
                     <span className='relative flex h-[7px] w-[7px]'>
@@ -108,7 +108,7 @@ export default function LocalsOverview({ groups, now }) {
                     </span>
                 )}
 
-                <span className='flex items-center gap-1 font-semibold text-gray-500 ml-auto'>
+                <span className='flex items-center flex-wrap gap-1 font-semibold text-gray-500 max-lg:w-full lg:ml-auto'>
                     <span className='w-5 h-[7px] rounded-full bg-[#29c50c]/45 inline-block' /> total
                     <span className='w-5 h-[7px] rounded-full bg-[#1f9a08] inline-block ml-1.5' /> ➤ enviadas
                     <span className='text-gray-300'>· mayor → menor</span>

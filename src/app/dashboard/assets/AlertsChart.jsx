@@ -156,6 +156,26 @@ export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByL
             padding: { top: -8 },
         },
         tooltip: { shared: true, intersect: false, style: { fontSize: '11px' } },
+
+        /* En pantalla angosta, 160 px de etiqueta se comen la mitad del ancho y
+           las barras dejan de compararse entre sí, que es lo único que esta
+           gráfica hace. Se recorta la etiqueta, se achican los números de
+           adentro y la leyenda se alinea a la izquierda —al envolverse, el aire
+           libre queda de ese lado—. Los colores de cada etiqueta se conservan
+           tal cual: son el estado de monitoreo, no decoración. */
+        responsive: [{
+            breakpoint: 640,
+            options: {
+                yaxis: {
+                    labels: { style: { fontSize: '10px', fontWeight: 600, colors: chartData.labelColors }, maxWidth: 96 },
+                },
+                dataLabels: { style: { fontSize: '8.5px', fontWeight: 700, colors: ['#fff'] } },
+                plotOptions: {
+                    bar: { dataLabels: { total: { enabled: true, style: { fontSize: '9px', fontWeight: 800, color: '#334155' } } } },
+                },
+                legend: { horizontalAlign: 'left', fontSize: '10px', itemMargin: { horizontal: 4 } },
+            },
+        }],
     }) : null, [chartData]);
 
     // Totales globales del monitoreo (no solo de los locales graficados),
@@ -166,7 +186,7 @@ export default function AlertsChart({ dayCounts, clients, liveByLocal, silentByL
     const sinReportar = Object.keys(silentByLocal ?? {}).length;
 
     return (
-        <section className='shrink-0 border-b border-gray-200 px-2 pt-1' aria-label='Alertas por local hoy'>
+        <section className='shrink-0 border-b border-gray-200 px-1 sm:px-2 pt-1' aria-label='Alertas por local hoy'>
             <div className='flex items-center justify-between gap-2 px-2 pt-1 flex-wrap'>
                 <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>
                     Alertas por local — hoy {chartData && <span className='text-gray-300'>· {chartData.count} locales con alertas</span>}

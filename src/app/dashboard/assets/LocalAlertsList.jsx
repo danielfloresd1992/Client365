@@ -48,7 +48,7 @@ export default function LocalAlertsList({ datos, cargando, error, onReintentar }
 
             <ul className='divide-y divide-gray-100'>
                 {alertas.map(a => (
-                    <li key={a.id} className='py-1 grid gap-x-3 items-baseline grid-cols-[3.2rem_1fr_auto]'>
+                    <li key={a.id} className='py-1 grid gap-x-2 md:gap-x-3 items-baseline grid-cols-[2.8rem_minmax(0,1fr)_auto] md:grid-cols-[3.2rem_1fr_auto]'>
                         <span className='text-[10.5px] font-semibold tabular-nums text-gray-500'>{hora(a.hora)}</span>
                         <span className='text-[11px] text-gray-700 truncate' title={a.title || ''}>
                             {a.title || <em className='text-gray-400'>sin título</em>}
@@ -62,9 +62,10 @@ export default function LocalAlertsList({ datos, cargando, error, onReintentar }
 }
 
 
-/** Ocupa las cuatro columnas de la fila y se separa con una línea, no con aire. */
+/** Ocupa TODAS las columnas de la fila —cuatro en escritorio, dos en la rejilla
+ *  angosta de `LocalRow`— y se separa con una línea, no con aire. */
 const Marco = ({ children }) => (
-    <div className='md:col-span-4 mt-1 pt-1.5 pl-4 border-t border-dashed border-gray-200'>{children}</div>
+    <div className='col-span-2 md:col-span-4 mt-1 pt-1.5 pl-2 md:pl-4 border-t border-dashed border-gray-200'>{children}</div>
 );
 
 

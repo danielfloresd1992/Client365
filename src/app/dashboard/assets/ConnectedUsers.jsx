@@ -39,7 +39,7 @@ export default function ConnectedUsers() {
     return (
         <>
             {/* Cabecera con contador en vivo */}
-            <div className='shrink-0 px-4 pt-2 pb-1.5 border-b border-gray-100 flex items-center gap-2'>
+            <div className='shrink-0 px-4 pt-2 pb-1.5 border-b border-gray-100 flex items-center flex-wrap gap-x-2 gap-y-1'>
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-3.5 h-3.5 text-gray-400 shrink-0'>
                     <circle cx='12' cy='12' r='10'></circle>
                     <path d='M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20'></path>
@@ -56,7 +56,7 @@ export default function ConnectedUsers() {
             </div>
 
             {/* Lista de conectados */}
-            <div className='flex-1 min-h-0 overflow-y-auto px-3 py-2 flex flex-col gap-1.5'>
+            <div className='lg:flex-1 lg:min-h-0 lg:overflow-y-auto px-3 py-2 flex flex-col gap-1.5'>
                 {userState.length > 0 ? userState.map(userClient => {
                     const fullName = `${userClient.name || ''} ${userClient.surName || ''}`.trim();
                     const displayName = fullName.toLowerCase() === 'daniel flores' ? '···' : (fullName || 'Usuario');

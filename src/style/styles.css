@@ -8758,4 +8758,28 @@ body .jarvis-cell-highlight::after {
         .candado-halo { animation: none; }
         .candado-halo { opacity: .5; }
     }
+
+    /* ========================================================================
+       TIRA QUE SE CORRE CON EL DEDO, SIN BARRA A LA VISTA
+       ========================================================================
+       Para las filas de pestañas que en un teléfono no entran de una: se
+       arrastran de lado, pero la barra horizontal del sistema debajo de tres
+       botones mide casi tanto como los botones y se lee como un error de
+       maquetado, no como algo que se puede mover.
+
+       No esconde contenido: lo que no entra sigue estando y se alcanza
+       corriendo la tira. En escritorio la clase no cambia nada porque ahí las
+       pestañas entran completas y la barra nunca aparece.
+
+       Las tres formas hacen falta: `scrollbar-width` es la estándar,
+       `-ms-overflow-style` cubre el Edge viejo y `::-webkit-scrollbar` el
+       WebView de Cordova. */
+    .scroll-x-oculto {
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+
+    .scroll-x-oculto::-webkit-scrollbar {
+        display: none;
+    }
 }

@@ -29,6 +29,14 @@ import LocalAlertsList from './LocalAlertsList';
  * botón de desplegar: apretada, el botón empuja los números fuera de su
  * columna y las filas dejan de alinearse entre sí.
  *
+ * Debajo de `md` esas cuatro columnas no entran, y apilarlas de a una deja
+ * cuatro renglones por local —en una lista de cincuenta, cuatro pantallas de
+ * dedo—. Ahí la fila se rearma en tres renglones con posición explícita
+ * (`col-start`/`row-start`, que `md:col-auto md:row-auto` devuelve al flujo):
+ * arriba el nombre con los números a la derecha, que es la lectura que se
+ * busca; debajo el horario; y al pie la barra, a todo el ancho, que es donde
+ * mejor compara.
+ *
  *
  * SE DESPLIEGA, Y EMPIEZA A CARGAR ANTES DE QUE LA ABRAN
  *
@@ -78,7 +86,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             // petición liviana de más.
             onMouseEnter={() => precargarAlertas(local.id)}
             onFocus={() => precargarAlertas(local.id)}
-            className={`px-4 py-1.5 border-b border-gray-100 grid gap-x-3 gap-y-1 items-center grid-cols-1 md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_6.4rem]
+            className={`px-3 md:px-4 py-1.5 border-b border-gray-100 grid gap-x-2 md:gap-x-3 gap-y-1 items-center grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_6.4rem]
                 ${sinDvr ? 'bg-white ring-2 ring-inset ring-black'
                     : local.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
                         : local.state === 'live'
@@ -87,7 +95,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
 
             {/* Nombre + identificador de estado en vivo (un punto POR TIPO:
                 verde=analítico, azul=perimetral; ambos si coinciden) */}
-            <span className={`flex items-center gap-1.5 min-w-0 text-[11.5px] font-semibold ${sinDvr ? 'text-black font-black' : local.silent ? 'text-red-600' : dim ? 'text-gray-400' : 'text-gray-700'}`}
+            <span className={`col-start-1 row-start-1 md:col-auto md:row-auto flex items-center gap-1.5 min-w-0 text-[11.5px] font-semibold ${sinDvr ? 'text-black font-black' : local.silent ? 'text-red-600' : dim ? 'text-gray-400' : 'text-gray-700'}`}
                 title={sinDvr ? `${local.name} — falla de conexión con DVR desde las ${local.dvr.failedAtLabel ?? '—'}${local.dvr.reportedByName ? ` · lo pasó ${local.dvr.reportedByName}` : ''}`
                     : local.silent ? `${local.name} — sin actualización de alerta en el grupo`
                         : local.state === 'live' ? `${local.name} — en monitoreo ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ')}`
@@ -111,7 +119,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             </span>
 
             {/* Horario del día: franjas + estado con contexto */}
-            <span className='flex items-center flex-wrap gap-1 min-w-0'>
+            <span className='col-span-2 row-start-2 md:col-auto md:row-auto flex items-center flex-wrap gap-1 min-w-0'>
                 {local.ranges.map((r, i) => (
                     <span key={i}
                         title={r.type === 'perimeter' ? 'Franja perimetral' : 'Franja analítica'}
@@ -169,14 +177,14 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             </span>
 
             {/* Barra comparativa (escala común entre TODOS los locales) */}
-            <span className='relative h-[9px] rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
+            <span className='col-span-2 row-start-3 md:col-auto md:row-auto relative h-[9px] rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
                 <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-300/60' : 'bg-[#29c50c]/45'}`} style={{ width: `${(total / maxTotal) * 100}%` }} />
                 <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-400' : 'bg-[#1f9a08]'}`} style={{ width: `${(enviadas / maxTotal) * 100}%` }} />
             </span>
 
             {/* Números del día — visores analógicos (panel oscuro,
                 dígitos que ruedan cuando el conteo cambia en vivo) */}
-            <span className='flex items-center justify-end gap-1.5 text-[11.5px] whitespace-nowrap'>
+            <span className='col-start-2 row-start-1 md:col-auto md:row-auto flex items-center justify-end gap-1.5 text-[11.5px] whitespace-nowrap'>
                 <AnalogCounter value={total} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#f1f5f9'} />
                 <span className={dim ? 'text-gray-400' : 'text-amber-500'}>➤</span>
                 <AnalogCounter value={enviadas} fontSize='11px' weight={600} color={dim ? '#94a3b8' : '#fbbf24'} />

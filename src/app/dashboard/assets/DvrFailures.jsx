@@ -133,8 +133,8 @@ function Efectividad({ nombre, datos, etiqueta }) {
                 <span className='text-[9.5px] text-gray-400 truncate'>{nombre} · {etiqueta}</span>
             </header>
 
-            <div className='px-4 py-3 flex items-center gap-4'>
-                <span className={`text-[30px] font-black tabular-nums leading-none ${color}`}>
+            <div className='px-4 py-3 flex items-center gap-3 sm:gap-4'>
+                <span className={`text-[26px] sm:text-[30px] font-black tabular-nums leading-none ${color}`}>
                     {porcentaje}%
                 </span>
 
@@ -244,7 +244,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
         : `últimos ${days} días`;
 
     return (
-        <section className='flex flex-col gap-4 p-4' aria-label='Fallas de conexión con DVR'>
+        <section className='flex flex-col gap-3 sm:gap-4 p-3 sm:p-4' aria-label='Fallas de conexión con DVR'>
 
             {/* ── 1. Lo que está caído AHORA ───────────────────────────── */}
             <div className={`rounded-xl border-2 overflow-hidden transition-colors
@@ -280,10 +280,10 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                 {hayCaidos && (
                     <ul className='divide-y divide-[#1b1f23]'>
                         {caidos.map(f => (
-                            <li key={f._id ?? f.local} className='px-4 py-2 flex items-center gap-3 flex-wrap'>
+                            <li key={f._id ?? f.local} className='px-3 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-wrap'>
                                 <span className='shrink-0 h-[7px] w-[7px] rounded-full bg-red-500' />
 
-                                <span className='text-[12px] font-bold text-white min-w-0 truncate max-w-[16rem]'>
+                                <span className='text-[12px] font-bold text-white min-w-0 truncate max-w-full sm:max-w-[16rem]'>
                                     {f.localName || f.local?.name || 'Sin nombre'}
                                 </span>
 
@@ -296,7 +296,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                                 </span>
 
                                 {f.reportedByName && (
-                                    <span className='ml-auto text-[9.5px] text-gray-500 truncate'>
+                                    <span className='min-w-0 truncate sm:ml-auto text-[9.5px] text-gray-500'>
                                         lo pasó {f.reportedByName}
                                     </span>
                                 )}
@@ -311,7 +311,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                 Con un local elegido, el mapa y las tarjetas de abajo hablan
                 SOLO de él, y el ranking se reemplaza por su efectividad. El
                 bloque de arriba no cambia: lo caído ahora se mira entero. */}
-            <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-4 py-2.5 flex items-center gap-3 flex-wrap'>
+            <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 flex-wrap'>
                 <span className='text-[9.5px] font-bold uppercase tracking-wider text-gray-500'>
                     Consulta
                 </span>
@@ -337,7 +337,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
 
 
             {/* ── 2. El último mes ─────────────────────────────────────── */}
-            <div className='rounded-xl border border-gray-200 bg-[#0d1117] p-4'>
+            <div className='rounded-xl border border-gray-200 bg-[#0d1117] p-3 sm:p-4'>
                 <ActivityGreen
                     theme='dark'
                     data={datosDelMapa}
@@ -361,7 +361,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                     <Efectividad nombre={nombreSel} datos={efectividad} etiqueta={etiquetaDelRango} />
                 ) : (
                 <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
-                    <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
+                    <header className='px-4 py-2 border-b border-gray-100 flex items-baseline flex-wrap gap-x-2 gap-y-1'>
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Se caen más</h3>
                         <span className='text-[9.5px] text-gray-400'>{etiquetaDelRango}</span>
                         {stats?.totals && (
@@ -380,13 +380,13 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                             {porLocal.map((fila, i) => {
                                 const peor = porLocal[0]?.failures || 1;
                                 return (
-                                    <li key={String(fila._id)} className='px-4 py-1.5 border-b border-gray-50 flex items-center gap-2.5'>
+                                    <li key={String(fila._id)} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-1.5 sm:gap-2.5'>
                                         <span className='w-4 shrink-0 text-[9.5px] font-black tabular-nums text-gray-300'>{i + 1}</span>
                                         <span className='text-[11.5px] font-semibold text-gray-700 truncate flex-1 min-w-0'>
                                             {fila.localName || 'Sin nombre'}
                                         </span>
 
-                                        <span className='relative h-[7px] w-20 shrink-0 rounded-full bg-gray-100 overflow-hidden'>
+                                        <span className='relative h-[7px] w-10 sm:w-20 shrink-0 rounded-full bg-gray-100 overflow-hidden'>
                                             <span className='absolute inset-y-0 left-0 rounded-full bg-[#29c50c]'
                                                 style={{ width: `${(fila.failures / peor) * 100}%` }} />
                                         </span>
@@ -394,7 +394,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                                         <span className='w-7 shrink-0 text-right text-[11px] font-black tabular-nums text-gray-700'>
                                             {fila.failures}
                                         </span>
-                                        <span className='w-16 shrink-0 text-right text-[9.5px] tabular-nums text-gray-400'>
+                                        <span className='w-12 sm:w-16 shrink-0 text-right text-[9.5px] tabular-nums text-gray-400'>
                                             {formatDowntime(fila.downtimeMinutes)}
                                         </span>
 
@@ -413,7 +413,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
 
 
                 <div className='rounded-xl border border-gray-200 bg-white overflow-hidden'>
-                    <header className='px-4 py-2 border-b border-gray-100 flex items-baseline gap-2'>
+                    <header className='px-4 py-2 border-b border-gray-100 flex items-baseline flex-wrap gap-x-2 gap-y-1'>
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Historial</h3>
                         <span className='text-[9.5px] text-gray-400'>
                             {history?.total ? `${history.total} episodios · ${etiquetaDelRango}` : etiquetaDelRango}
@@ -427,7 +427,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                     ) : (
                         <ul className='max-h-[260px] overflow-y-auto'>
                             {episodios.map(ep => (
-                                <li key={ep._id} className='px-4 py-1.5 border-b border-gray-50 flex items-center gap-2 flex-wrap'>
+                                <li key={ep._id} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-2 flex-wrap'>
                                     <span className='text-[9.5px] font-bold tabular-nums text-gray-400 w-11 shrink-0'>
                                         {fechaDe(ep.failedAt)}
                                     </span>

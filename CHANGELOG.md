@@ -10,6 +10,32 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-09-03
+- **La sala de control (`/dashboard`) se mira en un teléfono.** (Claude Code,
+  Opus 5.) El panel estaba armado como un instrumento de altura fija —una
+  pantalla, sin desplazamiento— y en un teléfono esa misma regla dejaba al
+  panel central con unos doscientos píxeles mientras el riel de Operaciones se
+  quedaba con el resto. **El corte va en `lg`**: de ahí para arriba nada
+  cambió, ni un píxel; por debajo el panel deja de tener alto fijo, cada
+  sección crece con su contenido y lo que se desplaza es el documento.
+- **Las pestañas ya no se pisan con el contenido.** «Horario + alertas»,
+  «Gráfica detallada» y «Falla con DVR» no entran de una en pantalla angosta:
+  ahora la tira se corre con el dedo (`scroll-x-oculto`, utilidad nueva en
+  `styles.css`) en vez de encimarse. Sin barra a la vista: debajo de tres
+  botones mide casi tanto como los botones.
+- **La fila de cada local se rearma en tres renglones, no en cuatro.** Las
+  cuatro columnas de escritorio no entran debajo de `md`, y apilarlas de a una
+  daba cuatro renglones por local —en una lista de cincuenta, cuatro pantallas
+  de dedo—. Ahora: arriba el nombre con los contadores a la derecha, debajo el
+  horario, y al pie la barra a todo el ancho, que es donde mejor compara.
+- Además: la cinta de contadores reparte el ancho en vez de amontonarse; la
+  gráfica de ApexCharts recorta la etiqueta del local a 96 px por debajo de
+  640 px —160 px se comían la mitad del ancho y las barras dejaban de
+  compararse—; y el selector de establecimiento de la pestaña de DVR ocupa el
+  ancho disponible en vez de desbordar sus 230 px fijos.
+
+---
+
 ## 2026-09-01
 - **El mapa de bonificación pasa de franjas apiladas a un MOSAICO de baldosas,
   una por categoría del catálogo.** (Claude Code, Fable 5 · diseño verificado

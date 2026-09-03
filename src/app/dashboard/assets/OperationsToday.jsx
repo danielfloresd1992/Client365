@@ -300,7 +300,7 @@ export default function OperationsToday({ now }) {
                 </div>
             </div>
 
-            <div className='flex-1 min-h-0 overflow-y-auto px-3 py-2 flex flex-col gap-3'>
+            <div className='lg:flex-1 lg:min-h-0 lg:overflow-y-auto px-3 py-2 flex flex-col gap-3'>
                 {roster === null && (
                     <div className='flex flex-col gap-1.5 animate-pulse' aria-hidden='true'>
                         {Array.from({ length: 5 }, (_, i) => <div key={i} className='h-[52px] rounded-lg bg-gray-100' />)}
@@ -326,7 +326,7 @@ export default function OperationsToday({ now }) {
                                         type='button'
                                         onClick={() => toggleShift(key)}
                                         aria-expanded={open}
-                                        className='group w-full flex items-center gap-2 px-2.5 py-2 bg-gray-50/70 hover:bg-gray-100 transition-colors'
+                                        className='group w-full flex items-center flex-wrap gap-x-2 gap-y-1 px-2.5 py-2 bg-gray-50/70 hover:bg-gray-100 transition-colors'
                                     >
                                         <span className='text-[11px] font-bold text-gray-600 whitespace-nowrap'>
                                             {shift === 'Nocturno' ? '🌙' : '☀️'} {shift}

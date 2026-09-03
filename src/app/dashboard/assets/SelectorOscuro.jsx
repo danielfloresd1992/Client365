@@ -63,11 +63,11 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
     };
 
     return (
-        <div ref={caja} className='relative'>
+        <div ref={caja} className='relative w-full sm:w-auto'>
 
             <button type='button' onClick={() => setAbierto(v => !v)}
                 aria-expanded={abierto} aria-haspopup='listbox'
-                className='h-8 min-w-[230px] rounded-lg bg-[#161b22] border border-[#2b3138] px-2.5
+                className='h-8 w-full sm:w-auto sm:min-w-[230px] rounded-lg bg-[#161b22] border border-[#2b3138] px-2.5
                            flex items-center gap-2 text-[12.5px] font-bold text-white
                            hover:border-[#3d444d] transition-colors
                            focus:outline-none focus-visible:border-emerald-500'>
@@ -80,7 +80,7 @@ export default function SelectorOscuro({ valor = '', opciones = [], textoTodos =
             </button>
 
             {abierto && (
-                <div className='absolute z-40 mt-1 w-[280px] rounded-lg border border-[#2b3138]
+                <div className='absolute z-40 mt-1 w-full sm:w-[280px] rounded-lg border border-[#2b3138]
                                 bg-[#161b22] shadow-2xl shadow-black/50 overflow-hidden'>
 
                     <div className='p-2 border-b border-[#2b3138]'>

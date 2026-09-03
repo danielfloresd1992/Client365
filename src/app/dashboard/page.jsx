@@ -112,12 +112,12 @@ export default function Dashboard() {
     // riel de Operaciones a la derecha. El dock de navegación lo aporta
     // AppShell (layout raíz), común a toda la app.
     return (
-        <main className='w-full h-full bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col lg:flex-row overflow-hidden'>
+        <main className='w-full min-h-full lg:h-full bg-white border border-gray-200 rounded-xl shadow-sm flex flex-col lg:flex-row overflow-hidden'>
 
-                <div className='flex-1 min-w-0 min-h-0 flex flex-col'>
+                <div className='lg:flex-1 min-w-0 lg:min-h-0 flex flex-col'>
 
                 {/* ── Cinta superior: contadores vivos, reloj y último evento ── */}
-                <header className='shrink-0 px-5 py-3 border-b border-gray-200 flex items-center gap-x-6 gap-y-2 flex-wrap'>
+                <header className='shrink-0 px-3 py-2.5 lg:px-5 lg:py-3 border-b border-gray-200 flex items-center gap-x-4 lg:gap-x-6 gap-y-2 flex-wrap'>
                     <div className='flex items-center gap-2.5 min-w-0 pr-2'>
                         {/* Emblema de sala de control: medidor en placa clara */}
                         <span className='shrink-0 grid place-items-center w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 ring-1 ring-emerald-200'>
@@ -135,9 +135,9 @@ export default function Dashboard() {
                         </div>
                     </div>
 
-                    <div className='flex items-center gap-x-5 gap-y-2 ml-auto flex-wrap justify-end'>
+                    <div className='flex items-center gap-x-4 sm:gap-x-5 gap-y-2 w-full lg:w-auto lg:ml-auto flex-wrap justify-between sm:justify-end'>
                         {lastEvent && (
-                            <span className={`text-[10.5px] font-semibold truncate max-w-[220px] ${lastEvent.kind === 'start' ? 'text-emerald-600' : 'text-red-500'}`}
+                            <span className={`text-[10.5px] font-semibold truncate max-w-full sm:max-w-[220px] ${lastEvent.kind === 'start' ? 'text-emerald-600' : 'text-red-500'}`}
                                 title={`${lastEvent.kind === 'start' ? 'Inicio' : 'Fin'} de monitoreo ${lastEvent.typeLabel} — ${lastEvent.name}`}>
                                 {lastEvent.kind === 'start' ? '▶' : '■'} {lastEvent.typeLabel} — {lastEvent.name}
                             </span>
@@ -147,7 +147,7 @@ export default function Dashboard() {
                         <TickerStat label='◌ Ignor.' value={dayCounts?.totals?.ignoradas ?? 0} className='text-slate-400' />
                         <TickerStat label='➤ Enviadas' value={dayCounts?.totals?.enviadas ?? 0} className='text-amber-600' />
 
-                        <div className='flex flex-col items-end gap-[3px] leading-none border-l border-gray-200 pl-4'>
+                        <div className='flex flex-col items-end gap-[3px] leading-none border-gray-200 pl-0 sm:border-l sm:pl-4'>
                             <AnalogCounter value={clockLabel} fontSize='1.05rem' weight={500} color='#fbbf24' />
                             <span className='flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-600'>
                                 <span className='relative flex h-[6px] w-[6px]'>
@@ -162,7 +162,7 @@ export default function Dashboard() {
 
                         {/* Pestañas: gráfica y horario comparten la zona central;
                             cada vista usa TODO el alto con su propio scroll */}
-                        <div className='shrink-0 px-3 py-1.5 border-b border-gray-100 flex items-center gap-1.5'>
+                        <div className='shrink-0 px-3 py-1.5 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto scroll-x-oculto'>
                             {[
                                 { key: 'panorama', label: '🔗 Horario + alertas' },
                                 { key: 'grafica', label: '📊 Gráfica detallada' },
@@ -173,7 +173,7 @@ export default function Dashboard() {
                                     type='button'
                                     onClick={() => setCentralTab(t.key)}
                                     aria-pressed={centralTab === t.key}
-                                    className={`px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors
+                                    className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors
                                         ${centralTab === t.key
                                             ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
                                             : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
@@ -184,7 +184,7 @@ export default function Dashboard() {
 
                         </div>
 
-                        <div className='flex-1 min-h-0 overflow-y-auto'>
+                        <div className='lg:flex-1 lg:min-h-0 lg:overflow-y-auto'>
 
                         {/* Gráfica: composición del día por local (assets/AlertsChart) */}
                         {centralTab === 'grafica' && (
@@ -212,13 +212,19 @@ export default function Dashboard() {
                 </div>
 
                 {/* ── Riel derecho: personal (70%) + conectados App Manager (30%).
-                    Responsivo: en lg va al lado a toda altura con el split 70/30;
-                    en móvil baja debajo y cada sección apila con su alto mínimo. ── */}
+
+                    Responsivo, y el corte está en `lg` a propósito: de ahí para
+                    arriba el riel va al lado, a toda altura, con el split 70/30 y
+                    cada sección con su propio scroll —la sala de control cabe en
+                    una pantalla y no se desplaza—. Por debajo de `lg` baja debajo
+                    SIN alto fijo y SIN scroll propio: crece con su contenido y lo
+                    que se desplaza es el documento. Un alto mínimo acá dejaba al
+                    panel central con doscientos píxeles en un teléfono. ── */}
                 <aside className='shrink-0 lg:w-[280px] lg:h-full border-t lg:border-t-0 lg:border-l border-gray-200 flex flex-col'>
-                    <div className='flex flex-col overflow-hidden min-h-[280px] lg:min-h-0 lg:h-[70%]'>
+                    <div className='flex flex-col lg:overflow-hidden lg:min-h-0 lg:h-[70%]'>
                         <OperationsToday now={now} />
                     </div>
-                    <div className='flex flex-col overflow-hidden min-h-[170px] lg:min-h-0 lg:h-[30%] border-t border-gray-200'>
+                    <div className='flex flex-col lg:overflow-hidden lg:min-h-0 lg:h-[30%] border-t border-gray-200'>
                         <ConnectedUsers />
                     </div>
                 </aside>
