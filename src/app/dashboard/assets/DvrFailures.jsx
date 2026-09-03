@@ -272,7 +272,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                         </span>
                     )}
 
-                    <span className={`ml-auto text-[9px] font-bold uppercase tracking-wider ${hayCaidos ? 'text-gray-500' : 'text-gray-400'}`}>
+                    <span className={`ml-auto max-lg:ml-0 text-[9px] font-bold uppercase tracking-wider ${hayCaidos ? 'text-gray-500' : 'text-gray-400'}`}>
                         en vivo
                     </span>
                 </header>
@@ -280,7 +280,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                 {hayCaidos && (
                     <ul className='divide-y divide-[#1b1f23]'>
                         {caidos.map(f => (
-                            <li key={f._id ?? f.local} className='px-3 sm:px-4 py-2 flex items-center gap-2 sm:gap-3 flex-wrap'>
+                            <li key={f._id ?? f.local} className='px-3 sm:px-4 py-2 flex items-center gap-x-2 gap-y-1 sm:gap-3 flex-wrap'>
                                 <span className='shrink-0 h-[7px] w-[7px] rounded-full bg-red-500' />
 
                                 <span className='text-[12px] font-bold text-white min-w-0 truncate max-w-full sm:max-w-[16rem]'>
@@ -291,12 +291,15 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                                     desde {horaDe(f.failedAt)}
                                 </span>
 
-                                <span className='text-[10.5px] font-bold tabular-nums text-amber-400'>
+                                {/* Debajo de lg toma la misma pastilla que «desde HH:MM»:
+                                    envueltas en su propio renglón, las dos medidas son
+                                    pares y tienen que verse como tales. */}
+                                <span className='text-[10.5px] font-bold tabular-nums text-amber-400 max-lg:px-2 max-lg:py-[2px] max-lg:rounded max-lg:border max-lg:border-solid max-lg:border-amber-400/40'>
                                     {formatDowntime(f.elapsedMinutes)} sin cámaras
                                 </span>
 
                                 {f.reportedByName && (
-                                    <span className='min-w-0 truncate sm:ml-auto text-[9.5px] text-gray-500'>
+                                    <span className='min-w-0 truncate lg:ml-auto text-[9.5px] text-gray-500'>
                                         lo pasó {f.reportedByName}
                                     </span>
                                 )}
@@ -311,7 +314,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                 Con un local elegido, el mapa y las tarjetas de abajo hablan
                 SOLO de él, y el ranking se reemplaza por su efectividad. El
                 bloque de arriba no cambia: lo caído ahora se mira entero. */}
-            <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-3 sm:px-4 py-2.5 flex items-center gap-2 sm:gap-3 flex-wrap'>
+            <div className='rounded-xl border border-gray-200 bg-[#0d1117] px-3 sm:px-4 py-2.5 flex items-center gap-x-2 gap-y-1 sm:gap-3 flex-wrap'>
                 <span className='text-[9.5px] font-bold uppercase tracking-wider text-gray-500'>
                     Consulta
                 </span>
@@ -329,7 +332,8 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
 
                 {localSel && (
                     <button type='button' onClick={() => setLocalSel('')}
-                        className='text-[10.5px] font-bold text-gray-400 hover:text-white transition-colors'>
+                        className='text-[10.5px] font-bold text-gray-400 hover:text-white transition-colors
+                            max-lg:h-8 max-lg:inline-flex max-lg:items-center max-lg:px-2.5 max-lg:rounded-lg max-lg:border max-lg:border-solid max-lg:border-[#2b3138]'>
                         ✕ volver a todos
                     </button>
                 )}
@@ -365,7 +369,7 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                         <h3 className='text-[12px] font-black tracking-tight text-gray-700'>Se caen más</h3>
                         <span className='text-[9.5px] text-gray-400'>{etiquetaDelRango}</span>
                         {stats?.totals && (
-                            <span className='ml-auto text-[10px] font-bold tabular-nums text-gray-500'>
+                            <span className='ml-auto max-lg:ml-0 text-[10px] font-bold tabular-nums text-gray-500'>
                                 {stats.totals.failures} caídas · {formatDowntime(stats.totals.downtimeMinutes)}
                             </span>
                         )}
@@ -380,29 +384,37 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                             {porLocal.map((fila, i) => {
                                 const peor = porLocal[0]?.failures || 1;
                                 return (
-                                    <li key={String(fila._id)} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-1.5 sm:gap-2.5'>
+                                    <li key={String(fila._id)} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-x-1.5 gap-y-0.5 sm:gap-2.5 flex-wrap sm:flex-nowrap'>
                                         <span className='w-4 shrink-0 text-[9.5px] font-black tabular-nums text-gray-300'>{i + 1}</span>
                                         <span className='text-[11.5px] font-semibold text-gray-700 truncate flex-1 min-w-0'>
                                             {fila.localName || 'Sin nombre'}
                                         </span>
 
-                                        <span className='relative h-[7px] w-10 sm:w-20 shrink-0 rounded-full bg-gray-100 overflow-hidden'>
-                                            <span className='absolute inset-y-0 left-0 rounded-full bg-[#29c50c]'
-                                                style={{ width: `${(fila.failures / peor) * 100}%` }} />
-                                        </span>
-
-                                        <span className='w-7 shrink-0 text-right text-[11px] font-black tabular-nums text-gray-700'>
-                                            {fila.failures}
-                                        </span>
-                                        <span className='w-12 sm:w-16 shrink-0 text-right text-[9.5px] tabular-nums text-gray-400'>
-                                            {formatDowntime(fila.downtimeMinutes)}
-                                        </span>
-
-                                        {fila.stillDown > 0 && (
-                                            <span className='shrink-0 text-[8.5px] font-black uppercase px-1 py-[1px] rounded bg-black text-white'>
-                                                caído
+                                        {/* Las tres medidas y la chip bajan JUNTAS a un
+                                            segundo renglón debajo de sm, sangradas bajo el
+                                            nombre; de sm para arriba vuelven a la misma
+                                            línea con los anchos y huecos de siempre. La
+                                            barra es la que cede: su largo exacto no dice
+                                            nada, el nombre del local sí. */}
+                                        <span className='flex items-center gap-1.5 sm:gap-2.5 shrink-0 w-full sm:w-auto pl-[1.375rem] sm:pl-0'>
+                                            <span className='relative h-[7px] flex-1 sm:flex-none min-w-[2rem] sm:min-w-0 sm:w-20 rounded-full bg-gray-100 overflow-hidden'>
+                                                <span className='absolute inset-y-0 left-0 rounded-full bg-[#29c50c]'
+                                                    style={{ width: `${(fila.failures / peor) * 100}%` }} />
                                             </span>
-                                        )}
+
+                                            <span className='w-7 shrink-0 text-right text-[11px] font-black tabular-nums text-gray-700'>
+                                                {fila.failures}
+                                            </span>
+                                            <span className='w-12 sm:w-16 shrink-0 text-right text-[9.5px] tabular-nums text-gray-400 max-lg:whitespace-nowrap'>
+                                                {formatDowntime(fila.downtimeMinutes)}
+                                            </span>
+
+                                            {fila.stillDown > 0 && (
+                                                <span className='shrink-0 text-[8.5px] font-black uppercase px-1 py-[1px] rounded bg-black text-white'>
+                                                    caído
+                                                </span>
+                                            )}
+                                        </span>
                                     </li>
                                 );
                             })}
@@ -427,19 +439,25 @@ export default function DvrFailures({ locales = [], schedules = [], isWinter = f
                     ) : (
                         <ul className='max-h-[260px] overflow-y-auto'>
                             {episodios.map(ep => (
-                                <li key={ep._id} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-2 flex-wrap'>
+                                <li key={ep._id} className='px-3 sm:px-4 py-1.5 border-b border-gray-50 flex items-center gap-x-2 gap-y-0.5 sm:gap-2 flex-wrap'>
                                     <span className='text-[9.5px] font-bold tabular-nums text-gray-400 w-11 shrink-0'>
                                         {fechaDe(ep.failedAt)}
                                     </span>
                                     <span className='text-[11px] font-semibold text-gray-700 truncate flex-1 min-w-0'>
                                         {ep.localName || ep.local?.name || 'Sin nombre'}
                                     </span>
-                                    <span className='text-[9.5px] tabular-nums text-gray-500 shrink-0'>
-                                        {horaDe(ep.failedAt)} → {ep.restoredAt ? horaDe(ep.restoredAt) : '…'}
-                                    </span>
-                                    <span className={`text-[9.5px] font-bold tabular-nums shrink-0 w-[5.5rem] text-right
-                                        ${ep.active ? 'text-red-600' : 'text-gray-600'}`}>
-                                        {ep.active ? 'sin resolver' : formatDowntime(ep.downtimeMinutes)}
+                                    {/* Debajo de sm las dos medidas bajan JUNTAS a un
+                                        segundo renglón, sangradas bajo el nombre; de sm
+                                        para arriba vuelven a la misma línea con los
+                                        mismos huecos y anchos de siempre. */}
+                                    <span className='flex items-center gap-2 shrink-0 w-full sm:w-auto justify-between sm:justify-normal pl-[3.25rem] sm:pl-0'>
+                                        <span className='text-[9.5px] tabular-nums text-gray-500 shrink-0'>
+                                            {horaDe(ep.failedAt)} → {ep.restoredAt ? horaDe(ep.restoredAt) : '…'}
+                                        </span>
+                                        <span className={`text-[9.5px] font-bold tabular-nums shrink-0 w-auto sm:w-[5.5rem] text-right
+                                            ${ep.active ? 'text-red-600' : 'text-gray-600'}`}>
+                                            {ep.active ? 'sin resolver' : formatDowntime(ep.downtimeMinutes)}
+                                        </span>
                                     </span>
                                 </li>
                             ))}

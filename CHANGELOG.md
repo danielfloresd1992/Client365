@@ -10,6 +10,49 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-09-03 (2)
+- **Acabado de los elementos internos de la sala de control en teléfono.**
+  (Claude Code, Opus 5 · auditoría con 16 agentes: cinco lectores por zona,
+  dos revisores adversariales por hallazgo y una síntesis.) El pase anterior
+  arregló la ESTRUCTURA —alturas, rejillas, desplazamiento—; faltaba el
+  acabado. El diagnóstico de fondo: cada elemento seguía calibrado para el
+  ancho de escritorio y en el teléfono todos competían por los mismos 240-310
+  px. Se repetían tres patrones, y son los tres que se atacan:
+- **Piezas huérfanas.** Cinco sitios usaban `ml-auto` o `flex-wrap` y, al
+  envolverse, dejaban un elemento solo clavado contra un borde: el chevron del
+  acordeón de turnos, la chip «● N en línea» de Conectados, el rótulo «EN
+  VIVO» y el total de «Se caen más» en DVR, y la leyenda del panorama. Se
+  unificó el criterio: donde el contenido entra prohibiendo la envoltura va
+  `max-lg:flex-nowrap` y cede el rótulo fijo, no el dato vivo; donde no entra
+  ni así, va `max-lg:ml-0` y se envuelve a la izquierda.
+- **Texto que no podía partirse.** Ocho avisos y medidas llevaban
+  `whitespace-nowrap` heredado del escritorio y se derramaban fuera de su
+  celda. Ahora parten debajo de `md`. Y el nombre del establecimiento —que se
+  cortaba en seis letras, con dos locales distintos leyéndose los dos como
+  «Hum…»— pasa a dos líneas: el chip «🔔 contando» se queda en su icono debajo
+  de `lg` y le devuelve ~57 px al nombre.
+- **Segundas líneas de 8,5 px que decidían el ancho de un chip.** El desglose
+  analítico/perimetral y la nota «no cuentan como sin reportar» se guardan
+  debajo de `md`: eran las que dejaban chips de dos alturas contra chips de
+  una, y de ahí venía el desnivel del resumen. Los chips «por abrir» y
+  «cerraron» se esconden en teléfono SÓLO cuando valen 0, que es la misma
+  regla que el archivo ya aplicaba al de «sin conexión».
+- **Blancos de toque.** El interruptor de exento, el botón de desplegar la
+  fila, las pestañas y el cierre de sesión remoto pasan de ~20 px a 32-36 px
+  con `::after`, sin robarle un píxel de ancho a nada.
+- **La cinta superior pasa a rejilla de cuatro columnas** en vez de
+  `justify-between`: los contadores quedaban desparramados contra los dos
+  bordes y el reparto cambiaba solo según hubiera evento o no. El evento y el
+  reloj toman renglón propio. Y la tira de pestañas gana un degradado en el
+  borde derecho, porque cortada a la mitad sin barra visible parecía rota.
+- **Hallazgo aparte, no corregido:** `styles.css:124` tiene `button { border:
+  none }` sin capa, y la clase `border` de Tailwind sólo pone `border-width`.
+  Resultado: **cualquier botón con `border` sale sin borde, en todos los
+  anchos** — hoy le pasa al disparador del selector de establecimiento de la
+  pestaña de DVR. Los parches nuevos lo esquivan con `border-solid`. Arreglar
+  la raíz cambiaría el escritorio, así que queda a decisión del usuario.
+---
+
 ## 2026-09-03
 - **La sala de control (`/dashboard`) se mira en un teléfono.** (Claude Code,
   Opus 5.) El panel estaba armado como un instrumento de altura fija —una

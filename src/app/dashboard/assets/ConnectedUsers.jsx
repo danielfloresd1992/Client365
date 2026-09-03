@@ -39,14 +39,14 @@ export default function ConnectedUsers() {
     return (
         <>
             {/* Cabecera con contador en vivo */}
-            <div className='shrink-0 px-4 pt-2 pb-1.5 border-b border-gray-100 flex items-center flex-wrap gap-x-2 gap-y-1'>
+            <div className='shrink-0 px-4 max-lg:px-3 pt-2 pb-1.5 border-b border-gray-100 flex items-center flex-wrap max-lg:flex-nowrap gap-x-2 gap-y-1'>
                 <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-3.5 h-3.5 text-gray-400 shrink-0'>
                     <circle cx='12' cy='12' r='10'></circle>
                     <path d='M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20'></path>
                     <path d='M2 12h20'></path>
                 </svg>
-                <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap'>Conectados · App Manager</h2>
-                <span className='ml-auto flex items-center gap-1 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'>
+                <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400 whitespace-nowrap max-lg:min-w-0 max-lg:truncate'>Conectados · App Manager</h2>
+                <span className='ml-auto max-lg:shrink-0 flex items-center gap-1 text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'>
                     <span className='relative flex h-[6px] w-[6px]'>
                         <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75'></span>
                         <span className='relative inline-flex rounded-full h-[6px] w-[6px] bg-emerald-500'></span>
@@ -74,7 +74,7 @@ export default function ConnectedUsers() {
                                     onClick={() => closeRemoteSession(userClient)}
                                     title='Cerrar sesión de este usuario'
                                     aria-label='Cerrar sesión remota'
-                                    className='shrink-0 flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md px-1.5 py-1 transition-colors'
+                                    className='shrink-0 flex items-center gap-1 text-[10px] font-bold text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md px-1.5 py-1 max-lg:w-8 max-lg:h-8 max-lg:p-0 max-lg:justify-center transition-colors'
                                 >
                                     <svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round' className='w-3.5 h-3.5'>
                                         <path d='M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4'></path>

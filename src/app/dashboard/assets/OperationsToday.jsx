@@ -289,7 +289,7 @@ export default function OperationsToday({ now }) {
 
     return (
         <>
-            <div className='shrink-0 px-4 pt-2 pb-1.5 border-b border-gray-100'>
+            <div className='shrink-0 px-4 max-lg:px-3 pt-2 pb-1.5 border-b border-gray-100'>
                 <h2 className='text-[10px] font-bold uppercase tracking-wider text-gray-400'>Vienen hoy</h2>
                 <div className='flex items-center gap-1.5 pt-1 flex-wrap'>
                     <span className='text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'><b className='font-black'>{stats.enTurno}</b> en turno</span>
@@ -326,19 +326,19 @@ export default function OperationsToday({ now }) {
                                         type='button'
                                         onClick={() => toggleShift(key)}
                                         aria-expanded={open}
-                                        className='group w-full flex items-center flex-wrap gap-x-2 gap-y-1 px-2.5 py-2 bg-gray-50/70 hover:bg-gray-100 transition-colors'
+                                        className='group w-full flex items-center flex-wrap max-lg:flex-nowrap gap-x-2 gap-y-1 px-2.5 py-2 bg-gray-50/70 hover:bg-gray-100 transition-colors'
                                     >
                                         <span className='text-[11px] font-bold text-gray-600 whitespace-nowrap'>
                                             {shift === 'Nocturno' ? '🌙' : '☀️'} {shift}
                                         </span>
-                                        <span className='flex items-center gap-1 ml-auto'>
+                                        <span className='flex items-center gap-1 ml-auto max-lg:flex-wrap max-lg:justify-end'>
                                             {enTurno > 0 && (
-                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums'>
+                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-emerald-300 text-emerald-700 tabular-nums max-lg:whitespace-nowrap'>
                                                     <b className='text-[11px] font-black'>{enTurno}</b> en turno
                                                 </span>
                                             )}
                                             {tarde > 0 && (
-                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-rose-300 text-rose-600 tabular-nums' title='Llegaron tarde'>
+                                                <span className='text-[9.5px] font-semibold px-1.5 py-0.5 rounded-full border border-rose-300 text-rose-600 tabular-nums max-lg:whitespace-nowrap' title='Llegaron tarde'>
                                                     ⏰ <b className='text-[11px] font-black'>{tarde}</b>
                                                 </span>
                                             )}

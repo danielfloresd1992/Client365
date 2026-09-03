@@ -131,13 +131,15 @@ export default function Dashboard() {
                                 Sala de control
                                 <span className='text-[8.5px] font-black uppercase tracking-[0.14em] text-emerald-600 border border-emerald-300 rounded px-1 py-[1px]'>Live</span>
                             </h1>
-                            <p className='text-[10.5px] text-gray-500 capitalize truncate'>{dayLabel} · día operativo 08:00 → 07:00</p>
+                            <p className='text-[10px] sm:text-[10.5px] text-gray-500 capitalize truncate'>
+                                {dayLabel} · <span className='hidden sm:inline text-inherit'>día operativo{' '}</span>08:00 → 07:00
+                            </p>
                         </div>
                     </div>
 
-                    <div className='flex items-center gap-x-4 sm:gap-x-5 gap-y-2 w-full lg:w-auto lg:ml-auto flex-wrap justify-between sm:justify-end'>
+                    <div className='grid grid-cols-4 sm:flex sm:grid-cols-none items-center gap-x-1.5 sm:gap-x-5 gap-y-2 w-full lg:w-auto lg:ml-auto flex-wrap justify-between sm:justify-end'>
                         {lastEvent && (
-                            <span className={`text-[10.5px] font-semibold truncate max-w-full sm:max-w-[220px] ${lastEvent.kind === 'start' ? 'text-emerald-600' : 'text-red-500'}`}
+                            <span className={`col-span-4 sm:col-auto text-[10.5px] font-semibold truncate max-w-full sm:max-w-[220px] ${lastEvent.kind === 'start' ? 'text-emerald-600' : 'text-red-500'}`}
                                 title={`${lastEvent.kind === 'start' ? 'Inicio' : 'Fin'} de monitoreo ${lastEvent.typeLabel} — ${lastEvent.name}`}>
                                 {lastEvent.kind === 'start' ? '▶' : '■'} {lastEvent.typeLabel} — {lastEvent.name}
                             </span>
@@ -147,7 +149,7 @@ export default function Dashboard() {
                         <TickerStat label='◌ Ignor.' value={dayCounts?.totals?.ignoradas ?? 0} className='text-slate-400' />
                         <TickerStat label='➤ Enviadas' value={dayCounts?.totals?.enviadas ?? 0} className='text-amber-600' />
 
-                        <div className='flex flex-col items-end gap-[3px] leading-none border-gray-200 pl-0 sm:border-l sm:pl-4'>
+                        <div className='col-span-4 sm:col-auto flex flex-row items-center justify-center gap-2 sm:flex-col sm:items-end sm:justify-normal sm:gap-[3px] leading-none border-gray-200 pl-0 sm:border-l sm:pl-4'>
                             <AnalogCounter value={clockLabel} fontSize='1.05rem' weight={500} color='#fbbf24' />
                             <span className='flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider text-emerald-600'>
                                 <span className='relative flex h-[6px] w-[6px]'>
@@ -162,26 +164,32 @@ export default function Dashboard() {
 
                         {/* Pestañas: gráfica y horario comparten la zona central;
                             cada vista usa TODO el alto con su propio scroll */}
-                        <div className='shrink-0 px-3 py-1.5 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto scroll-x-oculto'>
-                            {[
-                                { key: 'panorama', label: '🔗 Horario + alertas' },
-                                { key: 'grafica', label: '📊 Gráfica detallada' },
-                                { key: 'dvr', label: '⛔ Falla con DVR' },
-                            ].map(t => (
-                                <button
-                                    key={t.key}
-                                    type='button'
-                                    onClick={() => setCentralTab(t.key)}
-                                    aria-pressed={centralTab === t.key}
-                                    className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-lg text-[11.5px] font-semibold transition-colors
-                                        ${centralTab === t.key
-                                            ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
-                                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
-                                >
-                                    {t.label}
-                                </button>
-                            ))}
+                        <div className='relative shrink-0'>
+                            <div className='px-3 pr-8 sm:pr-3 py-1.5 border-b border-gray-100 flex items-center gap-1.5 overflow-x-auto scroll-x-oculto max-lg:overscroll-x-contain'>
+                                {[
+                                    { key: 'panorama', label: '🔗 Horario + alertas' },
+                                    { key: 'grafica', label: '📊 Gráfica detallada' },
+                                    { key: 'dvr', label: '⛔ Falla con DVR' },
+                                ].map(t => (
+                                    <button
+                                        key={t.key}
+                                        type='button'
+                                        onClick={() => setCentralTab(t.key)}
+                                        aria-pressed={centralTab === t.key}
+                                        className={`shrink-0 whitespace-nowrap px-3 py-1.5 max-lg:py-2.5 rounded-lg text-[11.5px] font-semibold transition-colors
+                                            ${centralTab === t.key
+                                                ? 'bg-indigo-600 text-white shadow-sm hover:bg-indigo-700'
+                                                : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'}`}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
 
+                            {/* Aviso de que la tira sigue: apaga el borde derecho solo
+                                debajo de sm, que es donde las pestañas no entran.
+                                `bottom-px` deja ver el filete de la barra. */}
+                            <span aria-hidden='true' className='pointer-events-none absolute top-0 bottom-px right-0 w-8 bg-gradient-to-l from-white sm:hidden' />
                         </div>
 
                         <div className='lg:flex-1 lg:min-h-0 lg:overflow-y-auto'>

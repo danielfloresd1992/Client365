@@ -39,7 +39,7 @@ export default function LocalAlertsList({ datos, cargando, error, onReintentar }
 
     return (
         <Marco>
-            <div className='flex items-center gap-3 mb-1.5 text-[9.5px] font-bold uppercase tracking-wider'>
+            <div className='flex items-center gap-3 max-md:flex-wrap max-md:gap-x-2 max-md:gap-y-0.5 mb-1.5 text-[9.5px] font-bold uppercase tracking-wider'>
                 <span className='text-gray-500'>{datos.resumen.total} del día</span>
                 {datos.resumen.aprobadas > 0 && <span className='text-emerald-600'>{datos.resumen.aprobadas} aprobadas</span>}
                 {datos.resumen.rechazadas > 0 && <span className='text-red-600'>{datos.resumen.rechazadas} rechazadas</span>}
@@ -48,9 +48,9 @@ export default function LocalAlertsList({ datos, cargando, error, onReintentar }
 
             <ul className='divide-y divide-gray-100'>
                 {alertas.map(a => (
-                    <li key={a.id} className='py-1 grid gap-x-2 md:gap-x-3 items-baseline grid-cols-[2.8rem_minmax(0,1fr)_auto] md:grid-cols-[3.2rem_1fr_auto]'>
+                    <li key={a.id} className='py-1 grid gap-x-2 md:gap-x-3 items-baseline max-md:items-start grid-cols-[2.8rem_minmax(0,1fr)_auto] md:grid-cols-[3.2rem_1fr_auto]'>
                         <span className='text-[10.5px] font-semibold tabular-nums text-gray-500'>{hora(a.hora)}</span>
-                        <span className='text-[11px] text-gray-700 truncate' title={a.title || ''}>
+                        <span className='text-[11px] text-gray-700 truncate max-md:whitespace-normal max-md:line-clamp-2 max-md:break-words' title={a.title || ''}>
                             {a.title || <em className='text-gray-400'>sin título</em>}
                         </span>
                         <Validacion estado={a.validacion} detalle={a.detalle} />

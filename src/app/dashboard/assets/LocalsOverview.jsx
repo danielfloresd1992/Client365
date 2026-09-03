@@ -65,7 +65,7 @@ export default function LocalsOverview({ groups, now }) {
         <section className='flex flex-col' aria-label='Horario y alertas de los locales de hoy'>
 
             {/* Resumen por estado + leyenda de la vista */}
-            <div className='shrink-0 px-3 lg:px-4 pt-2 pb-1 flex items-center gap-2 lg:gap-2.5 flex-wrap text-[10px] font-bold'>
+            <div className='shrink-0 px-3 md:px-4 pt-2 pb-1 max-lg:pb-2 max-lg:border-b max-lg:border-gray-100 flex items-center gap-2 lg:gap-2.5 flex-wrap text-[10px] font-bold'>
                 {/* Resúmenes por estado — mismo estilo contorno, número resaltado */}
                 <span className='flex items-center gap-1.5 pl-1.5 pr-2.5 py-1 rounded-lg bg-white border-2 border-emerald-500 text-emerald-700'>
                     <span className='relative flex h-[7px] w-[7px]'>
@@ -73,24 +73,29 @@ export default function LocalsOverview({ groups, now }) {
                         <span className='relative inline-flex rounded-full h-[7px] w-[7px] bg-emerald-500'></span>
                     </span>
                     <b className='text-[16px] font-black tabular-nums leading-none'>{groups.live.length}</b>
-                    <span className='leading-tight'>en monitoreo<br />
-                        {(liveAnalytical > 0 || livePerimeter > 0) ? (
-                            <span className='text-[8.5px] font-bold uppercase tracking-wider tabular-nums'>
-                                {liveAnalytical > 0 && <span className='text-emerald-500'>● {liveAnalytical} analítico</span>}
-                                {liveAnalytical > 0 && livePerimeter > 0 && <span className='text-gray-300'> · </span>}
-                                {livePerimeter > 0 && <span className='text-sky-500'>● {livePerimeter} perimetral</span>}
-                            </span>
-                        ) : (
-                            <span className='text-[8.5px] font-bold uppercase tracking-wider text-emerald-500'>en vivo ahora</span>
-                        )}
+                    <span className='leading-tight'>en monitoreo
+                        {/* El desglose es la segunda línea del chip y en un teléfono
+                            es lo que decide su ancho: se guarda debajo de md, donde
+                            cada local ya lleva su punto verde o celeste. */}
+                        <span className='max-md:hidden'><br />
+                            {(liveAnalytical > 0 || livePerimeter > 0) ? (
+                                <span className='text-[8.5px] font-bold uppercase tracking-wider tabular-nums'>
+                                    {liveAnalytical > 0 && <span className='text-emerald-500'>● {liveAnalytical} analítico</span>}
+                                    {liveAnalytical > 0 && livePerimeter > 0 && <span className='text-gray-300'> · </span>}
+                                    {livePerimeter > 0 && <span className='text-sky-500'>● {livePerimeter} perimetral</span>}
+                                </span>
+                            ) : (
+                                <span className='text-[8.5px] font-bold uppercase tracking-wider text-emerald-500'>en vivo ahora</span>
+                            )}
+                        </span>
                     </span>
                 </span>
-                <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-amber-400 text-amber-700'>
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-amber-400 text-amber-700 ${groups.upcoming.length === 0 ? 'max-md:hidden' : ''}`}>
                     <span aria-hidden='true'>⏳</span>
                     <b className='text-[16px] font-black tabular-nums leading-none'>{groups.upcoming.length}</b>
                     <span>por abrir</span>
                 </span>
-                <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-slate-300 text-slate-500'>
+                <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-slate-300 text-slate-500 ${groups.done.length === 0 ? 'max-md:hidden' : ''}`}>
                     <span aria-hidden='true'>✔</span>
                     <b className='text-[16px] font-black tabular-nums leading-none'>{groups.done.length}</b>
                     <span>cerraron</span>
@@ -102,13 +107,18 @@ export default function LocalsOverview({ groups, now }) {
                     <span className='flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white border-2 border-black text-black'>
                         <span aria-hidden='true'>⛔</span>
                         <b className='text-[16px] font-black tabular-nums leading-none'>{sinConexion}</b>
-                        <span className='leading-tight'>sin conexión<br />
-                            <span className='text-[8.5px] font-bold uppercase tracking-wider text-gray-500'>no cuentan como sin reportar</span>
+                        <span className='leading-tight'>sin conexión
+                            {/* La regla de conteo es nota al pie: en un teléfono se
+                                lleva media pantalla para explicar lo que el número
+                                ya dice. Vuelve desde md. */}
+                            <span className='max-md:hidden'><br />
+                                <span className='text-[8.5px] font-bold uppercase tracking-wider text-gray-500'>no cuentan como sin reportar</span>
+                            </span>
                         </span>
                     </span>
                 )}
 
-                <span className='flex items-center flex-wrap gap-1 font-semibold text-gray-500 max-lg:w-full lg:ml-auto'>
+                <span className='flex items-center flex-wrap gap-1 font-semibold text-gray-500 max-md:hidden max-lg:w-full lg:ml-auto'>
                     <span className='w-5 h-[7px] rounded-full bg-[#29c50c]/45 inline-block' /> total
                     <span className='w-5 h-[7px] rounded-full bg-[#1f9a08] inline-block ml-1.5' /> ➤ enviadas
                     <span className='text-gray-300'>· mayor → menor</span>

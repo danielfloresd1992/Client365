@@ -86,7 +86,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             // petición liviana de más.
             onMouseEnter={() => precargarAlertas(local.id)}
             onFocus={() => precargarAlertas(local.id)}
-            className={`px-3 md:px-4 py-1.5 border-b border-gray-100 grid gap-x-2 md:gap-x-3 gap-y-1 items-center grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_6.4rem]
+            className={`px-3 md:px-4 py-1.5 max-md:py-2.5 border-b border-gray-100 grid gap-x-2 md:gap-x-3 gap-y-1 items-center grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(8.5rem,11.5rem)_minmax(10rem,14.5rem)_1fr_6.4rem]
                 ${sinDvr ? 'bg-white ring-2 ring-inset ring-black'
                     : local.silent ? 'bg-red-50 ring-1 ring-inset ring-red-300 animate-pulse'
                         : local.state === 'live'
@@ -111,7 +111,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                     <span className={`shrink-0 h-[6px] w-[6px] rounded-full ${local.state === 'upcoming' ? 'bg-gray-300' : 'bg-gray-200'}`} />
                 )}
                 {local.silent && !sinDvr && <span aria-hidden='true'>⚠</span>}
-                <span className='truncate'>{local.name}</span>
+                <span className='truncate max-md:whitespace-normal max-md:line-clamp-2 max-md:break-words'>{local.name}</span>
 
                 {/* El interruptor, pegado al nombre: es una decisión
                     SOBRE ESTE local y ahí es donde se lo busca. */}
@@ -119,7 +119,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             </span>
 
             {/* Horario del día: franjas + estado con contexto */}
-            <span className='col-span-2 row-start-2 md:col-auto md:row-auto flex items-center flex-wrap gap-1 min-w-0'>
+            <span className='col-span-2 row-start-2 md:col-auto md:row-auto flex items-center flex-wrap gap-1 max-md:gap-y-1.5 min-w-0'>
                 {local.ranges.map((r, i) => (
                     <span key={i}
                         title={r.type === 'perimeter' ? 'Franja perimetral' : 'Franja analítica'}
@@ -131,7 +131,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                         {r.label}
                     </span>
                 ))}
-                <span className={`text-[9.5px] font-bold whitespace-nowrap ${local.state === 'live' ? (liveP && !liveA ? 'text-sky-600' : 'text-emerald-600') : local.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
+                <span className={`text-[9.5px] font-bold whitespace-nowrap max-md:whitespace-normal ${local.state === 'live' ? (liveP && !liveA ? 'text-sky-600' : 'text-emerald-600') : local.state === 'upcoming' ? 'text-gray-500' : 'text-gray-400'}`}>
                     {local.state === 'live'
                         ? `● ${[liveA && 'analítico', liveP && 'perimetral'].filter(Boolean).join(' + ') || 'en vivo'} · ${local.stateLabel}`
                         : local.stateLabel}
@@ -144,21 +144,28 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                     filas buscando cuál está caída. */}
                 {sinDvr && (
                     <span className='text-[9.5px] font-black text-black whitespace-nowrap px-1.5 py-[1px] rounded border border-black bg-white'>
-                        ⛔ Falla de conexión con DVR{local.dvr.failedAtLabel ? ` · ${local.dvr.failedAtLabel}` : ''}
+                        {'⛔ '}
+                        {/* En un teléfono el chip largo se come el renglón entero.
+                            La hora —que es lo que se pregunta— y el ⛔ se quedan;
+                            la frase completa vuelve desde md. `text-inherit` es
+                            obligatorio: styles.css pinta `span` con var(--app-text). */}
+                        <span className='text-inherit max-md:hidden'>Falla de conexión con DVR</span>
+                        <span className='text-inherit hidden max-md:inline'>Falla DVR</span>
+                        {local.dvr.failedAtLabel ? ` · ${local.dvr.failedAtLabel}` : ''}
                     </span>
                 )}
 
                 {/* Ya volvió, pero estuvo ciego parte de la jornada.
                     Explica un conteo bajo sin señalar al operador. */}
                 {!sinDvr && (local.dvr?.episodes ?? 0) > 0 && (
-                    <span className='text-[9.5px] font-semibold text-gray-500 whitespace-nowrap'
+                    <span className='text-[9.5px] font-semibold text-gray-500 whitespace-nowrap max-md:whitespace-normal'
                         title={`Recuperó la conexión${local.dvr.restoredAtLabel ? ` a las ${local.dvr.restoredAtLabel}` : ''}`}>
                         sin DVR {formatDowntime(local.dvr.downtimeMinutes)} hoy
                     </span>
                 )}
 
                 {local.silent && !sinDvr && (
-                    <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap'>
+                    <span className='text-[9.5px] font-bold text-red-600 whitespace-nowrap max-md:whitespace-normal'>
                         ⚠ sin actualización al grupo{local.silentSince ? ` · ${formatSince(local.silentSince, now)}` : ' · sin envíos hoy'}
                     </span>
                 )}
@@ -169,7 +176,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                     qué este local nunca sale en el corte, aunque no
                     pueda cambiarlo. */}
                 {local.exempt && (
-                    <span className='text-[9.5px] font-semibold text-slate-500 whitespace-nowrap'
+                    <span className='text-[9.5px] font-semibold text-slate-500 whitespace-nowrap max-md:whitespace-normal'
                         title={`No entra en la lista "sin reportar al grupo"${local.exempt.byName ? ` · lo quitó ${local.exempt.byName}` : ''}${local.exempt.reason ? ` · ${local.exempt.reason}` : ''}`}>
                         🔕 fuera de la lista de sin reportar
                     </span>
@@ -177,7 +184,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
             </span>
 
             {/* Barra comparativa (escala común entre TODOS los locales) */}
-            <span className='col-span-2 row-start-3 md:col-auto md:row-auto relative h-[9px] rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
+            <span className='col-span-2 row-start-3 md:col-auto md:row-auto relative h-[9px] max-md:mt-1.5 rounded-full bg-gray-100 overflow-hidden min-w-[70px]'>
                 <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-300/60' : 'bg-[#29c50c]/45'}`} style={{ width: `${(total / maxTotal) * 100}%` }} />
                 <span className={`absolute inset-y-0 left-0 rounded-full ${dim ? 'bg-gray-400' : 'bg-[#1f9a08]'}`} style={{ width: `${(enviadas / maxTotal) * 100}%` }} />
             </span>
@@ -200,6 +207,7 @@ export default function LocalRow({ local, maxTotal, isAdmin, now }) {
                     aria-expanded={abierta}
                     title={abierta ? 'Cerrar las alertas del día' : 'Ver las alertas del día'}
                     className={`shrink-0 grid place-items-center w-5 h-5 rounded-full text-white transition-all
+                        max-lg:relative max-lg:after:absolute max-lg:after:-inset-2 max-lg:after:content-['']
                         ${abierta
                             ? 'bg-slate-800 rotate-180'
                             : 'bg-slate-600 hover:bg-slate-800'}`}>

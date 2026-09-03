@@ -9,9 +9,9 @@ import AnalogCounter from '@/components/AnalogCounter/AnalogCounter';
  */
 export function TickerStat({ label, value, className = '' }) {
     return (
-        <div className='flex flex-col items-end gap-[3px] leading-none'>
+        <div className='flex flex-col items-center sm:items-end gap-[3px] leading-none'>
             <AnalogCounter value={value} fontSize='1.05rem' weight={500} />
-            <span className={`text-[9px] font-bold uppercase tracking-wider ${className || 'text-gray-400'}`}>{label}</span>
+            <span className={`text-[9px] font-bold uppercase tracking-normal sm:tracking-wider whitespace-nowrap sm:whitespace-normal ${className || 'text-gray-400'}`}>{label}</span>
         </div>
     );
 }

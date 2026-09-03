@@ -65,12 +65,18 @@ export default function ExemptToggle({ local }) {
                 ? `${local.name} está FUERA de la lista "sin reportar al grupo"${local.exempt?.byName ? ` · lo quitó ${local.exempt.byName}` : ''}. Tocá para volver a contarlo.`
                 : `${local.name} entra en la lista "sin reportar al grupo". Tocá para dejar de contarlo.`}
             className={`shrink-0 text-[8.5px] font-black uppercase tracking-wider px-1.5 py-[2px] rounded border transition-colors
+                max-lg:px-1 max-lg:relative max-lg:after:absolute max-lg:after:-inset-2 max-lg:after:content-['']
                 disabled:opacity-40 disabled:cursor-wait
                 ${exento
                     ? 'bg-slate-700 text-white border-slate-700 hover:bg-slate-600'
                     : 'bg-white text-gray-400 border-gray-200 hover:border-gray-400 hover:text-gray-600'}`}
         >
-            {exento ? '🔕 sin contar' : '🔔 contando'}
+            {exento ? '🔕' : '🔔'}
+            {/* La palabra, solo desde lg: debajo, cada píxel del renglón es del
+                nombre del local. `text-inherit` es obligatorio — styles.css
+                pinta `span` con var(--app-text) y sobre el fondo oscuro del
+                estado exento el texto se volvería ilegible. */}
+            <span className='text-inherit max-lg:hidden'>{exento ? ' sin contar' : ' contando'}</span>
         </button>
     );
 }
