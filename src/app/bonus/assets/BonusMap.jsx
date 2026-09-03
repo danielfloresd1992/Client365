@@ -6,10 +6,10 @@ import usePaneo from '@/hook/usePaneo.js';
 import useCajasArrastrables from '@/hook/useCajasArrastrables.js';
 import useConfirm from '@/hook/useConfirm.js';
 import ControlesDeZoom from '@/components/ZoomControls.jsx';
-import { agruparParaSelector } from '@/libs/parser/estableshment';
+import EditorDeAlcance from './EditorDeAlcance.jsx';
 import {
     bonusPerAlert, formatBonus, formulaLabel, mismoEnAmbosTurnos,
-    nombresDelAlcance, describirAlcance,
+    nombresDelAlcance, describirAlcance, claveDeAsignacion, usosPorAlerta,
 } from './bonusRuleFormat';
 import SeccionDelMapa from './SeccionDelMapa.jsx';
 import { ANCHO_MAPA, MOSAICO, sinAchicar, Rotulo, ChipCategoria } from './mapaEstilos.jsx';
@@ -134,7 +134,7 @@ import { ANCHO_MAPA, MOSAICO, sinAchicar, Rotulo, ChipCategoria } from './mapaEs
  * doble clic, o todas juntas con «Reacomodar».
  */
 export default function BonusMap({
-    reglas, alertas, alcance, cargando, puedeEditar,
+    reglas, alertas, alcance, cargando, puedeEditar, conmutador,
     onEscribirAsignaciones, onEditarRegla, onNuevaRegla,
 }) {
 
@@ -498,6 +498,13 @@ export default function BonusMap({
             if (!n) return null;
 
             const r = n.getBoundingClientRect();
+
+            // Sin caja no hay medida: el lienzo puede estar OCULTO —la vista de
+            // lista lo tapa con `display:none`— y un rect en cero cacheado se
+            // vuelve una base falsa que sobrevive al volver. Se devuelve null y
+            // se mide de nuevo cuando el nodo tenga tamaño.
+            if (!r.width && !r.height) return null;
+
             const dx = quita?.x || 0;
             const dy = quita?.y || 0;
 
@@ -1018,7 +1025,17 @@ export default function BonusMap({
     };
 
 
-    if (cargando) return <Marco><p className='px-5 py-10 text-[13px] text-gray-500'>Cargando el mapa…</p></Marco>;
+    if (cargando) return (
+        <Marco>
+            {/* El conmutador va también acá: sin él, entrar con los datos
+                todavía en vuelo deja la pantalla sin forma de cambiar de vista. */}
+            <div className='px-5 pt-4 pb-3 border-b border-gray-100 flex flex-wrap items-center gap-2'>
+                <h2 className='text-[15px] font-bold text-gray-800 leading-tight'>Mapa de bonificación</h2>
+                {conmutador}
+            </div>
+            <p className='px-5 py-10 text-[13px] text-gray-500'>Cargando el mapa…</p>
+        </Marco>
+    );
 
     const activasReglas = (reglas || []).filter(r => r.active !== false);
     const aMano = cajas.posiciones.size;
@@ -1063,6 +1080,14 @@ export default function BonusMap({
                             <Rotulo>Reglas de bonificación</Rotulo>
                         </p>
                     </div>
+
+                    {/* Mapa o lista. Pegado al título y ANTES del `ml-auto`: en
+                        el racimo de la derecha lo correría de lugar «Reacomodar»,
+                        que aparece y desaparece según `aMano > 0`. La tarjeta de
+                        la lista lo pone en el mismo lugar de su encabezado, así
+                        el control no viaja al alternar. El `flex-wrap` del
+                        encabezado ya se ocupa de las pantallas angostas. */}
+                    {conmutador}
 
                     <div className='ml-auto flex items-center gap-2'>
                         {aMano > 0 && (
@@ -1583,38 +1608,9 @@ const COLOR_APAGADO = '#c3cad4';
 /** Lo apagado se muestra sin color, no se esconde. */
 const APAGADO = 'grayscale opacity-70';
 
-/**
- * La identidad de una asignación: su regla y su alcance.
- *
- * Dos asignaciones con la misma clave son la misma caja en el mapa. Las listas
- * se ORDENAN antes de comparar: los mismos seis locales cargados en distinto
- * orden son el mismo alcance, y sin ordenar cada uno tendría su caja.
- */
-const claveDeAsignacion = (asig) => {
-    const s = asig.scope || {};
-    const lista = (xs) => [...(xs || [])].map(String).sort().join(',');
-    return `${String(asig.rule)}|${s.mode || 'all'}|${lista(s.franchises)}|${lista(s.locals)}`;
-};
-
-
-/**
- * Los usos de una caja, agrupados por alerta.
- *
- * Cada alerta se escribe UNA vez aunque tenga la misma asignación repetida:
- * su `bonusRules` se manda entero, así que dos escrituras seguidas sobre la
- * misma alerta harían que la segunda pisara a la primera.
- */
-const usosPorAlerta = (usos = []) => {
-    const mapa = new Map();
-
-    for (const uso of usos) {
-        const clave = String(uso.alerta._id);
-        if (!mapa.has(clave)) mapa.set(clave, { alerta: uso.alerta, indices: [] });
-        mapa.get(clave).indices.push(uso.indice);
-    }
-
-    return [...mapa.values()];
-};
+/* `claveDeAsignacion` y `usosPorAlerta` se mudaron a `bonusRuleFormat.js`: la
+   vista de lista agrupa con las mismas, y dos definiciones de «la misma
+   asignación» harían que las dos vistas contaran distinto. */
 
 
 /** ¿Dos mapas de desplazamiento dicen lo mismo? */
@@ -2130,109 +2126,3 @@ function AsignarRegla({ alertas, reglas, categoriaDe, onCerrar, onAsignar }) {
 }
 
 
-/**
- * Editar el alcance de una asignación. Modal, porque el alcance puede ser una
- * lista larga de locales y en la caja del mapa no entra.
- *
- * No deja guardar un alcance a medias —'only' sin ningún elegido—: es lo que
- * el servidor rechaza, y con razón, porque no aplicaría en ningún lado.
- */
-function EditorDeAlcance({ catalogo, inicial, yaHayGeneral, onCerrar, onGuardar }) {
-    const [scope, setScope] = useState(inicial || { mode: 'all', franchises: [], locals: [] });
-
-    const alternar = (clave, id) => setScope(s => {
-        const actual = (s[clave] || []).map(String);
-        return { ...s, [clave]: actual.includes(String(id)) ? actual.filter(x => x !== String(id)) : [...actual, String(id)] };
-    });
-    const tildado = (clave, id) => (scope[clave] || []).some(x => String(x) === String(id));
-
-    const incompleto = scope.mode === 'only' && !scope.franchises?.length && !scope.locals?.length;
-    // Una segunda asignación general sería ambigua: el servidor la rechaza.
-    const generalDuplicada = scope.mode === 'all' && yaHayGeneral;
-    const puedeGuardar = !incompleto && !generalDuplicada;
-
-    return (
-        <div className='fixed inset-0 z-50 grid place-items-center p-4 bg-slate-900/50' onClick={onCerrar}>
-            <div className='bg-white rounded-2xl shadow-xl w-full max-w-[520px] max-h-[82vh] flex flex-col' onClick={e => e.stopPropagation()}>
-                <div className='px-5 pt-4 pb-3 border-b border-gray-100'>
-                    <h3 className='text-[15px] font-bold text-gray-800'>Dónde aplica esta asignación</h3>
-                    <div className='flex flex-wrap gap-1 mt-3'>
-                        {[{ key: 'all', label: 'Todos' }, { key: 'only', label: 'Solo estos' }, { key: 'except', label: 'Todos menos' }].map(m => (
-                            <button key={m.key} type='button' onClick={() => setScope(s => ({ ...s, mode: m.key }))}
-                                aria-pressed={scope.mode === m.key}
-                                className={`px-3 py-1.5 rounded-lg text-[11.5px] font-bold transition-colors
-                                    ${scope.mode === m.key ? 'bg-[#29c50c] text-white' : 'text-gray-600 bg-gray-100 hover:bg-gray-200'}`}>
-                                {m.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className='flex-1 min-h-0 overflow-y-auto p-3'>
-                    {scope.mode === 'all' ? (
-                        <p className='px-2 py-3 text-[12.5px] text-gray-600'>
-                            {generalDuplicada
-                                ? 'Esta alerta ya tiene una asignación general. Elegí «Solo estos» o «Todos menos» para esta.'
-                                : 'En todos los establecimientos. Un local que abra mañana queda cubierto solo.'}
-                        </p>
-                    ) : (
-                        <>
-                            <Grupo titulo='Marcas' items={catalogo.franchises} clave='franchises' tildado={tildado} alternar={alternar} />
-                            <Establecimientos catalogo={catalogo} tildado={tildado} alternar={alternar} />
-                        </>
-                    )}
-                </div>
-
-                <div className='px-5 py-3 border-t border-gray-100 flex items-center gap-2'>
-                    {incompleto && <span className='text-[11px] text-[#8a5a2b]'>Elegí al menos una marca o un establecimiento.</span>}
-                    <button type='button' onClick={onCerrar}
-                        className='ml-auto h-9 px-4 rounded-lg text-[12.5px] font-semibold text-gray-600 hover:bg-gray-100 transition-colors'>Cancelar</button>
-                    <button type='button' disabled={!puedeGuardar} onClick={() => onGuardar(scope)}
-                        className='h-9 px-4 rounded-lg text-[12.5px] font-bold text-white bg-[#29c50c] hover:bg-[#1f9a08] disabled:opacity-50 transition-colors'>
-                        Guardar
-                    </button>
-                </div>
-            </div>
-        </div>
-    );
-}
-
-/**
- * Los establecimientos como se piensan: los PERIMETRALES en un grupo propio y
- * los ANALÍTICOS por marca. Es la división que hace el reglamento —son tarifas
- * distintas—, y con setenta locales en una lista plana había que buscar uno
- * por uno.
- *
- * El armado vive en libs/parser/estableshment.js, junto al agrupador por
- * franquicia que ya usa el resto de la app.
- */
-function Establecimientos({ catalogo, tildado, alternar }) {
-    const grupos = useMemo(() => agruparParaSelector(catalogo.locals), [catalogo.locals]);
-
-    return (
-        <>
-            {grupos.perimetrales.length > 0 && (
-                <Grupo titulo='Perimetrales' items={grupos.perimetrales} clave='locals' tildado={tildado} alternar={alternar} />
-            )}
-            {grupos.analiticos.map(g => (
-                <Grupo key={g.titulo} titulo={`Analíticos · ${g.titulo}`} items={g.locales} clave='locals' tildado={tildado} alternar={alternar} />
-            ))}
-        </>
-    );
-}
-
-function Grupo({ titulo, items, clave, tildado, alternar }) {
-    if (!items?.length) return null;
-    return (
-        <>
-            <p className='px-2 pt-1 pb-1.5 text-[10px] font-bold uppercase tracking-wider text-gray-500'>{titulo}</p>
-            {items.map(o => (
-                <label key={o._id} className='flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-gray-50 cursor-pointer'>
-                    <input type='checkbox' checked={tildado(clave, o._id)} onChange={() => alternar(clave, o._id)}
-                        className='w-3.5 h-3.5 rounded accent-[#29c50c]' />
-                    <span className='text-[12px] text-gray-700 truncate'>{o.name}</span>
-                </label>
-            ))}
-        </>
-    );
-}

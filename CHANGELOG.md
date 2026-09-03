@@ -36,6 +36,41 @@ este archivo es el resumen humano del **qué** y el **porqué**.
 
 ---
 
+## 2026-09-03
+- **El mapa de bonificación gana una SEGUNDA VISTA: una lista de reglas
+  agrupada por categoría, con un conmutador Mapa/Lista.** (Claude Code, Opus 5
+  · diseño elegido por unanimidad de tres jueces sobre tres propuestas.) Con 40
+  alertas y 5 reglas el mapa dibuja un cable POR ASIGNACIÓN, y las curvas se
+  superponen hasta que no se puede seguir ninguna; encima obliga a bajar el
+  zoom al 50%, donde ya no se lee nada. La lista no dibuja nunca un elemento
+  por asignación: dibuja uno por **relación distinta** y la multiplicidad va
+  como número. Las 24 asignaciones que dicen lo mismo colapsan en un renglón de
+  alcance —con `claveDeAsignacion`, la misma clave con que el mapa agrupa sus
+  cajas del medio, así que las dos vistas colapsan igual—, la fila de la regla
+  arranca cerrada diciendo «24 alertas · 3 alcances», y los nombres se piden a
+  mano. El peor caso ocupa una fila hasta que alguien pregunte.
+- La jerarquía es categoría → **regla** → alcance → alerta. La regla es la fila
+  porque es la unidad de plata —lo que el reglamento nombra con su código— y
+  porque editarla cambia lo que cobran todas sus alertas: tener el «quiénes» al
+  lado del botón «Editar» es el dato que hoy había que ir a buscar. Lo que la
+  lista NO contesta bien —«esta alerta, ¿bajo qué reglas paga?»— es la pregunta
+  del mapa, y por eso el mapa no se toca ni se degrada.
+- Un buscador filtra por regla, por código y por alerta a la vez: escribir el
+  nombre de una alerta abre sola la regla que la usa. Es el atajo que reemplaza
+  al arrastre.
+- **Cero servidor nuevo:** las escrituras del cableado pasan por el mismo
+  endpoint de siempre. Se mudaron a `bonusRuleFormat.js` las dos funciones puras
+  que definen «la misma asignación», y el editor de alcance salió a
+  `EditorDeAlcance.jsx` sin tocarle una línea, para que la lista no tuviera que
+  importar el mapa entero por un modal.
+- **El mapa se OCULTA, no se desmonta**, al pasar a la lista. Remontarlo vuelve
+  a pedir el catálogo y esa tanda tardía cae con la animación encendida: es
+  exactamente el bug del 31/08 otra vez, y el guard que lo arregló no lo atrapa
+  porque sólo distingue la restauración cuando el lienzo todavía no existe. De
+  paso, la medición ahora descarta un rect en ceros en vez de cachearlo.
+
+---
+
 ## 2026-09-01
 - **El mapa de bonificación pasa de franjas apiladas a un MOSAICO de baldosas,
   una por categoría del catálogo.** (Claude Code, Fable 5 · diseño verificado

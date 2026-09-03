@@ -132,3 +132,41 @@ export const describirAlcance = (scope, catalogo) => {
 
     return `${modo === 'only' ? 'solo' : 'todos menos'} ${nombres.join(', ')}`;
 };
+
+
+/**
+ * La identidad de una asignación: su regla y su alcance.
+ *
+ * Dos asignaciones con la misma clave son la misma caja en el mapa y el mismo
+ * renglón en la lista. Las listas se ORDENAN antes de comparar: los mismos seis
+ * locales cargados en distinto orden son el mismo alcance, y sin ordenar cada
+ * uno tendría su caja.
+ *
+ * Vive acá y no en el mapa desde que la lista agrupa con ella: dos definiciones
+ * de «la misma asignación» harían que las dos vistas contaran distinto.
+ */
+export const claveDeAsignacion = (asig) => {
+    const s = asig.scope || {};
+    const lista = (xs) => [...(xs || [])].map(String).sort().join(',');
+    return `${String(asig.rule)}|${s.mode || 'all'}|${lista(s.franchises)}|${lista(s.locals)}`;
+};
+
+
+/**
+ * Los usos de una asignación compartida, agrupados por alerta.
+ *
+ * Cada alerta se escribe UNA vez aunque tenga la misma asignación repetida: su
+ * `bonusRules` se manda entero, así que dos escrituras seguidas sobre la misma
+ * alerta harían que la segunda pisara a la primera.
+ */
+export const usosPorAlerta = (usos = []) => {
+    const mapa = new Map();
+
+    for (const uso of usos) {
+        const clave = String(uso.alerta._id);
+        if (!mapa.has(clave)) mapa.set(clave, { alerta: uso.alerta, indices: [] });
+        mapa.get(clave).indices.push(uso.indice);
+    }
+
+    return [...mapa.values()];
+};
